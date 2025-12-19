@@ -13,7 +13,7 @@ import { colors, spacing, borderRadius, typography, shadows } from '../theme';
 import { Flavor } from '../types';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
-const CARD_WIDTH = SCREEN_WIDTH * 0.75;
+const CARD_WIDTH = SCREEN_WIDTH * 0.85;
 
 interface FlavorCardProps {
   flavor: Flavor;
@@ -125,11 +125,16 @@ const FlavorCard: React.FC<FlavorCardProps> = ({ flavor, isActive, onPress }) =>
 const styles = StyleSheet.create({
   card: {
     width: CARD_WIDTH,
-    height: 420,
-    marginHorizontal: spacing.md,
+    height: 480,
+    marginHorizontal: spacing.sm,
     borderRadius: borderRadius.xl,
     overflow: 'hidden',
-    ...shadows.large,
+    backgroundColor: '#FFFFFF',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.25,
+    shadowRadius: 20,
+    elevation: 15,
   },
   cardGradient: {
     flex: 1,
@@ -139,30 +144,30 @@ const styles = StyleSheet.create({
   cupContainer: {
     alignItems: 'center',
     justifyContent: 'flex-end',
-    height: 220,
+    height: 260,
   },
   yogurtWrapper: {
     alignItems: 'center',
     marginBottom: -10,
   },
   swirlTop: {
-    width: 40,
-    height: 35,
-    borderRadius: 20,
+    width: 50,
+    height: 45,
+    borderRadius: 25,
     transform: [{ rotate: '-5deg' }],
   },
   swirlMiddle: {
-    width: 70,
-    height: 45,
-    borderRadius: 35,
-    marginTop: -15,
+    width: 85,
+    height: 55,
+    borderRadius: 42,
+    marginTop: -18,
     transform: [{ rotate: '5deg' }],
   },
   swirlBottom: {
-    width: 90,
-    height: 50,
-    borderRadius: 45,
-    marginTop: -20,
+    width: 110,
+    height: 60,
+    borderRadius: 55,
+    marginTop: -24,
   },
   swirlHighlight: {
     position: 'absolute',
@@ -175,11 +180,11 @@ const styles = StyleSheet.create({
   },
   cup: {
     alignItems: 'center',
-    width: 120,
+    width: 140,
   },
   cupRim: {
-    width: 110,
-    height: 12,
+    width: 130,
+    height: 14,
     backgroundColor: '#FFFFFF',
     borderTopLeftRadius: 50,
     borderTopRightRadius: 50,
@@ -188,11 +193,11 @@ const styles = StyleSheet.create({
     zIndex: 1,
   },
   cupBody: {
-    width: 100,
-    height: 65,
+    width: 118,
+    height: 75,
     backgroundColor: '#FFFFFF',
-    borderBottomLeftRadius: 10,
-    borderBottomRightRadius: 10,
+    borderBottomLeftRadius: 12,
+    borderBottomRightRadius: 12,
     marginTop: -2,
     borderWidth: 1,
     borderTopWidth: 0,
@@ -201,7 +206,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   cupBrand: {
-    fontSize: 10,
+    fontSize: 11,
     fontWeight: '800',
     color: colors.primary.darkGray,
     letterSpacing: 0.5,
@@ -209,24 +214,28 @@ const styles = StyleSheet.create({
   infoCircle: {
     backgroundColor: colors.background.card,
     borderRadius: borderRadius.round,
-    paddingVertical: spacing.lg,
+    paddingVertical: spacing.xl,
     paddingHorizontal: spacing.xl,
     alignItems: 'center',
-    marginTop: spacing.md,
-    width: '90%',
-    ...shadows.medium,
+    marginTop: spacing.lg,
+    width: '92%',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 8,
   },
   flavorName: {
-    fontSize: typography.fontSizes.xl,
+    fontSize: typography.fontSizes.xxl,
     fontWeight: typography.fontWeights.bold,
     color: colors.text.primary,
     marginBottom: spacing.xs,
   },
   flavorDescription: {
-    fontSize: typography.fontSizes.sm,
+    fontSize: typography.fontSizes.md,
     color: colors.text.secondary,
     textAlign: 'center',
-    lineHeight: 20,
+    lineHeight: 22,
   },
   badgeContainer: {
     flexDirection: 'row',

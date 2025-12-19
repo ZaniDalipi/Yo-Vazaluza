@@ -13,8 +13,8 @@ import { Flavor } from '../types';
 import { colors, spacing } from '../theme';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
-const CARD_WIDTH = SCREEN_WIDTH * 0.75;
-const CARD_MARGIN = spacing.md;
+const CARD_WIDTH = SCREEN_WIDTH * 0.85;
+const CARD_MARGIN = spacing.sm;
 const SNAP_INTERVAL = CARD_WIDTH + CARD_MARGIN * 2;
 
 interface FlavorSliderProps {
@@ -108,7 +108,9 @@ const FlavorSlider: React.FC<FlavorSliderProps> = ({ flavors, onFlavorSelect }) 
         horizontal
         showsHorizontalScrollIndicator={false}
         snapToInterval={SNAP_INTERVAL}
-        decelerationRate="fast"
+        snapToAlignment="center"
+        decelerationRate={0.9}
+        disableIntervalMomentum={true}
         contentContainerStyle={styles.listContent}
         onScroll={handleScroll}
         onMomentumScrollEnd={handleMomentumScrollEnd}

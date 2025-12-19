@@ -7,6 +7,7 @@ import {
   Dimensions,
   StatusBar,
   Easing,
+  TouchableOpacity,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
