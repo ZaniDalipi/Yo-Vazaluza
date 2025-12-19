@@ -21,13 +21,31 @@ import { colors, spacing, typography, borderRadius, shadows } from '../theme';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
-// Hero banner images - beautiful frozen yogurt images
-const heroBannerImages = [
-  { uri: 'https://images.unsplash.com/photo-1488900128323-21503983a07e?w=800&q=80' }, // Frozen yogurt cups
-  { uri: 'https://images.unsplash.com/photo-1501443762994-82bd5dace89a?w=800&q=80' }, // Yogurt with toppings
-  { uri: 'https://images.unsplash.com/photo-1563805042-7684c019e1cb?w=800&q=80' }, // Ice cream/yogurt swirl
-  { uri: 'https://images.unsplash.com/photo-1570197788417-0e82375c9371?w=800&q=80' }, // Frozen dessert
+// Load banner images from assets
+let bannerHeroImage: any = null;
+let bannerHeroOptionalImage: any = null;
+
+try {
+  bannerHeroImage = require('../../assets/images/banner_hero.jpg');
+} catch (e) {}
+
+try {
+  bannerHeroOptionalImage = require('../../assets/images/banner_hero_optional.jpg');
+} catch (e) {}
+
+// Fallback online images if local images not found
+const fallbackImages = [
+  { uri: 'https://images.unsplash.com/photo-1488900128323-21503983a07e?w=800&q=80' },
+  { uri: 'https://images.unsplash.com/photo-1501443762994-82bd5dace89a?w=800&q=80' },
 ];
+
+// Use local images if available, otherwise fallback to online
+const heroBannerImages = [
+  bannerHeroImage,
+  bannerHeroOptionalImage,
+].filter(Boolean).length > 0
+  ? [bannerHeroImage, bannerHeroOptionalImage].filter(Boolean)
+  : fallbackImages;
 
 const HomeScreen: React.FC = () => {
   const navigation = useNavigation<any>();
@@ -346,8 +364,8 @@ const HomeScreen: React.FC = () => {
 
   const renderGalleryPreview = () => {
     const galleryItems = [
-      { image: heroBannerImages[0], icon: 'ice-cream', label: 'Frozen Yogurt' },
-      { image: heroBannerImages[1], icon: 'sparkles', label: 'Toppings' },
+      { image: heroBannerImages[0], icon: 'ice-cream', label: 'Our Yogurt' },
+      { image: heroBannerImages[1] || heroBannerImages[0], icon: 'storefront', label: 'Our Store' },
     ];
 
     return (
