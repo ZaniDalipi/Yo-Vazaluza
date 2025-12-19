@@ -21,54 +21,32 @@ import { colors, spacing, typography, borderRadius, shadows } from '../theme';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
-// Load banner images from assets
-let bannerHeroImage: any = null;
-let bannerHeroOptionalImage: any = null;
+// Load main banner image from assets
 let mainBannerImage: any = null;
 
 try {
   mainBannerImage = require('../../assets/image.png');
 } catch (e) {}
 
-try {
-  bannerHeroImage = require('../../assets/banner_hero.png');
-} catch (e) {}
+// Fallback online image if local image not found
+const fallbackImage = { uri: 'https://images.unsplash.com/photo-1488900128323-21503983a07e?w=800&q=80' };
 
-try {
-  bannerHeroOptionalImage = require('../../assets/banner_hero_optional.png');
-} catch (e) {}
-
-// Fallback online images if local images not found
-const fallbackImages = [
-  { uri: 'https://images.unsplash.com/photo-1488900128323-21503983a07e?w=800&q=80' },
-  { uri: 'https://images.unsplash.com/photo-1501443762994-82bd5dace89a?w=800&q=80' },
-];
-
-// Use main image first, then other banner images
-const heroBannerImages = [
-  mainBannerImage,
-  bannerHeroImage,
-  bannerHeroOptionalImage,
-].filter(Boolean).length > 0
-  ? [mainBannerImage, bannerHeroImage, bannerHeroOptionalImage].filter(Boolean)
-  : fallbackImages;
+// Use only image.png for the banner
+const heroBannerImage = mainBannerImage || fallbackImage;
 
 const HomeScreen: React.FC = () => {
   const navigation = useNavigation<any>();
   const { storeInfo, flavors, promotions } = useApp();
-  const [activeSlide, setActiveSlide] = useState(0);
 
   // Animations
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(50)).current;
   const titleAnim = useRef(new Animated.Value(0)).current;
-  const bannerScaleAnim = useRef(new Animated.Value(1.15)).current;
+  const bannerScaleAnim = useRef(new Animated.Value(1)).current;
   const bannerOpacityAnim = useRef(new Animated.Value(0)).current;
   const shimmerAnim = useRef(new Animated.Value(0)).current;
   const floatAnim = useRef(new Animated.Value(0)).current;
   const pulseAnim = useRef(new Animated.Value(1)).current;
-
-  const bannerImages = heroBannerImages;
 
   useEffect(() => {
     // Main entrance animations
@@ -162,14 +140,6 @@ const HomeScreen: React.FC = () => {
         }),
       ])
     ).start();
-
-    // Auto-rotate banner images
-    if (bannerImages.length > 1) {
-      const interval = setInterval(() => {
-        setActiveSlide((prev) => (prev + 1) % bannerImages.length);
-      }, 5000);
-      return () => clearInterval(interval);
-    }
   }, []);
 
   const shimmerTranslate = shimmerAnim.interpolate({
@@ -204,26 +174,22 @@ const HomeScreen: React.FC = () => {
   );
 
   const renderHeroBanner = () => {
-    const currentImage = bannerImages[activeSlide];
-
     return (
       <View style={styles.heroBanner}>
-        {/* Background Image with Animations */}
-        {currentImage ? (
-          <Animated.View
-            style={[
-              StyleSheet.absoluteFill,
-              {
-                opacity: bannerOpacityAnim,
-                transform: [{ scale: bannerScaleAnim }],
-              },
-            ]}
+        {/* Background Image - Single image.png centered and full width */}
+        <Animated.View
+          style={[
+            StyleSheet.absoluteFill,
+            {
+              opacity: bannerOpacityAnim,
+            },
+          ]}
+        >
+          <ImageBackground
+            source={heroBannerImage}
+            style={styles.bannerImage}
+            resizeMode="cover"
           >
-            <ImageBackground
-              source={currentImage}
-              style={StyleSheet.absoluteFill}
-              resizeMode="cover"
-            >
               {/* Gradient Overlays for depth */}
               <LinearGradient
                 colors={['rgba(0,0,0,0.1)', 'rgba(0,0,0,0.4)', 'rgba(0,0,0,0.8)']}
@@ -343,22 +309,6 @@ const HomeScreen: React.FC = () => {
           </Animated.View>
         </View>
 
-        {/* Banner Dots */}
-        {bannerImages.length > 1 && (
-          <View style={styles.bannerDots}>
-            {bannerImages.map((_, index) => (
-              <TouchableOpacity
-                key={index}
-                onPress={() => setActiveSlide(index)}
-                style={[
-                  styles.bannerDot,
-                  index === activeSlide && styles.bannerDotActive,
-                ]}
-              />
-            ))}
-          </View>
-        )}
-
         {/* Bottom Shadow Fade */}
         <LinearGradient
           colors={['transparent', colors.background.main]}
@@ -370,8 +320,8 @@ const HomeScreen: React.FC = () => {
 
   const renderGalleryPreview = () => {
     const galleryItems = [
-      { image: heroBannerImages[0], icon: 'ice-cream', label: 'Our Yogurt' },
-      { image: heroBannerImages[1] || heroBannerImages[0], icon: 'storefront', label: 'Our Store' },
+      { image: heroBannerImage, icon: 'ice-cream', label: 'Our Yogurt' },
+      { image: heroBannerImage, icon: 'storefront', label: 'Our Store' },
     ];
 
     return (
@@ -516,6 +466,12 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
     overflow: 'hidden',
   },
+  bannerImage: {
+    width: '100%',
+    height: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   shimmer: {
     ...StyleSheet.absoluteFillObject,
     width: SCREEN_WIDTH * 0.5,
@@ -585,28 +541,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: spacing.md,
     marginTop: spacing.xl,
-  },
-  bannerDots: {
-    position: 'absolute',
-    bottom: 70,
-    left: 0,
-    right: 0,
-    flexDirection: 'row',
-    justifyContent: 'center',
-    gap: spacing.sm,
-  },
-  bannerDot: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    backgroundColor: 'rgba(255,255,255,0.4)',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.6)',
-  },
-  bannerDotActive: {
-    backgroundColor: colors.accent.gold,
-    width: 28,
-    borderColor: colors.accent.gold,
   },
   bottomFade: {
     position: 'absolute',
