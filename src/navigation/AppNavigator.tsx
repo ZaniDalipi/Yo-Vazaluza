@@ -1,10 +1,20 @@
 import React, { useState, useRef } from 'react';
-import { View, TouchableOpacity, StyleSheet, Animated, Text, Platform } from 'react-native';
+import {
+  View,
+  TouchableOpacity,
+  StyleSheet,
+  Animated,
+  Text,
+  Platform,
+  ImageBackground,
+  Image,
+} from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createStackNavigator } from '@react-navigation/stack';
 import { Ionicons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
+import { LinearGradient } from 'expo-linear-gradient';
 import {
   HomeScreen,
   FlavorsScreen,
@@ -20,6 +30,14 @@ import { colors, spacing, typography, borderRadius } from '../theme';
 const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();
 
+// Try to load store image for tab bar background
+let storeInteriorImage: any = null;
+try {
+  storeInteriorImage = require('../../assets/images/store-interior.jpg');
+} catch (e) {
+  // Image not found
+}
+
 // Custom animated tab bar icon
 const AnimatedTabIcon: React.FC<{
   name: string;
@@ -27,23 +45,58 @@ const AnimatedTabIcon: React.FC<{
   color: string;
 }> = ({ name, focused, color }) => {
   const scaleAnim = useRef(new Animated.Value(1)).current;
+  const glowAnim = useRef(new Animated.Value(0)).current;
 
   React.useEffect(() => {
-    Animated.spring(scaleAnim, {
-      toValue: focused ? 1.2 : 1,
-      friction: 5,
-      useNativeDriver: true,
-    }).start();
+    Animated.parallel([
+      Animated.spring(scaleAnim, {
+        toValue: focused ? 1.2 : 1,
+        friction: 5,
+        useNativeDriver: true,
+      }),
+      Animated.timing(glowAnim, {
+        toValue: focused ? 1 : 0,
+        duration: 200,
+        useNativeDriver: true,
+      }),
+    ]).start();
   }, [focused]);
 
   return (
-    <Animated.View style={{ transform: [{ scale: scaleAnim }] }}>
-      <Ionicons name={name as any} size={24} color={color} />
-    </Animated.View>
+    <View style={iconStyles.container}>
+      {focused && (
+        <Animated.View
+          style={[
+            iconStyles.glow,
+            {
+              opacity: glowAnim,
+              transform: [{ scale: scaleAnim }],
+            },
+          ]}
+        />
+      )}
+      <Animated.View style={{ transform: [{ scale: scaleAnim }] }}>
+        <Ionicons name={name as any} size={24} color={color} />
+      </Animated.View>
+    </View>
   );
 };
 
-// Custom tab bar with blur effect
+const iconStyles = StyleSheet.create({
+  container: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  glow: {
+    position: 'absolute',
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: colors.accent.gold + '30',
+  },
+});
+
+// Custom tab bar with blur effect and store image background
 const CustomTabBar: React.FC<any> = ({ state, descriptors, navigation }) => {
   // Secret admin access - tap 5 times on the logo area
   const [tapCount, setTapCount] = useState(0);
@@ -67,79 +120,120 @@ const CustomTabBar: React.FC<any> = ({ state, descriptors, navigation }) => {
     }, 2000);
   };
 
-  const TabBarWrapper = Platform.OS === 'web' ? View : BlurView;
-  const wrapperProps = Platform.OS === 'web' ? { style: styles.webBlurFallback } : { intensity: 80, tint: 'light' as const, style: styles.blurView };
+  const renderTabBarContent = () => (
+    <View style={styles.tabBar}>
+      {state.routes.map((route: any, index: number) => {
+        const { options } = descriptors[route.key];
+        const isFocused = state.index === index;
 
+        const onPress = () => {
+          const event = navigation.emit({
+            type: 'tabPress',
+            target: route.key,
+            canPreventDefault: true,
+          });
+
+          if (!isFocused && !event.defaultPrevented) {
+            navigation.navigate(route.name);
+          }
+        };
+
+        const iconName = getIconName(route.name, isFocused);
+
+        // Center tab (logo) with secret admin access
+        if (index === 2) {
+          return (
+            <TouchableOpacity
+              key={route.key}
+              style={styles.centerTab}
+              onPress={() => {
+                handleSecretTap();
+                onPress();
+              }}
+              activeOpacity={0.9}
+            >
+              <LinearGradient
+                colors={
+                  isFocused
+                    ? [colors.accent.gold, colors.accent.wood]
+                    : [colors.background.card, colors.background.card]
+                }
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={[styles.centerTabInner, isFocused && styles.centerTabActive]}
+              >
+                <Ionicons
+                  name="ice-cream"
+                  size={28}
+                  color={isFocused ? colors.text.light : colors.accent.gold}
+                />
+              </LinearGradient>
+            </TouchableOpacity>
+          );
+        }
+
+        return (
+          <TouchableOpacity
+            key={route.key}
+            style={styles.tab}
+            onPress={onPress}
+            activeOpacity={0.7}
+          >
+            <AnimatedTabIcon
+              name={iconName}
+              focused={isFocused}
+              color={isFocused ? colors.accent.gold : colors.text.light}
+            />
+            <Text
+              style={[
+                styles.tabLabel,
+                {
+                  color: isFocused ? colors.accent.gold : colors.text.light,
+                  fontWeight: isFocused ? '600' : '400',
+                },
+              ]}
+            >
+              {route.name}
+            </Text>
+          </TouchableOpacity>
+        );
+      })}
+    </View>
+  );
+
+  // Render with store image background
+  if (storeInteriorImage && Platform.OS !== 'web') {
+    return (
+      <View style={styles.tabBarContainer}>
+        <ImageBackground
+          source={storeInteriorImage}
+          style={styles.tabBarBackground}
+          resizeMode="cover"
+        >
+          <BlurView intensity={90} tint="dark" style={styles.blurOverlay}>
+            <LinearGradient
+              colors={['rgba(44,44,44,0.85)', 'rgba(74,74,74,0.95)']}
+              style={styles.gradientOverlay}
+            >
+              {renderTabBarContent()}
+            </LinearGradient>
+          </BlurView>
+        </ImageBackground>
+      </View>
+    );
+  }
+
+  // Web fallback or no image
   return (
     <View style={styles.tabBarContainer}>
-      <TabBarWrapper {...wrapperProps}>
-        <View style={styles.tabBar}>
-          {state.routes.map((route: any, index: number) => {
-            const { options } = descriptors[route.key];
-            const isFocused = state.index === index;
-
-            const onPress = () => {
-              const event = navigation.emit({
-                type: 'tabPress',
-                target: route.key,
-                canPreventDefault: true,
-              });
-
-              if (!isFocused && !event.defaultPrevented) {
-                navigation.navigate(route.name);
-              }
-            };
-
-            const iconName = getIconName(route.name, isFocused);
-
-            // Center tab (logo) with secret admin access
-            if (index === 2) {
-              return (
-                <TouchableOpacity
-                  key={route.key}
-                  style={styles.centerTab}
-                  onPress={() => {
-                    handleSecretTap();
-                    onPress();
-                  }}
-                  activeOpacity={0.9}
-                >
-                  <View style={[styles.centerTabInner, isFocused && styles.centerTabActive]}>
-                    <Ionicons
-                      name="ice-cream"
-                      size={28}
-                      color={isFocused ? colors.text.light : colors.accent.gold}
-                    />
-                  </View>
-                </TouchableOpacity>
-              );
-            }
-
-            return (
-              <TouchableOpacity
-                key={route.key}
-                style={styles.tab}
-                onPress={onPress}
-                activeOpacity={0.7}
-              >
-                <AnimatedTabIcon
-                  name={iconName}
-                  focused={isFocused}
-                  color={isFocused ? colors.accent.gold : colors.text.muted}
-                />
-                <Text
-                  style={[
-                    styles.tabLabel,
-                    { color: isFocused ? colors.accent.gold : colors.text.muted },
-                  ]}
-                >
-                  {route.name}
-                </Text>
-              </TouchableOpacity>
-            );
-          })}
-        </View>
-      </TabBarWrapper>
+      <LinearGradient
+        colors={[colors.primary.darkGray, colors.primary.gray]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.webTabBarBackground}
+      >
+        {renderTabBarContent()}
+      </LinearGradient>
     </View>
   );
 };
@@ -243,22 +337,27 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-  },
-  blurView: {
     overflow: 'hidden',
   },
-  webBlurFallback: {
-    backgroundColor: 'rgba(255, 255, 255, 0.95)',
-    backdropFilter: 'blur(10px)',
+  tabBarBackground: {
+    width: '100%',
+  },
+  blurOverlay: {
+    width: '100%',
+  },
+  gradientOverlay: {
+    width: '100%',
+  },
+  webTabBarBackground: {
+    width: '100%',
   },
   tabBar: {
     flexDirection: 'row',
     paddingBottom: spacing.xl,
-    paddingTop: spacing.sm,
+    paddingTop: spacing.md,
     paddingHorizontal: spacing.sm,
-    backgroundColor: 'rgba(255, 255, 255, 0.85)',
     borderTopWidth: 1,
-    borderTopColor: colors.ui.divider,
+    borderTopColor: 'rgba(201, 169, 98, 0.3)',
   },
   tab: {
     flex: 1,
@@ -269,31 +368,29 @@ const styles = StyleSheet.create({
   tabLabel: {
     fontSize: typography.fontSizes.xs,
     marginTop: 4,
-    fontWeight: typography.fontWeights.medium,
   },
   centerTab: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: -spacing.lg,
+    marginTop: -spacing.xl,
   },
   centerTabInner: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: colors.background.card,
+    width: 60,
+    height: 60,
+    borderRadius: 30,
     alignItems: 'center',
     justifyContent: 'center',
     shadowColor: colors.accent.gold,
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 8,
+    shadowOpacity: 0.4,
+    shadowRadius: 10,
+    elevation: 10,
     borderWidth: 3,
     borderColor: colors.accent.gold,
   },
   centerTabActive: {
-    backgroundColor: colors.accent.gold,
+    borderColor: colors.accent.wood,
   },
 });
 
