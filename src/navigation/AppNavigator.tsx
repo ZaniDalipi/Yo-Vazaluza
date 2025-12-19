@@ -7,7 +7,6 @@ import {
   Text,
   Platform,
   ImageBackground,
-  Image,
 } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
@@ -30,13 +29,8 @@ import { colors, spacing, typography, borderRadius } from '../theme';
 const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();
 
-// Try to load store image for tab bar background
-let storeInteriorImage: any = null;
-try {
-  storeInteriorImage = require('../../assets/images/store-interior.jpg');
-} catch (e) {
-  // Image not found
-}
+// Tab bar background image - beautiful frozen yogurt image
+const tabBarBackgroundImage = { uri: 'https://images.unsplash.com/photo-1563805042-7684c019e1cb?w=800&q=80' };
 
 // Custom animated tab bar icon
 const AnimatedTabIcon: React.FC<{
@@ -201,12 +195,12 @@ const CustomTabBar: React.FC<any> = ({ state, descriptors, navigation }) => {
     </View>
   );
 
-  // Render with store image background
-  if (storeInteriorImage && Platform.OS !== 'web') {
+  // Render with beautiful background image
+  if (Platform.OS !== 'web') {
     return (
       <View style={styles.tabBarContainer}>
         <ImageBackground
-          source={storeInteriorImage}
+          source={tabBarBackgroundImage}
           style={styles.tabBarBackground}
           resizeMode="cover"
         >

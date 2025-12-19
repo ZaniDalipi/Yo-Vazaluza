@@ -21,17 +21,13 @@ import { colors, spacing, typography, borderRadius, shadows } from '../theme';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
-// Load store images
-let storeInteriorImage: any = null;
-let storeFrontImage: any = null;
-
-try {
-  storeInteriorImage = require('../../assets/images/store-interior.jpg');
-} catch (e) {}
-
-try {
-  storeFrontImage = require('../../assets/images/store-front.jpg');
-} catch (e) {}
+// Hero banner images - beautiful frozen yogurt images
+const heroBannerImages = [
+  { uri: 'https://images.unsplash.com/photo-1488900128323-21503983a07e?w=800&q=80' }, // Frozen yogurt cups
+  { uri: 'https://images.unsplash.com/photo-1501443762994-82bd5dace89a?w=800&q=80' }, // Yogurt with toppings
+  { uri: 'https://images.unsplash.com/photo-1563805042-7684c019e1cb?w=800&q=80' }, // Ice cream/yogurt swirl
+  { uri: 'https://images.unsplash.com/photo-1570197788417-0e82375c9371?w=800&q=80' }, // Frozen dessert
+];
 
 const HomeScreen: React.FC = () => {
   const navigation = useNavigation<any>();
@@ -48,7 +44,7 @@ const HomeScreen: React.FC = () => {
   const floatAnim = useRef(new Animated.Value(0)).current;
   const pulseAnim = useRef(new Animated.Value(1)).current;
 
-  const bannerImages = [storeInteriorImage, storeFrontImage].filter(Boolean);
+  const bannerImages = heroBannerImages;
 
   useEffect(() => {
     // Main entrance animations
@@ -349,21 +345,25 @@ const HomeScreen: React.FC = () => {
   };
 
   const renderGalleryPreview = () => {
-    if (!storeInteriorImage && !storeFrontImage) return null;
+    const galleryItems = [
+      { image: heroBannerImages[0], icon: 'ice-cream', label: 'Frozen Yogurt' },
+      { image: heroBannerImages[1], icon: 'sparkles', label: 'Toppings' },
+    ];
 
     return (
       <View style={styles.galleryPreview}>
-        <Text style={styles.gallerySectionTitle}>Our Store</Text>
+        <Text style={styles.gallerySectionTitle}>Our Creations</Text>
         <View style={styles.galleryRow}>
-          {storeInteriorImage && (
+          {galleryItems.map((item, index) => (
             <TouchableOpacity
+              key={index}
               style={styles.galleryThumb}
               onPress={() => navigation.navigate('Gallery')}
               activeOpacity={0.9}
             >
               <Animated.View style={[styles.galleryImageContainer, { opacity: fadeAnim }]}>
                 <Image
-                  source={storeInteriorImage}
+                  source={item.image}
                   style={styles.galleryImage}
                   resizeMode="cover"
                 />
@@ -372,37 +372,13 @@ const HomeScreen: React.FC = () => {
                   style={styles.galleryOverlay}
                 >
                   <View style={styles.galleryLabelContainer}>
-                    <Ionicons name="storefront" size={16} color={colors.text.light} />
-                    <Text style={styles.galleryLabel}>Interior</Text>
+                    <Ionicons name={item.icon as any} size={16} color={colors.text.light} />
+                    <Text style={styles.galleryLabel}>{item.label}</Text>
                   </View>
                 </LinearGradient>
               </Animated.View>
             </TouchableOpacity>
-          )}
-          {storeFrontImage && (
-            <TouchableOpacity
-              style={styles.galleryThumb}
-              onPress={() => navigation.navigate('Gallery')}
-              activeOpacity={0.9}
-            >
-              <Animated.View style={[styles.galleryImageContainer, { opacity: fadeAnim }]}>
-                <Image
-                  source={storeFrontImage}
-                  style={styles.galleryImage}
-                  resizeMode="cover"
-                />
-                <LinearGradient
-                  colors={['transparent', 'rgba(0,0,0,0.7)']}
-                  style={styles.galleryOverlay}
-                >
-                  <View style={styles.galleryLabelContainer}>
-                    <Ionicons name="business" size={16} color={colors.text.light} />
-                    <Text style={styles.galleryLabel}>Storefront</Text>
-                  </View>
-                </LinearGradient>
-              </Animated.View>
-            </TouchableOpacity>
-          )}
+          ))}
         </View>
       </View>
     );
