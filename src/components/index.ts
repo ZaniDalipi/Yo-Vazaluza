@@ -5,3 +5,5 @@ export { default as MagicalParticles } from './MagicalParticles';
 export { default as AnimatedButton } from './AnimatedButton';
 export { default as ToppingCard } from './ToppingCard';
 export { default as GalleryCard } from './GalleryCard';
+export { default as HeroBanner } from './HeroBanner';
+export { default as ImageSlider } from './ImageSlider';
