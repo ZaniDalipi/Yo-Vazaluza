@@ -29,10 +29,14 @@ import { colors, spacing, typography, borderRadius } from '../theme';
 const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();
 
-// Tab bar background image - use local banner image
-let tabBarBackgroundImage: any = { uri: 'https://images.unsplash.com/photo-1563805042-7684c019e1cb?w=800&q=80' };
+// Tab bar background images - use both local banner images
+let tabBarImage1: any = { uri: 'https://images.unsplash.com/photo-1563805042-7684c019e1cb?w=800&q=80' };
+let tabBarImage2: any = { uri: 'https://images.unsplash.com/photo-1488900128323-21503983a07e?w=800&q=80' };
 try {
-  tabBarBackgroundImage = require('../../assets/banner_hero.png');
+  tabBarImage1 = require('../../assets/banner_hero.png');
+} catch (e) {}
+try {
+  tabBarImage2 = require('../../assets/banner_hero_optional.png');
 } catch (e) {}
 
 // Custom animated tab bar icon
@@ -198,24 +202,30 @@ const CustomTabBar: React.FC<any> = ({ state, descriptors, navigation }) => {
     </View>
   );
 
-  // Render with beautiful background image
+  // Render with both background images side by side
   if (Platform.OS !== 'web') {
     return (
       <View style={styles.tabBarContainer}>
-        <ImageBackground
-          source={tabBarBackgroundImage}
-          style={styles.tabBarBackground}
-          resizeMode="cover"
-        >
-          <BlurView intensity={90} tint="dark" style={styles.blurOverlay}>
-            <LinearGradient
-              colors={['rgba(44,44,44,0.85)', 'rgba(74,74,74,0.95)']}
-              style={styles.gradientOverlay}
-            >
-              {renderTabBarContent()}
-            </LinearGradient>
-          </BlurView>
-        </ImageBackground>
+        <View style={styles.tabBarImagesContainer}>
+          <ImageBackground
+            source={tabBarImage1}
+            style={styles.tabBarImageHalf}
+            resizeMode="cover"
+          />
+          <ImageBackground
+            source={tabBarImage2}
+            style={styles.tabBarImageHalf}
+            resizeMode="cover"
+          />
+        </View>
+        <BlurView intensity={80} tint="dark" style={styles.blurOverlayAbsolute}>
+          <LinearGradient
+            colors={['rgba(44,44,44,0.75)', 'rgba(74,74,74,0.90)']}
+            style={styles.gradientOverlay}
+          >
+            {renderTabBarContent()}
+          </LinearGradient>
+        </BlurView>
       </View>
     );
   }
@@ -335,6 +345,21 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     overflow: 'hidden',
+  },
+  tabBarImagesContainer: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    flexDirection: 'row',
+  },
+  tabBarImageHalf: {
+    flex: 1,
+    height: '100%',
+  },
+  blurOverlayAbsolute: {
+    width: '100%',
   },
   tabBarBackground: {
     width: '100%',
