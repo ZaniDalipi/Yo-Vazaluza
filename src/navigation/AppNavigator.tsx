@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { View, TouchableOpacity, StyleSheet, Animated, Text } from 'react-native';
+import { View, TouchableOpacity, StyleSheet, Animated, Text, Platform } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createStackNavigator } from '@react-navigation/stack';
@@ -67,9 +67,12 @@ const CustomTabBar: React.FC<any> = ({ state, descriptors, navigation }) => {
     }, 2000);
   };
 
+  const TabBarWrapper = Platform.OS === 'web' ? View : BlurView;
+  const wrapperProps = Platform.OS === 'web' ? { style: styles.webBlurFallback } : { intensity: 80, tint: 'light' as const, style: styles.blurView };
+
   return (
     <View style={styles.tabBarContainer}>
-      <BlurView intensity={80} tint="light" style={styles.blurView}>
+      <TabBarWrapper {...wrapperProps}>
         <View style={styles.tabBar}>
           {state.routes.map((route: any, index: number) => {
             const { options } = descriptors[route.key];
@@ -136,7 +139,7 @@ const CustomTabBar: React.FC<any> = ({ state, descriptors, navigation }) => {
             );
           })}
         </View>
-      </BlurView>
+      </TabBarWrapper>
     </View>
   );
 };
@@ -175,11 +178,30 @@ const MainTabs: React.FC = () => {
   );
 };
 
+const linking = {
+  prefixes: ['https://yo-vazaluza.com', 'yovazaluza://'],
+  config: {
+    screens: {
+      Main: {
+        screens: {
+          Home: '',
+          Flavors: 'flavors',
+          Toppings: 'toppings',
+          Gallery: 'gallery',
+          About: 'about',
+        },
+      },
+      AdminLogin: 'admin',
+      AdminPanel: 'admin/panel',
+    },
+  },
+};
+
 const AppNavigator: React.FC = () => {
   const { isAdmin } = useApp();
 
   return (
-    <NavigationContainer>
+    <NavigationContainer linking={Platform.OS === 'web' ? linking : undefined}>
       <Stack.Navigator
         screenOptions={{
           headerShown: false,
@@ -224,6 +246,10 @@ const styles = StyleSheet.create({
   },
   blurView: {
     overflow: 'hidden',
+  },
+  webBlurFallback: {
+    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+    backdropFilter: 'blur(10px)',
   },
   tabBar: {
     flexDirection: 'row',
