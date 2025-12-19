@@ -29,8 +29,11 @@ import { colors, spacing, typography, borderRadius } from '../theme';
 const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();
 
-// Tab bar background image - beautiful frozen yogurt image
-const tabBarBackgroundImage = { uri: 'https://images.unsplash.com/photo-1563805042-7684c019e1cb?w=800&q=80' };
+// Tab bar background image - use local banner image
+let tabBarBackgroundImage: any = { uri: 'https://images.unsplash.com/photo-1563805042-7684c019e1cb?w=800&q=80' };
+try {
+  tabBarBackgroundImage = require('../../assets/banner_hero.png');
+} catch (e) {}
 
 // Custom animated tab bar icon
 const AnimatedTabIcon: React.FC<{

@@ -26,11 +26,11 @@ let bannerHeroImage: any = null;
 let bannerHeroOptionalImage: any = null;
 
 try {
-  bannerHeroImage = require('../../assets/images/banner_hero.jpg');
+  bannerHeroImage = require('../../assets/banner_hero.png');
 } catch (e) {}
 
 try {
-  bannerHeroOptionalImage = require('../../assets/images/banner_hero_optional.jpg');
+  bannerHeroOptionalImage = require('../../assets/banner_hero_optional.png');
 } catch (e) {}
 
 // Fallback online images if local images not found
