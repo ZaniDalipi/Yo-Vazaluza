@@ -215,12 +215,6 @@ const HomeScreen: React.FC = () => {
               </Animated.View>
             </ImageBackground>
           </Animated.View>
-        ) : (
-          <LinearGradient
-            colors={[colors.primary.darkGray, colors.primary.gray, colors.accent.wood]}
-            style={StyleSheet.absoluteFill}
-          />
-        )}
 
         {/* Vignette effect */}
         <View style={styles.vignette} />
