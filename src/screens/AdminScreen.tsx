@@ -18,15 +18,16 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useApp } from '../context/AppContext';
 import { AnimatedButton } from '../components';
 import { colors, spacing, typography, borderRadius, shadows } from '../theme';
-import { Flavor, Topping, Promotion } from '../types';
+import { Flavor, Topping, Promotion, GalleryImage } from '../types';
 
-type AdminSection = 'flavors' | 'toppings' | 'promotions' | 'store' | 'settings';
+type AdminSection = 'flavors' | 'toppings' | 'promotions' | 'gallery' | 'store' | 'settings';
 
 const AdminScreen: React.FC = () => {
   const {
     flavors,
     toppings,
     promotions,
+    gallery,
     storeInfo,
     isAdmin,
     setAdminMode,
@@ -39,6 +40,9 @@ const AdminScreen: React.FC = () => {
     updatePromotion,
     addPromotion,
     deletePromotion,
+    updateGalleryImage,
+    addGalleryImage,
+    deleteGalleryImage,
     updateStoreInfo,
     resetToDefaults,
   } = useApp();
@@ -46,7 +50,7 @@ const AdminScreen: React.FC = () => {
   const [activeSection, setActiveSection] = useState<AdminSection>('flavors');
   const [editModalVisible, setEditModalVisible] = useState(false);
   const [editingItem, setEditingItem] = useState<any>(null);
-  const [editType, setEditType] = useState<'flavor' | 'topping' | 'promotion' | null>(null);
+  const [editType, setEditType] = useState<'flavor' | 'topping' | 'promotion' | 'gallery' | 'store' | null>(null);
 
   // Form states
   const [formData, setFormData] = useState<any>({});
@@ -84,23 +88,32 @@ const AdminScreen: React.FC = () => {
     );
   };
 
-  const openEditModal = (item: any, type: 'flavor' | 'topping' | 'promotion') => {
+  const openEditModal = (item: any, type: 'flavor' | 'topping' | 'promotion' | 'gallery' | 'store') => {
     setEditingItem(item);
     setEditType(type);
     setFormData({ ...item });
     setEditModalVisible(true);
   };
 
-  const openAddModal = (type: 'flavor' | 'topping' | 'promotion') => {
+  const openAddModal = (type: 'flavor' | 'topping' | 'promotion' | 'gallery') => {
     setEditingItem(null);
     setEditType(type);
-    setFormData(
-      type === 'flavor'
-        ? { name: '', description: '', color: '#4A3728', isVegan: false, isNew: false }
-        : type === 'topping'
-        ? { name: '', category: 'fruits' }
-        : { title: '', description: '', isActive: true }
-    );
+    if (type === 'flavor') {
+      setFormData({ name: '', description: '', color: '#4A3728', isVegan: false, isNew: false });
+    } else if (type === 'topping') {
+      setFormData({ name: '', category: 'fruits' });
+    } else if (type === 'promotion') {
+      setFormData({ title: '', description: '', isActive: true });
+    } else if (type === 'gallery') {
+      setFormData({ title: '', description: '', uri: '' });
+    }
+    setEditModalVisible(true);
+  };
+
+  const openStoreEditModal = () => {
+    setEditingItem(storeInfo);
+    setEditType('store');
+    setFormData({ ...storeInfo });
     setEditModalVisible(true);
   };
 
@@ -125,6 +138,14 @@ const AdminScreen: React.FC = () => {
       } else {
         addPromotion(formData as Promotion);
       }
+    } else if (editType === 'gallery') {
+      if (editingItem) {
+        updateGalleryImage({ ...editingItem, ...formData });
+      } else {
+        addGalleryImage(formData as GalleryImage);
+      }
+    } else if (editType === 'store') {
+      updateStoreInfo(formData);
     }
 
     setEditModalVisible(false);
@@ -132,7 +153,7 @@ const AdminScreen: React.FC = () => {
     setFormData({});
   };
 
-  const handleDelete = (id: string, type: 'flavor' | 'topping' | 'promotion') => {
+  const handleDelete = (id: string, type: 'flavor' | 'topping' | 'promotion' | 'gallery') => {
     Alert.alert(
       'Delete Item',
       'Are you sure you want to delete this item?',
@@ -144,7 +165,8 @@ const AdminScreen: React.FC = () => {
           onPress: () => {
             if (type === 'flavor') deleteFlavor(id);
             else if (type === 'topping') deleteTopping(id);
-            else deletePromotion(id);
+            else if (type === 'promotion') deletePromotion(id);
+            else if (type === 'gallery') deleteGalleryImage(id);
           },
         },
       ]
@@ -243,6 +265,34 @@ const AdminScreen: React.FC = () => {
         <TouchableOpacity
           style={styles.actionButton}
           onPress={() => handleDelete(promo.id, 'promotion')}
+        >
+          <Ionicons name="trash" size={18} color={colors.ui.error} />
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
+
+  const renderGalleryItem = (image: GalleryImage) => (
+    <View key={image.id} style={styles.listItem}>
+      <View style={styles.galleryThumb}>
+        <Ionicons name="image" size={20} color={colors.accent.gold} />
+      </View>
+      <View style={styles.listItemContent}>
+        <Text style={styles.listItemTitle}>{image.title}</Text>
+        <Text style={styles.listItemSubtitle} numberOfLines={1}>
+          {image.description || 'No description'}
+        </Text>
+      </View>
+      <View style={styles.listItemActions}>
+        <TouchableOpacity
+          style={styles.actionButton}
+          onPress={() => openEditModal(image, 'gallery')}
+        >
+          <Ionicons name="pencil" size={18} color={colors.accent.gold} />
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.actionButton}
+          onPress={() => handleDelete(image.id, 'gallery')}
         >
           <Ionicons name="trash" size={18} color={colors.ui.error} />
         </TouchableOpacity>
@@ -380,6 +430,130 @@ const AdminScreen: React.FC = () => {
                 </View>
               </>
             )}
+
+            {editType === 'gallery' && (
+              <>
+                <Text style={styles.inputLabel}>Title</Text>
+                <TextInput
+                  style={styles.input}
+                  value={formData.title}
+                  onChangeText={(text) => setFormData({ ...formData, title: text })}
+                  placeholder="Image title"
+                />
+
+                <Text style={styles.inputLabel}>Description</Text>
+                <TextInput
+                  style={[styles.input, styles.textArea]}
+                  value={formData.description}
+                  onChangeText={(text) => setFormData({ ...formData, description: text })}
+                  placeholder="Image description"
+                  multiline
+                />
+
+                <Text style={styles.inputLabel}>Image URL</Text>
+                <TextInput
+                  style={styles.input}
+                  value={formData.uri}
+                  onChangeText={(text) => setFormData({ ...formData, uri: text })}
+                  placeholder="https://example.com/image.jpg"
+                />
+              </>
+            )}
+
+            {editType === 'store' && (
+              <>
+                <Text style={styles.inputLabel}>Store Name</Text>
+                <TextInput
+                  style={styles.input}
+                  value={formData.name}
+                  onChangeText={(text) => setFormData({ ...formData, name: text })}
+                  placeholder="Store name"
+                />
+
+                <Text style={styles.inputLabel}>Tagline</Text>
+                <TextInput
+                  style={styles.input}
+                  value={formData.tagline}
+                  onChangeText={(text) => setFormData({ ...formData, tagline: text })}
+                  placeholder="Store tagline"
+                />
+
+                <Text style={styles.inputLabel}>Description</Text>
+                <TextInput
+                  style={[styles.input, styles.textArea]}
+                  value={formData.description}
+                  onChangeText={(text) => setFormData({ ...formData, description: text })}
+                  placeholder="Store description"
+                  multiline
+                />
+
+                <Text style={styles.inputLabel}>Address</Text>
+                <TextInput
+                  style={styles.input}
+                  value={formData.address}
+                  onChangeText={(text) => setFormData({ ...formData, address: text })}
+                  placeholder="Store address"
+                />
+
+                <Text style={styles.inputLabel}>Phone</Text>
+                <TextInput
+                  style={styles.input}
+                  value={formData.phone}
+                  onChangeText={(text) => setFormData({ ...formData, phone: text })}
+                  placeholder="Phone number"
+                  keyboardType="phone-pad"
+                />
+
+                <Text style={styles.inputLabel}>Email</Text>
+                <TextInput
+                  style={styles.input}
+                  value={formData.email}
+                  onChangeText={(text) => setFormData({ ...formData, email: text })}
+                  placeholder="Email address"
+                  keyboardType="email-address"
+                />
+
+                <Text style={styles.inputLabel}>Weekday Hours</Text>
+                <TextInput
+                  style={styles.input}
+                  value={formData.hours?.weekdays}
+                  onChangeText={(text) => setFormData({ ...formData, hours: { ...formData.hours, weekdays: text } })}
+                  placeholder="e.g., 10:00 - 22:00"
+                />
+
+                <Text style={styles.inputLabel}>Weekend Hours</Text>
+                <TextInput
+                  style={styles.input}
+                  value={formData.hours?.weekends}
+                  onChangeText={(text) => setFormData({ ...formData, hours: { ...formData.hours, weekends: text } })}
+                  placeholder="e.g., 11:00 - 23:00"
+                />
+
+                <Text style={styles.inputLabel}>Instagram Handle</Text>
+                <TextInput
+                  style={styles.input}
+                  value={formData.socialMedia?.instagram}
+                  onChangeText={(text) => setFormData({ ...formData, socialMedia: { ...formData.socialMedia, instagram: text } })}
+                  placeholder="@yourhandle"
+                />
+
+                <Text style={styles.inputLabel}>Facebook Page</Text>
+                <TextInput
+                  style={styles.input}
+                  value={formData.socialMedia?.facebook}
+                  onChangeText={(text) => setFormData({ ...formData, socialMedia: { ...formData.socialMedia, facebook: text } })}
+                  placeholder="Your Facebook page"
+                />
+
+                <Text style={styles.inputLabel}>TikTok Handle</Text>
+                <TextInput
+                  style={styles.input}
+                  value={formData.socialMedia?.tiktok}
+                  onChangeText={(text) => setFormData({ ...formData, socialMedia: { ...formData.socialMedia, tiktok: text } })}
+                  placeholder="@yourhandle"
+                />
+              </>
+            )}
           </ScrollView>
 
           <View style={styles.modalFooter}>
@@ -432,6 +606,7 @@ const AdminScreen: React.FC = () => {
         {renderNavItem('flavors', 'ice-cream', 'Flavors')}
         {renderNavItem('toppings', 'nutrition', 'Toppings')}
         {renderNavItem('promotions', 'gift', 'Promos')}
+        {renderNavItem('gallery', 'images', 'Gallery')}
         {renderNavItem('store', 'storefront', 'Store')}
         {renderNavItem('settings', 'settings', 'Settings')}
       </ScrollView>
@@ -487,15 +662,43 @@ const AdminScreen: React.FC = () => {
             </>
           )}
 
+          {activeSection === 'gallery' && (
+            <>
+              <View style={styles.sectionHeader}>
+                <Text style={styles.sectionTitle}>Gallery ({gallery.length})</Text>
+                <TouchableOpacity
+                  style={styles.addButton}
+                  onPress={() => openAddModal('gallery')}
+                >
+                  <Ionicons name="add" size={20} color={colors.text.light} />
+                  <Text style={styles.addButtonText}>Add</Text>
+                </TouchableOpacity>
+              </View>
+              {gallery.map(renderGalleryItem)}
+            </>
+          )}
+
           {activeSection === 'store' && (
             <View style={styles.storeSection}>
-              <Text style={styles.sectionTitle}>Store Information</Text>
+              <View style={styles.sectionHeader}>
+                <Text style={styles.sectionTitle}>Store Information</Text>
+                <TouchableOpacity
+                  style={styles.addButton}
+                  onPress={openStoreEditModal}
+                >
+                  <Ionicons name="pencil" size={18} color={colors.text.light} />
+                  <Text style={styles.addButtonText}>Edit</Text>
+                </TouchableOpacity>
+              </View>
               <View style={styles.storeCard}>
                 <Text style={styles.storeLabel}>Name</Text>
                 <Text style={styles.storeValue}>{storeInfo.name}</Text>
 
                 <Text style={styles.storeLabel}>Tagline</Text>
                 <Text style={styles.storeValue}>{storeInfo.tagline}</Text>
+
+                <Text style={styles.storeLabel}>Description</Text>
+                <Text style={styles.storeValue} numberOfLines={3}>{storeInfo.description}</Text>
 
                 <Text style={styles.storeLabel}>Address</Text>
                 <Text style={styles.storeValue}>{storeInfo.address}</Text>
@@ -505,6 +708,25 @@ const AdminScreen: React.FC = () => {
 
                 <Text style={styles.storeLabel}>Email</Text>
                 <Text style={styles.storeValue}>{storeInfo.email}</Text>
+
+                <Text style={styles.storeLabel}>Weekday Hours</Text>
+                <Text style={styles.storeValue}>{storeInfo.hours?.weekdays}</Text>
+
+                <Text style={styles.storeLabel}>Weekend Hours</Text>
+                <Text style={styles.storeValue}>{storeInfo.hours?.weekends}</Text>
+
+                <Text style={styles.storeLabel}>Social Media</Text>
+                <View style={styles.socialLinks}>
+                  {storeInfo.socialMedia?.instagram && (
+                    <Text style={styles.socialLink}>Instagram: {storeInfo.socialMedia.instagram}</Text>
+                  )}
+                  {storeInfo.socialMedia?.facebook && (
+                    <Text style={styles.socialLink}>Facebook: {storeInfo.socialMedia.facebook}</Text>
+                  )}
+                  {storeInfo.socialMedia?.tiktok && (
+                    <Text style={styles.socialLink}>TikTok: {storeInfo.socialMedia.tiktok}</Text>
+                  )}
+                </View>
               </View>
             </View>
           )}
@@ -644,6 +866,15 @@ const styles = StyleSheet.create({
     borderRadius: 5,
     marginRight: spacing.sm,
   },
+  galleryThumb: {
+    width: 40,
+    height: 40,
+    borderRadius: borderRadius.md,
+    backgroundColor: colors.accent.gold + '20',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: spacing.sm,
+  },
   listItemContent: {
     flex: 1,
   },
@@ -682,6 +913,14 @@ const styles = StyleSheet.create({
   storeValue: {
     fontSize: typography.fontSizes.md,
     color: colors.text.primary,
+    marginTop: spacing.xs,
+  },
+  socialLinks: {
+    marginTop: spacing.xs,
+  },
+  socialLink: {
+    fontSize: typography.fontSizes.sm,
+    color: colors.text.secondary,
     marginTop: spacing.xs,
   },
   settingsSection: {
