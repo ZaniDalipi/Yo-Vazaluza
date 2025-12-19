@@ -24,6 +24,11 @@ const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 // Load banner images from assets
 let bannerHeroImage: any = null;
 let bannerHeroOptionalImage: any = null;
+let mainBannerImage: any = null;
+
+try {
+  mainBannerImage = require('../../assets/image.png');
+} catch (e) {}
 
 try {
   bannerHeroImage = require('../../assets/banner_hero.png');
@@ -39,12 +44,13 @@ const fallbackImages = [
   { uri: 'https://images.unsplash.com/photo-1501443762994-82bd5dace89a?w=800&q=80' },
 ];
 
-// Use local images if available, otherwise fallback to online
+// Use main image first, then other banner images
 const heroBannerImages = [
+  mainBannerImage,
   bannerHeroImage,
   bannerHeroOptionalImage,
 ].filter(Boolean).length > 0
-  ? [bannerHeroImage, bannerHeroOptionalImage].filter(Boolean)
+  ? [mainBannerImage, bannerHeroImage, bannerHeroOptionalImage].filter(Boolean)
   : fallbackImages;
 
 const HomeScreen: React.FC = () => {
@@ -506,7 +512,7 @@ const styles = StyleSheet.create({
     paddingBottom: spacing.xxl + 80,
   },
   heroBanner: {
-    height: SCREEN_HEIGHT * 0.6,
+    height: SCREEN_HEIGHT * 0.75,
     justifyContent: 'flex-end',
     overflow: 'hidden',
   },
