@@ -9,6 +9,7 @@ import {
   StatusBar,
   Modal,
   Dimensions,
+  Easing,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -37,12 +38,16 @@ const GalleryScreen: React.FC = () => {
   // Animations
   const headerAnim = useRef(new Animated.Value(0)).current;
   const categoryAnim = useRef(new Animated.Value(0)).current;
+  const contentAnim = useRef(new Animated.Value(0)).current;
+  const modalAnim = useRef(new Animated.Value(0)).current;
+  const floatAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    Animated.stagger(200, [
+    Animated.stagger(150, [
       Animated.timing(headerAnim, {
         toValue: 1,
         duration: 600,
+        easing: Easing.out(Easing.cubic),
         useNativeDriver: true,
       }),
       Animated.spring(categoryAnim, {
@@ -50,8 +55,44 @@ const GalleryScreen: React.FC = () => {
         friction: 8,
         useNativeDriver: true,
       }),
+      Animated.timing(contentAnim, {
+        toValue: 1,
+        duration: 500,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: true,
+      }),
     ]).start();
+
+    // Floating animation
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(floatAnim, {
+          toValue: 1,
+          duration: 2000,
+          easing: Easing.inOut(Easing.ease),
+          useNativeDriver: true,
+        }),
+        Animated.timing(floatAnim, {
+          toValue: 0,
+          duration: 2000,
+          easing: Easing.inOut(Easing.ease),
+          useNativeDriver: true,
+        }),
+      ])
+    ).start();
   }, []);
+
+  useEffect(() => {
+    if (selectedImage) {
+      Animated.spring(modalAnim, {
+        toValue: 1,
+        friction: 8,
+        useNativeDriver: true,
+      }).start();
+    } else {
+      modalAnim.setValue(0);
+    }
+  }, [selectedImage]);
 
   const filteredGallery =
     activeCategory === 'all'
@@ -61,6 +102,11 @@ const GalleryScreen: React.FC = () => {
   const handleImagePress = (image: GalleryImage) => {
     setSelectedImage(image);
   };
+
+  const floatTranslate = floatAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0, -8],
+  });
 
   const renderCategoryButton = (category: typeof categories[0], index: number) => {
     const isActive = activeCategory === category.key;
@@ -84,19 +130,34 @@ const GalleryScreen: React.FC = () => {
           onPress={() => setActiveCategory(category.key)}
           activeOpacity={0.7}
         >
-          <Ionicons
-            name={category.icon as any}
-            size={18}
-            color={isActive ? colors.text.light : colors.text.secondary}
-          />
-          <Text
-            style={[
-              styles.categoryButtonText,
-              isActive && styles.categoryButtonTextActive,
-            ]}
-          >
-            {category.label}
-          </Text>
+          {isActive ? (
+            <LinearGradient
+              colors={[colors.accent.gold, colors.accent.wood]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.categoryButtonGradient}
+            >
+              <Ionicons
+                name={category.icon as any}
+                size={18}
+                color={colors.text.light}
+              />
+              <Text style={styles.categoryButtonTextActive}>
+                {category.label}
+              </Text>
+            </LinearGradient>
+          ) : (
+            <View style={styles.categoryButtonInner}>
+              <Ionicons
+                name={category.icon as any}
+                size={18}
+                color={colors.text.secondary}
+              />
+              <Text style={styles.categoryButtonText}>
+                {category.label}
+              </Text>
+            </View>
+          )}
         </TouchableOpacity>
       </Animated.View>
     );
@@ -114,11 +175,27 @@ const GalleryScreen: React.FC = () => {
           style={styles.modalClose}
           onPress={() => setSelectedImage(null)}
         >
-          <Ionicons name="close-circle" size={36} color={colors.text.light} />
+          <View style={styles.modalCloseButton}>
+            <Ionicons name="close" size={24} color={colors.text.light} />
+          </View>
         </TouchableOpacity>
 
         {selectedImage && (
-          <View style={styles.modalContent}>
+          <Animated.View
+            style={[
+              styles.modalContent,
+              {
+                transform: [
+                  {
+                    scale: modalAnim.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [0.8, 1],
+                    }),
+                  },
+                ],
+              },
+            ]}
+          >
             <LinearGradient
               colors={
                 selectedImage.category === 'store'
@@ -129,25 +206,32 @@ const GalleryScreen: React.FC = () => {
               }
               style={styles.modalImage}
             >
-              <Ionicons
-                name={
-                  selectedImage.category === 'store'
-                    ? 'storefront'
-                    : selectedImage.category === 'products'
-                    ? 'ice-cream'
-                    : 'heart'
-                }
-                size={80}
-                color="rgba(255,255,255,0.8)"
-              />
+              <Animated.View style={{ transform: [{ translateY: floatTranslate }] }}>
+                <Ionicons
+                  name={
+                    selectedImage.category === 'store'
+                      ? 'storefront'
+                      : selectedImage.category === 'products'
+                      ? 'ice-cream'
+                      : 'heart'
+                  }
+                  size={80}
+                  color="rgba(255,255,255,0.9)"
+                />
+              </Animated.View>
             </LinearGradient>
             <View style={styles.modalInfo}>
               <Text style={styles.modalTitle}>{selectedImage.title}</Text>
-              <View style={styles.modalBadge}>
+              <LinearGradient
+                colors={[colors.accent.gold, colors.accent.wood]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={styles.modalBadge}
+              >
                 <Text style={styles.modalBadgeText}>{selectedImage.category}</Text>
-              </View>
+              </LinearGradient>
             </View>
-          </View>
+          </Animated.View>
         )}
       </View>
     </Modal>
@@ -157,10 +241,17 @@ const GalleryScreen: React.FC = () => {
     <View style={styles.container}>
       <StatusBar barStyle="dark-content" />
 
+      {/* Background Gradient */}
+      <LinearGradient
+        colors={[colors.background.main, '#FAFAFA', colors.accent.cream + '15']}
+        locations={[0, 0.6, 1]}
+        style={StyleSheet.absoluteFill}
+      />
+
       {/* Background Particles */}
       <MagicalParticles
-        count={8}
-        colors={[colors.accent.gold + '30', colors.accent.cream + '30']}
+        count={10}
+        colors={[colors.accent.gold + '40', colors.accent.cream + '40', colors.flavors.strawberry + '30']}
       />
 
       <SafeAreaView style={styles.safeArea}>
@@ -181,8 +272,28 @@ const GalleryScreen: React.FC = () => {
             },
           ]}
         >
-          <Text style={styles.title}>Gallery</Text>
-          <Text style={styles.subtitle}>Explore our world</Text>
+          <View style={styles.headerRow}>
+            <View style={styles.headerIcon}>
+              <Ionicons name="images" size={24} color={colors.accent.gold} />
+            </View>
+            <View>
+              <Text style={styles.title}>Gallery</Text>
+              <Text style={styles.subtitle}>Explore our world</Text>
+            </View>
+          </View>
+
+          {/* Stats */}
+          <View style={styles.statsContainer}>
+            <View style={styles.statItem}>
+              <Text style={styles.statNumber}>{gallery.length}</Text>
+              <Text style={styles.statLabel}>Photos</Text>
+            </View>
+            <View style={styles.statDivider} />
+            <View style={styles.statItem}>
+              <Text style={styles.statNumber}>{categories.length - 1}</Text>
+              <Text style={styles.statLabel}>Categories</Text>
+            </View>
+          </View>
         </Animated.View>
 
         {/* Category Filter */}
@@ -197,28 +308,60 @@ const GalleryScreen: React.FC = () => {
         </View>
 
         {/* Gallery Grid */}
-        <ScrollView
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={styles.galleryContainer}
+        <Animated.View
+          style={[
+            styles.galleryWrapper,
+            {
+              opacity: contentAnim,
+              transform: [
+                {
+                  translateY: contentAnim.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [30, 0],
+                  }),
+                },
+              ],
+            },
+          ]}
         >
-          <View style={styles.galleryGrid}>
-            {filteredGallery.map((image, index) => (
-              <GalleryCard
-                key={image.id}
-                image={image}
-                index={index}
-                onPress={() => handleImagePress(image)}
-              />
-            ))}
-          </View>
+          <ScrollView
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={styles.galleryContainer}
+          >
+            {/* Active filter indicator */}
+            {activeCategory !== 'all' && (
+              <View style={styles.filterIndicator}>
+                <Ionicons name="filter" size={14} color={colors.accent.gold} />
+                <Text style={styles.filterText}>
+                  Showing {filteredGallery.length} {activeCategory} photos
+                </Text>
+              </View>
+            )}
 
-          {filteredGallery.length === 0 && (
-            <View style={styles.emptyState}>
-              <Ionicons name="images-outline" size={64} color={colors.text.muted} />
-              <Text style={styles.emptyText}>No images in this category</Text>
+            <View style={styles.galleryGrid}>
+              {filteredGallery.map((image, index) => (
+                <GalleryCard
+                  key={image.id}
+                  image={image}
+                  index={index}
+                  onPress={() => handleImagePress(image)}
+                />
+              ))}
             </View>
-          )}
-        </ScrollView>
+
+            {filteredGallery.length === 0 && (
+              <View style={styles.emptyState}>
+                <View style={styles.emptyIconContainer}>
+                  <Ionicons name="images-outline" size={48} color={colors.accent.gold} />
+                </View>
+                <Text style={styles.emptyTitle}>No images found</Text>
+                <Text style={styles.emptyText}>No photos in this category yet</Text>
+              </View>
+            )}
+
+            <View style={styles.bottomPadding} />
+          </ScrollView>
+        </Animated.View>
 
         {renderImageModal()}
       </SafeAreaView>
@@ -239,6 +382,19 @@ const styles = StyleSheet.create({
     paddingTop: spacing.lg,
     paddingBottom: spacing.sm,
   },
+  headerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+  },
+  headerIcon: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: colors.accent.gold + '15',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   title: {
     fontSize: typography.fontSizes.xxxl,
     fontWeight: typography.fontWeights.bold,
@@ -247,7 +403,37 @@ const styles = StyleSheet.create({
   subtitle: {
     fontSize: typography.fontSizes.md,
     color: colors.text.secondary,
-    marginTop: spacing.xs,
+    marginTop: 2,
+  },
+  statsContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: spacing.md,
+    backgroundColor: colors.background.card,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.lg,
+    borderRadius: borderRadius.lg,
+    alignSelf: 'flex-start',
+    ...shadows.small,
+  },
+  statItem: {
+    alignItems: 'center',
+    paddingHorizontal: spacing.md,
+  },
+  statNumber: {
+    fontSize: typography.fontSizes.xl,
+    fontWeight: typography.fontWeights.bold,
+    color: colors.accent.gold,
+  },
+  statLabel: {
+    fontSize: typography.fontSizes.xs,
+    color: colors.text.secondary,
+    marginTop: 2,
+  },
+  statDivider: {
+    width: 1,
+    height: 30,
+    backgroundColor: colors.text.muted + '30',
   },
   categoryContainer: {
     paddingVertical: spacing.md,
@@ -257,30 +443,62 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
   },
   categoryButton: {
+    marginRight: spacing.sm,
+    borderRadius: borderRadius.round,
+    overflow: 'hidden',
+  },
+  categoryButtonActive: {
+    shadowColor: colors.accent.gold,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 4,
+  },
+  categoryButtonGradient: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: spacing.sm,
     paddingHorizontal: spacing.md,
-    borderRadius: borderRadius.round,
-    backgroundColor: colors.background.card,
-    marginRight: spacing.sm,
-    ...shadows.small,
+    gap: spacing.xs,
   },
-  categoryButtonActive: {
-    backgroundColor: colors.accent.gold,
+  categoryButtonInner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+    backgroundColor: colors.background.card,
+    gap: spacing.xs,
   },
   categoryButtonText: {
     fontSize: typography.fontSizes.sm,
     fontWeight: typography.fontWeights.medium,
     color: colors.text.secondary,
-    marginLeft: spacing.xs,
   },
   categoryButtonTextActive: {
     color: colors.text.light,
+    fontWeight: typography.fontWeights.semibold,
+  },
+  galleryWrapper: {
+    flex: 1,
   },
   galleryContainer: {
     paddingHorizontal: spacing.lg,
-    paddingBottom: spacing.xxl,
+  },
+  filterIndicator: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    marginBottom: spacing.md,
+    paddingVertical: spacing.xs,
+    paddingHorizontal: spacing.sm,
+    backgroundColor: colors.accent.gold + '15',
+    borderRadius: borderRadius.md,
+    alignSelf: 'flex-start',
+  },
+  filterText: {
+    fontSize: typography.fontSizes.sm,
+    color: colors.accent.gold,
+    fontWeight: typography.fontWeights.medium,
   },
   galleryGrid: {
     flexDirection: 'row',
@@ -292,14 +510,31 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingVertical: spacing.xxl * 2,
   },
+  emptyIconContainer: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: colors.accent.gold + '15',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: spacing.md,
+  },
+  emptyTitle: {
+    fontSize: typography.fontSizes.lg,
+    fontWeight: typography.fontWeights.semibold,
+    color: colors.text.primary,
+  },
   emptyText: {
-    fontSize: typography.fontSizes.md,
+    fontSize: typography.fontSizes.sm,
     color: colors.text.muted,
-    marginTop: spacing.md,
+    marginTop: spacing.xs,
+  },
+  bottomPadding: {
+    height: 100,
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.9)',
+    backgroundColor: 'rgba(0, 0, 0, 0.95)',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -309,12 +544,21 @@ const styles = StyleSheet.create({
     right: 20,
     zIndex: 10,
   },
+  modalCloseButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   modalContent: {
     width: SCREEN_WIDTH * 0.9,
     maxHeight: SCREEN_HEIGHT * 0.7,
     borderRadius: borderRadius.xl,
     overflow: 'hidden',
     backgroundColor: colors.background.card,
+    ...shadows.large,
   },
   modalImage: {
     width: '100%',
@@ -336,7 +580,6 @@ const styles = StyleSheet.create({
     marginTop: spacing.md,
     paddingVertical: spacing.xs,
     paddingHorizontal: spacing.md,
-    backgroundColor: colors.accent.gold,
     borderRadius: borderRadius.round,
   },
   modalBadgeText: {
