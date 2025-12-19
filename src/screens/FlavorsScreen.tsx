@@ -13,12 +13,14 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { FlavorSlider, MagicalParticles } from '../components';
 import { useApp } from '../context/AppContext';
-import { colors, spacing, typography } from '../theme';
+import { colors, spacing, typography, shadows } from '../theme';
 import { Flavor } from '../types';
+import { DrawerActions, useNavigation } from '@react-navigation/native';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
 const FlavorsScreen: React.FC = () => {
+  const navigation = useNavigation<any>();
   const { flavors } = useApp();
   const [selectedFlavor, setSelectedFlavor] = useState<Flavor | null>(null);
 
@@ -136,6 +138,15 @@ const FlavorsScreen: React.FC = () => {
       />
 
       <SafeAreaView style={styles.safeArea}>
+        {/* Menu Button */}
+        <TouchableOpacity
+          style={styles.menuButton}
+          onPress={() => navigation.dispatch(DrawerActions.toggleDrawer())}
+          activeOpacity={0.8}
+        >
+          <Ionicons name="menu" size={24} color={colors.text.primary} />
+        </TouchableOpacity>
+
         {/* Header */}
         <Animated.View
           style={[
@@ -231,6 +242,19 @@ const styles = StyleSheet.create({
   },
   safeArea: {
     flex: 1,
+  },
+  menuButton: {
+    position: 'absolute',
+    top: spacing.md,
+    left: spacing.lg,
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    backgroundColor: colors.background.card,
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 100,
+    ...shadows.small,
   },
   decorCircle1: {
     position: 'absolute',

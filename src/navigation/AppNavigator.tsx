@@ -1,19 +1,21 @@
 import React, { useState, useRef } from 'react';
 import {
   View,
+  Text,
   TouchableOpacity,
   StyleSheet,
   Animated,
-  Text,
   Platform,
-  ImageBackground,
+  Image,
+  ScrollView,
+  Dimensions,
 } from 'react-native';
-import { NavigationContainer } from '@react-navigation/native';
-import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { NavigationContainer, DrawerActions } from '@react-navigation/native';
+import { createDrawerNavigator, DrawerContentScrollView } from '@react-navigation/drawer';
 import { createStackNavigator } from '@react-navigation/stack';
 import { Ionicons } from '@expo/vector-icons';
-import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
+import { BlurView } from 'expo-blur';
 import {
   HomeScreen,
   FlavorsScreen,
@@ -24,87 +26,37 @@ import {
   AdminScreen,
 } from '../screens';
 import { useApp } from '../context/AppContext';
-import { colors, spacing, typography, borderRadius } from '../theme';
+import { colors, spacing, typography, borderRadius, shadows } from '../theme';
 
-const Tab = createBottomTabNavigator();
+const Drawer = createDrawerNavigator();
 const Stack = createStackNavigator();
 
-// Tab bar background images - use both local banner images
-let tabBarImage1: any = { uri: 'https://images.unsplash.com/photo-1563805042-7684c019e1cb?w=800&q=80' };
-let tabBarImage2: any = { uri: 'https://images.unsplash.com/photo-1488900128323-21503983a07e?w=800&q=80' };
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
+
+// Load banner image for sidebar header
+let sidebarHeaderImage: any = null;
 try {
-  tabBarImage1 = require('../../assets/banner_hero.png');
-} catch (e) {}
-try {
-  tabBarImage2 = require('../../assets/banner_hero_optional.png');
+  sidebarHeaderImage = require('../../assets/image.png');
 } catch (e) {}
 
-// Custom animated tab bar icon
-const AnimatedTabIcon: React.FC<{
-  name: string;
-  focused: boolean;
-  color: string;
-}> = ({ name, focused, color }) => {
-  const scaleAnim = useRef(new Animated.Value(1)).current;
-  const glowAnim = useRef(new Animated.Value(0)).current;
+// Menu items configuration
+const menuItems = [
+  { name: 'Home', icon: 'home', iconFocused: 'home' },
+  { name: 'Flavors', icon: 'ice-cream-outline', iconFocused: 'ice-cream' },
+  { name: 'Toppings', icon: 'color-fill-outline', iconFocused: 'color-fill' },
+  { name: 'Gallery', icon: 'images-outline', iconFocused: 'images' },
+  { name: 'About', icon: 'information-circle-outline', iconFocused: 'information-circle' },
+];
 
-  React.useEffect(() => {
-    Animated.parallel([
-      Animated.spring(scaleAnim, {
-        toValue: focused ? 1.2 : 1,
-        friction: 5,
-        useNativeDriver: true,
-      }),
-      Animated.timing(glowAnim, {
-        toValue: focused ? 1 : 0,
-        duration: 200,
-        useNativeDriver: true,
-      }),
-    ]).start();
-  }, [focused]);
-
-  return (
-    <View style={iconStyles.container}>
-      {focused && (
-        <Animated.View
-          style={[
-            iconStyles.glow,
-            {
-              opacity: glowAnim,
-              transform: [{ scale: scaleAnim }],
-            },
-          ]}
-        />
-      )}
-      <Animated.View style={{ transform: [{ scale: scaleAnim }] }}>
-        <Ionicons name={name as any} size={24} color={color} />
-      </Animated.View>
-    </View>
-  );
-};
-
-const iconStyles = StyleSheet.create({
-  container: {
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  glow: {
-    position: 'absolute',
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: colors.accent.gold + '30',
-  },
-});
-
-// Custom tab bar with blur effect and store image background
-const CustomTabBar: React.FC<any> = ({ state, descriptors, navigation }) => {
-  // Secret admin access - tap 5 times on the logo area
-  const [tapCount, setTapCount] = useState(0);
+// Custom Sidebar Component
+const CustomDrawerContent: React.FC<any> = (props) => {
+  const { navigation, state } = props;
+  const { isAdmin, setIsAdmin } = useApp();
+  const [adminTapCount, setAdminTapCount] = useState(0);
   const tapTimeout = useRef<NodeJS.Timeout | null>(null);
 
-  const handleSecretTap = () => {
-    setTapCount((prev) => {
+  const handleLogoPress = () => {
+    setAdminTapCount((prev) => {
       const newCount = prev + 1;
       if (newCount >= 5) {
         navigation.navigate('AdminLogin');
@@ -117,168 +69,324 @@ const CustomTabBar: React.FC<any> = ({ state, descriptors, navigation }) => {
       clearTimeout(tapTimeout.current);
     }
     tapTimeout.current = setTimeout(() => {
-      setTapCount(0);
+      setAdminTapCount(0);
     }, 2000);
   };
 
-  const renderTabBarContent = () => (
-    <View style={styles.tabBar}>
-      {state.routes.map((route: any, index: number) => {
-        const { options } = descriptors[route.key];
-        const isFocused = state.index === index;
+  const currentRoute = state?.routeNames?.[state?.index] || 'Home';
 
-        const onPress = () => {
-          const event = navigation.emit({
-            type: 'tabPress',
-            target: route.key,
-            canPreventDefault: true,
-          });
+  return (
+    <View style={sidebarStyles.container}>
+      {/* Header with Image */}
+      <TouchableOpacity
+        onPress={handleLogoPress}
+        activeOpacity={0.9}
+        style={sidebarStyles.headerContainer}
+      >
+        {sidebarHeaderImage ? (
+          <Image
+            source={sidebarHeaderImage}
+            style={sidebarStyles.headerImage}
+            resizeMode="cover"
+          />
+        ) : (
+          <LinearGradient
+            colors={colors.gradients.golden}
+            style={sidebarStyles.headerImage}
+          />
+        )}
+        <LinearGradient
+          colors={['transparent', 'rgba(0,0,0,0.8)']}
+          style={sidebarStyles.headerOverlay}
+        >
+          <View style={sidebarStyles.logoContainer}>
+            <Ionicons name="ice-cream" size={32} color={colors.accent.gold} />
+          </View>
+          <Text style={sidebarStyles.brandName}>Yo-Vazaluza</Text>
+          <Text style={sidebarStyles.brandTagline}>DALIPI</Text>
+        </LinearGradient>
+      </TouchableOpacity>
 
-          if (!isFocused && !event.defaultPrevented) {
-            navigation.navigate(route.name);
-          }
-        };
-
-        const iconName = getIconName(route.name, isFocused);
-
-        // Center tab (logo) with secret admin access
-        if (index === 2) {
+      {/* Navigation Menu */}
+      <ScrollView style={sidebarStyles.menuContainer} showsVerticalScrollIndicator={false}>
+        {menuItems.map((item, index) => {
+          const isActive = currentRoute === item.name;
           return (
             <TouchableOpacity
-              key={route.key}
-              style={styles.centerTab}
-              onPress={() => {
-                handleSecretTap();
-                onPress();
-              }}
-              activeOpacity={0.9}
+              key={item.name}
+              style={[
+                sidebarStyles.menuItem,
+                isActive && sidebarStyles.menuItemActive,
+              ]}
+              onPress={() => navigation.navigate(item.name)}
+              activeOpacity={0.7}
             >
-              <LinearGradient
-                colors={
-                  isFocused
-                    ? [colors.accent.gold, colors.accent.wood]
-                    : [colors.background.card, colors.background.card]
-                }
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={[styles.centerTabInner, isFocused && styles.centerTabActive]}
-              >
-                <Ionicons
-                  name="ice-cream"
-                  size={28}
-                  color={isFocused ? colors.text.light : colors.accent.gold}
+              {isActive && (
+                <LinearGradient
+                  colors={[colors.accent.gold + '20', 'transparent']}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                  style={sidebarStyles.activeBackground}
                 />
-              </LinearGradient>
+              )}
+              <View style={[
+                sidebarStyles.menuIconContainer,
+                isActive && sidebarStyles.menuIconContainerActive,
+              ]}>
+                <Ionicons
+                  name={isActive ? item.iconFocused as any : item.icon as any}
+                  size={22}
+                  color={isActive ? colors.accent.gold : colors.text.secondary}
+                />
+              </View>
+              <Text style={[
+                sidebarStyles.menuText,
+                isActive && sidebarStyles.menuTextActive,
+              ]}>
+                {item.name}
+              </Text>
+              {isActive && (
+                <View style={sidebarStyles.activeIndicator} />
+              )}
             </TouchableOpacity>
           );
-        }
+        })}
 
-        return (
+        {/* Divider */}
+        <View style={sidebarStyles.divider} />
+
+        {/* Admin Section */}
+        {isAdmin && (
           <TouchableOpacity
-            key={route.key}
-            style={styles.tab}
-            onPress={onPress}
+            style={sidebarStyles.menuItem}
+            onPress={() => navigation.navigate('AdminPanel')}
             activeOpacity={0.7}
           >
-            <AnimatedTabIcon
-              name={iconName}
-              focused={isFocused}
-              color={isFocused ? colors.accent.gold : colors.text.light}
-            />
-            <Text
-              style={[
-                styles.tabLabel,
-                {
-                  color: isFocused ? colors.accent.gold : colors.text.light,
-                  fontWeight: isFocused ? '600' : '400',
-                },
-              ]}
-            >
-              {route.name}
+            <View style={[sidebarStyles.menuIconContainer, sidebarStyles.adminIconContainer]}>
+              <Ionicons name="settings" size={22} color={colors.accent.gold} />
+            </View>
+            <Text style={[sidebarStyles.menuText, sidebarStyles.adminText]}>
+              Admin Panel
             </Text>
           </TouchableOpacity>
-        );
-      })}
-    </View>
-  );
+        )}
+      </ScrollView>
 
-  // Render with both background images side by side
-  if (Platform.OS !== 'web') {
-    return (
-      <View style={styles.tabBarContainer}>
-        <View style={styles.tabBarImagesContainer}>
-          <ImageBackground
-            source={tabBarImage1}
-            style={styles.tabBarImageHalf}
-            resizeMode="cover"
-          />
-          <ImageBackground
-            source={tabBarImage2}
-            style={styles.tabBarImageHalf}
-            resizeMode="cover"
-          />
+      {/* Footer */}
+      <View style={sidebarStyles.footer}>
+        <View style={sidebarStyles.footerDivider} />
+        <View style={sidebarStyles.footerContent}>
+          <Ionicons name="location" size={16} color={colors.text.muted} />
+          <Text style={sidebarStyles.footerText}>Kosovo</Text>
         </View>
-        <BlurView intensity={80} tint="dark" style={styles.blurOverlayAbsolute}>
-          <LinearGradient
-            colors={['rgba(44,44,44,0.75)', 'rgba(74,74,74,0.90)']}
-            style={styles.gradientOverlay}
-          >
-            {renderTabBarContent()}
-          </LinearGradient>
-        </BlurView>
+        <Text style={sidebarStyles.copyright}>© 2024 Yo-Vazaluza Dalipi</Text>
       </View>
-    );
-  }
-
-  // Web fallback or no image
-  return (
-    <View style={styles.tabBarContainer}>
-      <LinearGradient
-        colors={[colors.primary.darkGray, colors.primary.gray]}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={styles.webTabBarBackground}
-      >
-        {renderTabBarContent()}
-      </LinearGradient>
     </View>
   );
 };
 
-const getIconName = (routeName: string, focused: boolean): string => {
-  switch (routeName) {
-    case 'Home':
-      return focused ? 'home' : 'home-outline';
-    case 'Flavors':
-      return focused ? 'color-palette' : 'color-palette-outline';
-    case 'Toppings':
-      return focused ? 'nutrition' : 'nutrition-outline';
-    case 'Gallery':
-      return focused ? 'images' : 'images-outline';
-    case 'About':
-      return focused ? 'information-circle' : 'information-circle-outline';
-    default:
-      return 'ellipse';
-  }
+const sidebarStyles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: colors.background.main,
+  },
+  headerContainer: {
+    height: 180,
+    overflow: 'hidden',
+  },
+  headerImage: {
+    width: '100%',
+    height: '100%',
+  },
+  headerOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    justifyContent: 'flex-end',
+    padding: spacing.lg,
+  },
+  logoContainer: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: spacing.sm,
+    borderWidth: 2,
+    borderColor: colors.accent.gold,
+  },
+  brandName: {
+    fontSize: typography.fontSizes.xxl,
+    fontWeight: typography.fontWeights.bold,
+    color: colors.text.light,
+    letterSpacing: 1,
+  },
+  brandTagline: {
+    fontSize: typography.fontSizes.sm,
+    color: colors.accent.gold,
+    letterSpacing: 4,
+    marginTop: 2,
+  },
+  menuContainer: {
+    flex: 1,
+    paddingTop: spacing.lg,
+  },
+  menuItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.lg,
+    marginHorizontal: spacing.sm,
+    marginVertical: spacing.xs,
+    borderRadius: borderRadius.lg,
+    position: 'relative',
+    overflow: 'hidden',
+  },
+  menuItemActive: {
+    backgroundColor: colors.accent.gold + '10',
+  },
+  activeBackground: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  menuIconContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: colors.background.card,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: spacing.md,
+  },
+  menuIconContainerActive: {
+    backgroundColor: colors.accent.gold + '20',
+  },
+  adminIconContainer: {
+    backgroundColor: colors.accent.gold + '15',
+  },
+  menuText: {
+    fontSize: typography.fontSizes.md,
+    fontWeight: typography.fontWeights.medium,
+    color: colors.text.secondary,
+    flex: 1,
+  },
+  menuTextActive: {
+    color: colors.text.primary,
+    fontWeight: typography.fontWeights.semibold,
+  },
+  adminText: {
+    color: colors.accent.gold,
+  },
+  activeIndicator: {
+    width: 4,
+    height: 24,
+    backgroundColor: colors.accent.gold,
+    borderRadius: 2,
+    position: 'absolute',
+    right: 0,
+  },
+  divider: {
+    height: 1,
+    backgroundColor: colors.text.muted + '20',
+    marginHorizontal: spacing.lg,
+    marginVertical: spacing.md,
+  },
+  footer: {
+    padding: spacing.lg,
+    paddingBottom: spacing.xl,
+  },
+  footerDivider: {
+    height: 1,
+    backgroundColor: colors.text.muted + '20',
+    marginBottom: spacing.md,
+  },
+  footerContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+  },
+  footerText: {
+    fontSize: typography.fontSizes.sm,
+    color: colors.text.muted,
+  },
+  copyright: {
+    fontSize: typography.fontSizes.xs,
+    color: colors.text.muted,
+    marginTop: spacing.sm,
+  },
+});
+
+// Header component for screens
+const ScreenHeader: React.FC<{ navigation: any; title: string }> = ({ navigation, title }) => {
+  return (
+    <View style={headerStyles.container}>
+      <TouchableOpacity
+        style={headerStyles.menuButton}
+        onPress={() => navigation.dispatch(DrawerActions.toggleDrawer())}
+        activeOpacity={0.7}
+      >
+        <Ionicons name="menu" size={24} color={colors.text.primary} />
+      </TouchableOpacity>
+      <Text style={headerStyles.title}>{title}</Text>
+      <View style={headerStyles.spacer} />
+    </View>
+  );
 };
 
-const MainTabs: React.FC = () => {
+const headerStyles = StyleSheet.create({
+  container: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.md,
+    backgroundColor: colors.background.main,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.text.muted + '15',
+  },
+  menuButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    backgroundColor: colors.background.card,
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...shadows.small,
+  },
+  title: {
+    flex: 1,
+    fontSize: typography.fontSizes.lg,
+    fontWeight: typography.fontWeights.semibold,
+    color: colors.text.primary,
+    textAlign: 'center',
+  },
+  spacer: {
+    width: 44,
+  },
+});
+
+// Drawer Navigator
+const DrawerNavigator: React.FC = () => {
   return (
-    <Tab.Navigator
-      tabBar={(props) => <CustomTabBar {...props} />}
+    <Drawer.Navigator
+      drawerContent={(props) => <CustomDrawerContent {...props} />}
       screenOptions={{
+        drawerType: SCREEN_WIDTH > 768 ? 'permanent' : 'front',
+        drawerStyle: {
+          width: SCREEN_WIDTH > 768 ? 280 : 300,
+          backgroundColor: colors.background.main,
+        },
+        overlayColor: 'rgba(0,0,0,0.5)',
         headerShown: false,
       }}
     >
-      <Tab.Screen name="Home" component={HomeScreen} />
-      <Tab.Screen name="Flavors" component={FlavorsScreen} />
-      <Tab.Screen name="Toppings" component={ToppingsScreen} />
-      <Tab.Screen name="Gallery" component={GalleryScreen} />
-      <Tab.Screen name="About" component={AboutScreen} />
-    </Tab.Navigator>
+      <Drawer.Screen name="Home" component={HomeScreen} />
+      <Drawer.Screen name="Flavors" component={FlavorsScreen} />
+      <Drawer.Screen name="Toppings" component={ToppingsScreen} />
+      <Drawer.Screen name="Gallery" component={GalleryScreen} />
+      <Drawer.Screen name="About" component={AboutScreen} />
+    </Drawer.Navigator>
   );
 };
 
+// Web URL linking configuration
 const linking = {
   prefixes: ['https://yo-vazaluza.com', 'yovazaluza://'],
   config: {
@@ -299,8 +407,6 @@ const linking = {
 };
 
 const AppNavigator: React.FC = () => {
-  const { isAdmin } = useApp();
-
   return (
     <NavigationContainer linking={Platform.OS === 'web' ? linking : undefined}>
       <Stack.Navigator
@@ -320,7 +426,7 @@ const AppNavigator: React.FC = () => {
           }),
         }}
       >
-        <Stack.Screen name="Main" component={MainTabs} />
+        <Stack.Screen name="Main" component={DrawerNavigator} />
         <Stack.Screen
           name="AdminLogin"
           component={AdminLoginScreen}
@@ -337,83 +443,5 @@ const AppNavigator: React.FC = () => {
     </NavigationContainer>
   );
 };
-
-const styles = StyleSheet.create({
-  tabBarContainer: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    overflow: 'hidden',
-  },
-  tabBarImagesContainer: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    flexDirection: 'row',
-  },
-  tabBarImageHalf: {
-    flex: 1,
-    height: '100%',
-  },
-  blurOverlayAbsolute: {
-    width: '100%',
-  },
-  tabBarBackground: {
-    width: '100%',
-  },
-  blurOverlay: {
-    width: '100%',
-  },
-  gradientOverlay: {
-    width: '100%',
-  },
-  webTabBarBackground: {
-    width: '100%',
-  },
-  tabBar: {
-    flexDirection: 'row',
-    paddingBottom: spacing.xl,
-    paddingTop: spacing.md,
-    paddingHorizontal: spacing.sm,
-    borderTopWidth: 1,
-    borderTopColor: 'rgba(201, 169, 98, 0.3)',
-  },
-  tab: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: spacing.sm,
-  },
-  tabLabel: {
-    fontSize: typography.fontSizes.xs,
-    marginTop: 4,
-  },
-  centerTab: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: -spacing.xl,
-  },
-  centerTabInner: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: colors.accent.gold,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.4,
-    shadowRadius: 10,
-    elevation: 10,
-    borderWidth: 3,
-    borderColor: colors.accent.gold,
-  },
-  centerTabActive: {
-    borderColor: colors.accent.wood,
-  },
-});
 
 export default AppNavigator;

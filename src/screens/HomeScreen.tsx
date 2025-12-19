@@ -14,7 +14,7 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, DrawerActions } from '@react-navigation/native';
 import { AnimatedLogo, MagicalParticles, AnimatedButton, FlavorSlider } from '../components';
 import { useApp } from '../context/AppContext';
 import { colors, spacing, typography, borderRadius, shadows } from '../theme';
@@ -215,6 +215,17 @@ const HomeScreen: React.FC = () => {
               </Animated.View>
             </ImageBackground>
           </Animated.View>
+
+        {/* Menu Button */}
+        <TouchableOpacity
+          style={styles.menuButton}
+          onPress={() => navigation.dispatch(DrawerActions.toggleDrawer())}
+          activeOpacity={0.8}
+        >
+          <View style={styles.menuButtonInner}>
+            <Ionicons name="menu" size={24} color={colors.text.light} />
+          </View>
+        </TouchableOpacity>
 
         {/* Vignette effect */}
         <View style={styles.vignette} />
@@ -459,6 +470,22 @@ const styles = StyleSheet.create({
     height: SCREEN_HEIGHT * 0.75,
     justifyContent: 'flex-end',
     overflow: 'hidden',
+  },
+  menuButton: {
+    position: 'absolute',
+    top: 50,
+    left: spacing.lg,
+    zIndex: 100,
+  },
+  menuButtonInner: {
+    width: 48,
+    height: 48,
+    borderRadius: 14,
+    backgroundColor: 'rgba(0,0,0,0.4)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.2)',
   },
   bannerImage: {
     width: '100%',
