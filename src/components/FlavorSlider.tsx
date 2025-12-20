@@ -1,4 +1,4 @@
-import React, { useRef, useState, useEffect } from 'react';
+import React, { useRef, useState } from 'react';
 import {
   View,
   StyleSheet,
@@ -7,13 +7,14 @@ import {
   Animated,
   NativeSyntheticEvent,
   NativeScrollEvent,
+  ViewToken,
 } from 'react-native';
 import FlavorCard from './FlavorCard';
 import { Flavor } from '../types';
 import { colors, spacing } from '../theme';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
-const CARD_WIDTH = SCREEN_WIDTH * 0.85;
+const CARD_WIDTH = SCREEN_WIDTH * 0.88;
 const CARD_MARGIN = spacing.sm;
 const SNAP_INTERVAL = CARD_WIDTH + CARD_MARGIN * 2;
 
@@ -27,31 +28,52 @@ const FlavorSlider: React.FC<FlavorSliderProps> = ({ flavors, onFlavorSelect }) 
   const scrollX = useRef(new Animated.Value(0)).current;
   const [activeIndex, setActiveIndex] = useState(0);
 
+  // Viewability config for better tracking
+  const viewabilityConfig = useRef({
+    itemVisiblePercentThreshold: 60,
+  }).current;
+
+  const onViewableItemsChanged = useRef(({ viewableItems }: { viewableItems: ViewToken[] }) => {
+    if (viewableItems.length > 0 && viewableItems[0].index !== null) {
+      setActiveIndex(viewableItems[0].index);
+    }
+  }).current;
+
   const handleScroll = Animated.event(
     [{ nativeEvent: { contentOffset: { x: scrollX } } }],
     {
       useNativeDriver: false,
-      listener: (event: NativeSyntheticEvent<NativeScrollEvent>) => {
-        const index = Math.round(event.nativeEvent.contentOffset.x / SNAP_INTERVAL);
-        if (index !== activeIndex && index >= 0 && index < flavors.length) {
-          setActiveIndex(index);
-        }
-      },
     }
   );
 
-  const handleMomentumScrollEnd = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
-    const index = Math.round(event.nativeEvent.contentOffset.x / SNAP_INTERVAL);
-    setActiveIndex(index);
-  };
-
   const renderItem = ({ item, index }: { item: Flavor; index: number }) => {
+    // Calculate animated values for this item
+    const inputRange = [
+      (index - 1) * SNAP_INTERVAL,
+      index * SNAP_INTERVAL,
+      (index + 1) * SNAP_INTERVAL,
+    ];
+
+    const scale = scrollX.interpolate({
+      inputRange,
+      outputRange: [0.85, 1, 0.85],
+      extrapolate: 'clamp',
+    });
+
+    const opacity = scrollX.interpolate({
+      inputRange,
+      outputRange: [0.5, 1, 0.5],
+      extrapolate: 'clamp',
+    });
+
     return (
-      <FlavorCard
-        flavor={item}
-        isActive={index === activeIndex}
-        onPress={() => onFlavorSelect?.(item)}
-      />
+      <Animated.View style={{ transform: [{ scale }], opacity }}>
+        <FlavorCard
+          flavor={item}
+          isActive={index === activeIndex}
+          onPress={() => onFlavorSelect?.(item)}
+        />
+      </Animated.View>
     );
   };
 
@@ -67,13 +89,19 @@ const FlavorSlider: React.FC<FlavorSliderProps> = ({ flavors, onFlavorSelect }) 
 
           const scale = scrollX.interpolate({
             inputRange,
-            outputRange: [0.8, 1.2, 0.8],
+            outputRange: [0.8, 1.4, 0.8],
             extrapolate: 'clamp',
           });
 
           const opacity = scrollX.interpolate({
             inputRange,
-            outputRange: [0.4, 1, 0.4],
+            outputRange: [0.3, 1, 0.3],
+            extrapolate: 'clamp',
+          });
+
+          const width = scrollX.interpolate({
+            inputRange,
+            outputRange: [8, 24, 8],
             extrapolate: 'clamp',
           });
 
@@ -83,12 +111,10 @@ const FlavorSlider: React.FC<FlavorSliderProps> = ({ flavors, onFlavorSelect }) 
               style={[
                 styles.dot,
                 {
+                  width,
                   transform: [{ scale }],
                   opacity,
-                  backgroundColor:
-                    index === activeIndex
-                      ? colors.accent.gold
-                      : colors.primary.lightGray,
+                  backgroundColor: colors.accent.gold,
                 },
               ]}
             />
@@ -108,13 +134,20 @@ const FlavorSlider: React.FC<FlavorSliderProps> = ({ flavors, onFlavorSelect }) 
         horizontal
         showsHorizontalScrollIndicator={false}
         snapToInterval={SNAP_INTERVAL}
-        snapToAlignment="center"
-        decelerationRate={0.9}
+        snapToAlignment="start"
+        decelerationRate="fast"
         disableIntervalMomentum={true}
         contentContainerStyle={styles.listContent}
         onScroll={handleScroll}
-        onMomentumScrollEnd={handleMomentumScrollEnd}
+        onViewableItemsChanged={onViewableItemsChanged}
+        viewabilityConfig={viewabilityConfig}
         scrollEventThrottle={16}
+        pagingEnabled={false}
+        getItemLayout={(_, index) => ({
+          length: SNAP_INTERVAL,
+          offset: SNAP_INTERVAL * index,
+          index,
+        })}
       />
       {renderPaginationDots()}
     </View>
@@ -127,19 +160,18 @@ const styles = StyleSheet.create({
   },
   listContent: {
     paddingHorizontal: (SCREEN_WIDTH - CARD_WIDTH) / 2 - CARD_MARGIN,
-    paddingVertical: spacing.lg,
+    paddingVertical: spacing.md,
   },
   pagination: {
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
     paddingVertical: spacing.md,
+    gap: spacing.xs,
   },
   dot: {
-    width: 8,
     height: 8,
     borderRadius: 4,
-    marginHorizontal: 4,
   },
 });
 

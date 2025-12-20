@@ -6,6 +6,7 @@ import {
   Animated,
   TouchableOpacity,
   Dimensions,
+  Easing,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
@@ -13,7 +14,7 @@ import { colors, spacing, borderRadius, typography, shadows } from '../theme';
 import { Flavor } from '../types';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
-const CARD_WIDTH = SCREEN_WIDTH * 0.85;
+const CARD_WIDTH = SCREEN_WIDTH * 0.88;
 
 interface FlavorCardProps {
   flavor: Flavor;
@@ -22,102 +23,192 @@ interface FlavorCardProps {
 }
 
 const FlavorCard: React.FC<FlavorCardProps> = ({ flavor, isActive, onPress }) => {
-  const scaleAnim = useRef(new Animated.Value(0.9)).current;
-  const opacityAnim = useRef(new Animated.Value(0.7)).current;
+  const wobbleAnim = useRef(new Animated.Value(0)).current;
+  const floatAnim = useRef(new Animated.Value(0)).current;
+  const shineAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    Animated.parallel([
-      Animated.spring(scaleAnim, {
-        toValue: isActive ? 1 : 0.85,
-        friction: 8,
-        tension: 100,
-        useNativeDriver: true,
-      }),
-      Animated.timing(opacityAnim, {
-        toValue: isActive ? 1 : 0.6,
-        duration: 300,
-        useNativeDriver: true,
-      }),
-    ]).start();
+    if (isActive) {
+      // Gentle float animation
+      Animated.loop(
+        Animated.sequence([
+          Animated.timing(floatAnim, {
+            toValue: -8,
+            duration: 2000,
+            easing: Easing.inOut(Easing.ease),
+            useNativeDriver: true,
+          }),
+          Animated.timing(floatAnim, {
+            toValue: 0,
+            duration: 2000,
+            easing: Easing.inOut(Easing.ease),
+            useNativeDriver: true,
+          }),
+        ])
+      ).start();
+
+      // Shine effect
+      Animated.loop(
+        Animated.sequence([
+          Animated.timing(shineAnim, {
+            toValue: 1,
+            duration: 2500,
+            easing: Easing.inOut(Easing.ease),
+            useNativeDriver: true,
+          }),
+          Animated.timing(shineAnim, {
+            toValue: 0,
+            duration: 2500,
+            easing: Easing.inOut(Easing.ease),
+            useNativeDriver: true,
+          }),
+        ])
+      ).start();
+    }
   }, [isActive]);
 
   const renderYogurtCup = () => {
     const yogurtColor = flavor.color;
 
     return (
-      <View style={styles.cupContainer}>
-        {/* Yogurt Swirl - using styled views */}
+      <Animated.View
+        style={[
+          styles.cupContainer,
+          {
+            transform: [{ translateY: floatAnim }],
+          },
+        ]}
+      >
+        {/* Large Yogurt Swirl */}
         <View style={styles.yogurtWrapper}>
-          {/* Top swirl */}
+          {/* Top peak swirl */}
+          <View style={[styles.swirlPeak, { backgroundColor: yogurtColor }]}>
+            <Animated.View
+              style={[
+                styles.swirlShine,
+                {
+                  opacity: shineAnim.interpolate({
+                    inputRange: [0, 0.5, 1],
+                    outputRange: [0.2, 0.6, 0.2],
+                  }),
+                },
+              ]}
+            />
+          </View>
+
+          {/* Upper swirl */}
           <View style={[styles.swirlTop, { backgroundColor: yogurtColor }]}>
             <View style={styles.swirlHighlight} />
           </View>
+
           {/* Middle swirl */}
           <View style={[styles.swirlMiddle, { backgroundColor: yogurtColor }]}>
             <View style={styles.swirlHighlight} />
+            <View style={[styles.swirlShadow, { backgroundColor: yogurtColor }]} />
           </View>
-          {/* Bottom swirl */}
+
+          {/* Lower swirl */}
+          <View style={[styles.swirlLower, { backgroundColor: yogurtColor }]}>
+            <View style={styles.swirlHighlight} />
+          </View>
+
+          {/* Bottom base */}
           <View style={[styles.swirlBottom, { backgroundColor: yogurtColor }]}>
             <View style={styles.swirlHighlight} />
           </View>
         </View>
 
-        {/* Cup */}
+        {/* Large Cup */}
         <View style={styles.cup}>
-          <View style={styles.cupRim} />
+          {/* Cup rim with shadow */}
+          <View style={styles.cupRimOuter}>
+            <View style={styles.cupRim} />
+          </View>
+
+          {/* Cup body */}
           <View style={styles.cupBody}>
-            <Text style={styles.cupBrand}>YO-VAZALUZA</Text>
+            {/* Cup pattern */}
+            <View style={styles.cupPattern}>
+              <View style={[styles.cupStripe, { backgroundColor: yogurtColor + '20' }]} />
+              <View style={[styles.cupStripe, { backgroundColor: yogurtColor + '15' }]} />
+              <View style={[styles.cupStripe, { backgroundColor: yogurtColor + '10' }]} />
+            </View>
+
+            {/* Brand */}
+            <View style={styles.brandContainer}>
+              <Text style={styles.cupBrand}>YO-VAZALUZA</Text>
+              <Text style={styles.cupSubBrand}>DALIPI</Text>
+            </View>
+
+            {/* Cup shine */}
+            <View style={styles.cupShine} />
           </View>
         </View>
-      </View>
+
+        {/* Shadow under cup */}
+        <View style={styles.cupShadow} />
+      </Animated.View>
     );
   };
 
   return (
     <TouchableOpacity
-      activeOpacity={0.9}
+      activeOpacity={0.95}
       onPress={onPress}
       disabled={!onPress}
     >
-      <Animated.View
-        style={[
-          styles.card,
-          {
-            transform: [{ scale: scaleAnim }],
-            opacity: opacityAnim,
-          },
-        ]}
-      >
+      <View style={styles.card}>
         <LinearGradient
-          colors={['#FFFFFF', '#F8F8F8']}
+          colors={['#FFFFFF', '#FAFAFA', '#F5F5F5']}
+          locations={[0, 0.6, 1]}
           style={styles.cardGradient}
         >
+          {/* Background decoration */}
+          <View style={[styles.bgCircle, { backgroundColor: flavor.color + '10' }]} />
+          <View style={[styles.bgCircle2, { backgroundColor: flavor.color + '08' }]} />
+
           {/* Yogurt Cup Illustration */}
           {renderYogurtCup()}
 
-          {/* Info Circle */}
-          <View style={styles.infoCircle}>
+          {/* Info Section */}
+          <View style={styles.infoSection}>
+            <View style={[styles.colorDot, { backgroundColor: flavor.color }]} />
             <Text style={styles.flavorName}>{flavor.name}</Text>
             <Text style={styles.flavorDescription}>{flavor.description}</Text>
 
             {/* Badges */}
             <View style={styles.badgeContainer}>
               {flavor.isVegan && (
-                <View style={[styles.badge, styles.veganBadge]}>
-                  <Ionicons name="leaf" size={10} color={colors.text.light} />
+                <LinearGradient
+                  colors={[colors.flavors.pistachio, '#6B8E23']}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                  style={styles.badge}
+                >
+                  <Ionicons name="leaf" size={12} color="#FFF" />
                   <Text style={styles.badgeText}>Vegan</Text>
-                </View>
+                </LinearGradient>
               )}
               {flavor.isNew && (
-                <View style={[styles.badge, styles.newBadge]}>
-                  <Ionicons name="sparkles" size={10} color={colors.text.light} />
+                <LinearGradient
+                  colors={[colors.accent.gold, '#E6A100']}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                  style={styles.badge}
+                >
+                  <Ionicons name="sparkles" size={12} color="#FFF" />
                   <Text style={styles.badgeText}>New</Text>
+                </LinearGradient>
+              )}
+              {flavor.calories && (
+                <View style={styles.caloriesBadge}>
+                  <Text style={styles.caloriesText}>{flavor.calories} cal</Text>
                 </View>
               )}
             </View>
           </View>
         </LinearGradient>
-      </Animated.View>
+      </View>
     </TouchableOpacity>
   );
 };
@@ -125,105 +216,213 @@ const FlavorCard: React.FC<FlavorCardProps> = ({ flavor, isActive, onPress }) =>
 const styles = StyleSheet.create({
   card: {
     width: CARD_WIDTH,
-    height: 480,
+    height: 580,
     marginHorizontal: spacing.sm,
-    borderRadius: borderRadius.xl,
+    borderRadius: borderRadius.xl + 8,
     overflow: 'hidden',
     backgroundColor: '#FFFFFF',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 12 },
-    shadowOpacity: 0.25,
-    shadowRadius: 20,
-    elevation: 15,
+    shadowOffset: { width: 0, height: 16 },
+    shadowOpacity: 0.2,
+    shadowRadius: 24,
+    elevation: 18,
   },
   cardGradient: {
     flex: 1,
     alignItems: 'center',
-    paddingTop: spacing.lg,
+  },
+  bgCircle: {
+    position: 'absolute',
+    top: -50,
+    right: -50,
+    width: 200,
+    height: 200,
+    borderRadius: 100,
+  },
+  bgCircle2: {
+    position: 'absolute',
+    bottom: 50,
+    left: -80,
+    width: 180,
+    height: 180,
+    borderRadius: 90,
   },
   cupContainer: {
     alignItems: 'center',
     justifyContent: 'flex-end',
-    height: 260,
+    height: 380,
+    paddingTop: spacing.xl,
   },
   yogurtWrapper: {
     alignItems: 'center',
-    marginBottom: -10,
+    marginBottom: -15,
+  },
+  swirlPeak: {
+    width: 35,
+    height: 40,
+    borderRadius: 20,
+    borderTopLeftRadius: 18,
+    borderTopRightRadius: 18,
+    transform: [{ rotate: '-8deg' }],
+    overflow: 'hidden',
+  },
+  swirlShine: {
+    position: 'absolute',
+    top: 5,
+    left: 5,
+    width: 12,
+    height: 20,
+    backgroundColor: 'rgba(255,255,255,0.7)',
+    borderRadius: 6,
   },
   swirlTop: {
-    width: 50,
-    height: 45,
-    borderRadius: 25,
-    transform: [{ rotate: '-5deg' }],
+    width: 70,
+    height: 55,
+    borderRadius: 35,
+    marginTop: -20,
+    transform: [{ rotate: '6deg' }],
+    overflow: 'hidden',
   },
   swirlMiddle: {
-    width: 85,
-    height: 55,
-    borderRadius: 42,
-    marginTop: -18,
-    transform: [{ rotate: '5deg' }],
+    width: 110,
+    height: 70,
+    borderRadius: 55,
+    marginTop: -25,
+    transform: [{ rotate: '-4deg' }],
+    overflow: 'hidden',
+  },
+  swirlLower: {
+    width: 140,
+    height: 75,
+    borderRadius: 70,
+    marginTop: -30,
+    transform: [{ rotate: '3deg' }],
+    overflow: 'hidden',
   },
   swirlBottom: {
-    width: 110,
-    height: 60,
-    borderRadius: 55,
-    marginTop: -24,
+    width: 165,
+    height: 80,
+    borderRadius: 82,
+    marginTop: -35,
+    overflow: 'hidden',
   },
   swirlHighlight: {
     position: 'absolute',
-    top: '20%',
-    left: '15%',
-    width: '30%',
-    height: '25%',
-    backgroundColor: 'rgba(255,255,255,0.4)',
+    top: '15%',
+    left: '10%',
+    width: '35%',
+    height: '30%',
+    backgroundColor: 'rgba(255,255,255,0.45)',
     borderRadius: 50,
+  },
+  swirlShadow: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: '30%',
+    opacity: 0.3,
   },
   cup: {
     alignItems: 'center',
-    width: 140,
+    width: 200,
+  },
+  cupRimOuter: {
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
   cupRim: {
-    width: 130,
-    height: 14,
+    width: 180,
+    height: 18,
     backgroundColor: '#FFFFFF',
-    borderTopLeftRadius: 50,
-    borderTopRightRadius: 50,
-    borderWidth: 1,
-    borderColor: '#E0E0E0',
+    borderTopLeftRadius: 60,
+    borderTopRightRadius: 60,
+    borderWidth: 2,
+    borderColor: '#E8E8E8',
     zIndex: 1,
   },
   cupBody: {
-    width: 118,
-    height: 75,
+    width: 165,
+    height: 100,
     backgroundColor: '#FFFFFF',
-    borderBottomLeftRadius: 12,
-    borderBottomRightRadius: 12,
-    marginTop: -2,
-    borderWidth: 1,
+    borderBottomLeftRadius: 18,
+    borderBottomRightRadius: 18,
+    marginTop: -3,
+    borderWidth: 2,
     borderTopWidth: 0,
-    borderColor: '#E0E0E0',
+    borderColor: '#E8E8E8',
     justifyContent: 'center',
+    alignItems: 'center',
+    overflow: 'hidden',
+  },
+  cupPattern: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+  },
+  cupStripe: {
+    width: 3,
+    height: '100%',
+  },
+  brandContainer: {
     alignItems: 'center',
   },
   cupBrand: {
-    fontSize: 11,
+    fontSize: 14,
     fontWeight: '800',
-    color: colors.primary.darkGray,
-    letterSpacing: 0.5,
+    color: colors.text.primary,
+    letterSpacing: 1,
   },
-  infoCircle: {
+  cupSubBrand: {
+    fontSize: 8,
+    fontWeight: '600',
+    color: colors.accent.gold,
+    letterSpacing: 3,
+    marginTop: 2,
+  },
+  cupShine: {
+    position: 'absolute',
+    top: 8,
+    left: 15,
+    width: 12,
+    height: 50,
+    backgroundColor: 'rgba(255,255,255,0.6)',
+    borderRadius: 6,
+    transform: [{ rotate: '8deg' }],
+  },
+  cupShadow: {
+    width: 120,
+    height: 20,
+    backgroundColor: 'rgba(0,0,0,0.08)',
+    borderRadius: 60,
+    marginTop: spacing.sm,
+  },
+  infoSection: {
     backgroundColor: colors.background.card,
-    borderRadius: borderRadius.round,
-    paddingVertical: spacing.xl,
+    borderRadius: borderRadius.xl,
+    paddingVertical: spacing.lg,
     paddingHorizontal: spacing.xl,
     alignItems: 'center',
-    marginTop: spacing.lg,
+    marginTop: spacing.md,
     width: '92%',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.08,
+    shadowRadius: 16,
     elevation: 8,
+  },
+  colorDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    marginBottom: spacing.sm,
   },
   flavorName: {
     fontSize: typography.fontSizes.xxl,
@@ -239,27 +438,34 @@ const styles = StyleSheet.create({
   },
   badgeContainer: {
     flexDirection: 'row',
-    marginTop: spacing.sm,
-    gap: spacing.xs,
+    marginTop: spacing.md,
+    gap: spacing.sm,
   },
   badge: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.xs,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs + 2,
     borderRadius: borderRadius.round,
-    gap: 4,
-  },
-  veganBadge: {
-    backgroundColor: colors.flavors.pistachio,
-  },
-  newBadge: {
-    backgroundColor: colors.accent.gold,
+    gap: 5,
   },
   badgeText: {
     fontSize: typography.fontSizes.xs,
-    fontWeight: typography.fontWeights.semibold,
+    fontWeight: typography.fontWeights.bold,
     color: colors.text.light,
+  },
+  caloriesBadge: {
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs + 2,
+    backgroundColor: colors.background.main,
+    borderRadius: borderRadius.round,
+    borderWidth: 1,
+    borderColor: colors.ui.border,
+  },
+  caloriesText: {
+    fontSize: typography.fontSizes.xs,
+    fontWeight: typography.fontWeights.semibold,
+    color: colors.text.secondary,
   },
 });
 
