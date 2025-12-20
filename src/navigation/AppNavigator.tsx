@@ -1,17 +1,16 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   View,
   Text,
   TouchableOpacity,
   StyleSheet,
-  Animated,
   Platform,
   Image,
   ScrollView,
   Dimensions,
 } from 'react-native';
-import { NavigationContainer, DrawerActions } from '@react-navigation/native';
-import { createDrawerNavigator, DrawerContentScrollView } from '@react-navigation/drawer';
+import { NavigationContainer } from '@react-navigation/native';
+import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createStackNavigator } from '@react-navigation/stack';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -28,10 +27,8 @@ import {
 import { useApp } from '../context/AppContext';
 import { colors, spacing, typography, borderRadius, shadows } from '../theme';
 
-const Drawer = createDrawerNavigator();
+const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();
-
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 // Load banner image for sidebar header
 let sidebarHeaderImage: any = null;
@@ -41,17 +38,30 @@ try {
 
 // Menu items configuration
 const menuItems = [
-  { name: 'Home', icon: 'home', iconFocused: 'home' },
+  { name: 'Home', icon: 'home-outline', iconFocused: 'home' },
   { name: 'Flavors', icon: 'ice-cream-outline', iconFocused: 'ice-cream' },
   { name: 'Toppings', icon: 'color-fill-outline', iconFocused: 'color-fill' },
   { name: 'Gallery', icon: 'images-outline', iconFocused: 'images' },
   { name: 'About', icon: 'information-circle-outline', iconFocused: 'information-circle' },
 ];
 
-// Custom Sidebar Component
-const CustomDrawerContent: React.FC<any> = (props) => {
-  const { navigation, state } = props;
-  const { isAdmin, setIsAdmin } = useApp();
+// Hook to detect screen width changes
+const useScreenWidth = () => {
+  const [screenWidth, setScreenWidth] = useState(Dimensions.get('window').width);
+
+  useEffect(() => {
+    const subscription = Dimensions.addEventListener('change', ({ window }) => {
+      setScreenWidth(window.width);
+    });
+    return () => subscription?.remove();
+  }, []);
+
+  return screenWidth;
+};
+
+// Custom Sidebar Component for Web
+const WebSidebar: React.FC<{ navigation: any; currentRoute: string }> = ({ navigation, currentRoute }) => {
+  const { isAdmin } = useApp();
   const [adminTapCount, setAdminTapCount] = useState(0);
   const tapTimeout = useRef<NodeJS.Timeout | null>(null);
 
@@ -72,8 +82,6 @@ const CustomDrawerContent: React.FC<any> = (props) => {
       setAdminTapCount(0);
     }, 2000);
   };
-
-  const currentRoute = state?.routeNames?.[state?.index] || 'Home';
 
   return (
     <View style={sidebarStyles.container}>
@@ -109,7 +117,7 @@ const CustomDrawerContent: React.FC<any> = (props) => {
 
       {/* Navigation Menu */}
       <ScrollView style={sidebarStyles.menuContainer} showsVerticalScrollIndicator={false}>
-        {menuItems.map((item, index) => {
+        {menuItems.map((item) => {
           const isActive = currentRoute === item.name;
           return (
             <TouchableOpacity
@@ -189,6 +197,8 @@ const sidebarStyles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background.main,
+    borderRightWidth: 1,
+    borderRightColor: colors.ui.border,
   },
   headerContainer: {
     height: 180,
@@ -314,76 +324,126 @@ const sidebarStyles = StyleSheet.create({
   },
 });
 
-// Header component for screens
-const ScreenHeader: React.FC<{ navigation: any; title: string }> = ({ navigation, title }) => {
+// Web Layout with Sidebar
+const WebLayout: React.FC<{ children: React.ReactNode; navigation: any; currentRoute: string }> = ({
+  children,
+  navigation,
+  currentRoute
+}) => {
   return (
-    <View style={headerStyles.container}>
-      <TouchableOpacity
-        style={headerStyles.menuButton}
-        onPress={() => navigation.dispatch(DrawerActions.toggleDrawer())}
-        activeOpacity={0.7}
-      >
-        <Ionicons name="menu" size={24} color={colors.text.primary} />
-      </TouchableOpacity>
-      <Text style={headerStyles.title}>{title}</Text>
-      <View style={headerStyles.spacer} />
+    <View style={webLayoutStyles.container}>
+      <View style={webLayoutStyles.sidebar}>
+        <WebSidebar navigation={navigation} currentRoute={currentRoute} />
+      </View>
+      <View style={webLayoutStyles.content}>
+        {children}
+      </View>
     </View>
   );
 };
 
-const headerStyles = StyleSheet.create({
+const webLayoutStyles = StyleSheet.create({
   container: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.md,
-    backgroundColor: colors.background.main,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.text.muted + '15',
-  },
-  menuButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 12,
-    backgroundColor: colors.background.card,
-    alignItems: 'center',
-    justifyContent: 'center',
-    ...shadows.small,
-  },
-  title: {
     flex: 1,
-    fontSize: typography.fontSizes.lg,
-    fontWeight: typography.fontWeights.semibold,
-    color: colors.text.primary,
-    textAlign: 'center',
+    flexDirection: 'row',
   },
-  spacer: {
-    width: 44,
+  sidebar: {
+    width: 280,
+  },
+  content: {
+    flex: 1,
   },
 });
 
-// Drawer Navigator
-const DrawerNavigator: React.FC = () => {
+// Screen wrapper for web that adds sidebar
+const withWebLayout = (ScreenComponent: React.FC<any>, screenName: string) => {
+  return (props: any) => {
+    const screenWidth = useScreenWidth();
+    const isWeb = screenWidth > 768;
+
+    if (isWeb) {
+      return (
+        <WebLayout navigation={props.navigation} currentRoute={screenName}>
+          <ScreenComponent {...props} />
+        </WebLayout>
+      );
+    }
+
+    return <ScreenComponent {...props} />;
+  };
+};
+
+// Bottom Tab Navigator for Mobile
+const MobileTabNavigator: React.FC = () => {
+  const { isAdmin } = useApp();
+  const [adminTapCount, setAdminTapCount] = useState(0);
+  const tapTimeout = useRef<NodeJS.Timeout | null>(null);
+
   return (
-    <Drawer.Navigator
-      drawerContent={(props) => <CustomDrawerContent {...props} />}
-      screenOptions={{
-        drawerType: SCREEN_WIDTH > 768 ? 'permanent' : 'front',
-        drawerStyle: {
-          width: SCREEN_WIDTH > 768 ? 280 : 300,
-          backgroundColor: colors.background.main,
-        },
-        overlayColor: 'rgba(0,0,0,0.5)',
+    <Tab.Navigator
+      screenOptions={({ route }) => ({
         headerShown: false,
+        tabBarStyle: {
+          backgroundColor: colors.background.card,
+          borderTopWidth: 0,
+          height: Platform.OS === 'ios' ? 88 : 65,
+          paddingBottom: Platform.OS === 'ios' ? 28 : 8,
+          paddingTop: 8,
+          ...shadows.medium,
+        },
+        tabBarActiveTintColor: colors.accent.gold,
+        tabBarInactiveTintColor: colors.text.muted,
+        tabBarLabelStyle: {
+          fontSize: 11,
+          fontWeight: '600',
+          marginTop: 2,
+        },
+        tabBarIcon: ({ focused, color, size }) => {
+          const item = menuItems.find(m => m.name === route.name);
+          if (!item) return null;
+          return (
+            <Ionicons
+              name={focused ? item.iconFocused as any : item.icon as any}
+              size={24}
+              color={color}
+            />
+          );
+        },
+      })}
+    >
+      <Tab.Screen name="Home" component={HomeScreen} />
+      <Tab.Screen name="Flavors" component={FlavorsScreen} />
+      <Tab.Screen name="Toppings" component={ToppingsScreen} />
+      <Tab.Screen name="Gallery" component={GalleryScreen} />
+      <Tab.Screen name="About" component={AboutScreen} />
+    </Tab.Navigator>
+  );
+};
+
+// Web Tab Navigator (uses same screens but wrapped with sidebar)
+const WebTabNavigator: React.FC = () => {
+  return (
+    <Tab.Navigator
+      screenOptions={{
+        headerShown: false,
+        tabBarStyle: { display: 'none' },
       }}
     >
-      <Drawer.Screen name="Home" component={HomeScreen} />
-      <Drawer.Screen name="Flavors" component={FlavorsScreen} />
-      <Drawer.Screen name="Toppings" component={ToppingsScreen} />
-      <Drawer.Screen name="Gallery" component={GalleryScreen} />
-      <Drawer.Screen name="About" component={AboutScreen} />
-    </Drawer.Navigator>
+      <Tab.Screen name="Home" component={withWebLayout(HomeScreen, 'Home')} />
+      <Tab.Screen name="Flavors" component={withWebLayout(FlavorsScreen, 'Flavors')} />
+      <Tab.Screen name="Toppings" component={withWebLayout(ToppingsScreen, 'Toppings')} />
+      <Tab.Screen name="Gallery" component={withWebLayout(GalleryScreen, 'Gallery')} />
+      <Tab.Screen name="About" component={withWebLayout(AboutScreen, 'About')} />
+    </Tab.Navigator>
   );
+};
+
+// Responsive Main Navigator
+const MainNavigator: React.FC = () => {
+  const screenWidth = useScreenWidth();
+  const isWeb = screenWidth > 768;
+
+  return isWeb ? <WebTabNavigator /> : <MobileTabNavigator />;
 };
 
 // Web URL linking configuration
@@ -426,7 +486,7 @@ const AppNavigator: React.FC = () => {
           }),
         }}
       >
-        <Stack.Screen name="Main" component={DrawerNavigator} />
+        <Stack.Screen name="Main" component={MainNavigator} />
         <Stack.Screen
           name="AdminLogin"
           component={AdminLoginScreen}
