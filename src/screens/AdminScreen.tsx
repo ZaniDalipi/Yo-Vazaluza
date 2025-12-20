@@ -887,9 +887,16 @@ const AdminScreen: React.FC = () => {
       </View>
 
       {/* Content */}
-      <ScrollView style={styles.content} contentContainerStyle={styles.contentContainer} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        style={styles.content}
+        contentContainerStyle={styles.contentContainer}
+        showsVerticalScrollIndicator={true}
+        bounces={true}
+        scrollEnabled={true}
+        nestedScrollEnabled={true}
+      >
         {renderSectionContent()}
-        <View style={{ height: 50 }} />
+        <View style={{ height: 100 }} />
       </ScrollView>
 
       {renderEditModal()}
@@ -992,9 +999,12 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
     backgroundColor: colors.background.main,
+    overflow: 'scroll' as any,
   },
   contentContainer: {
     padding: spacing.lg,
+    paddingBottom: spacing.xxl,
+    flexGrow: 1,
   },
   sectionHeader: {
     flexDirection: 'row',
