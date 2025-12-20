@@ -201,12 +201,16 @@ const AdminScreen: React.FC = () => {
       return;
     }
 
+    // Clean up temporary fields before saving
+    const cleanedData = { ...formData };
+    delete cleanedData.pricePerGramStr;
+
     const actions: Record<string, () => void> = {
-      flavor: () => editingItem ? updateFlavor({ ...editingItem, ...formData }) : addFlavor(formData),
-      topping: () => editingItem ? updateTopping({ ...editingItem, ...formData }) : addTopping(formData),
-      promotion: () => editingItem ? updatePromotion({ ...editingItem, ...formData }) : addPromotion(formData),
-      gallery: () => editingItem ? updateGalleryImage({ ...editingItem, ...formData }) : addGalleryImage(formData),
-      store: () => updateStoreInfo(formData),
+      flavor: () => editingItem ? updateFlavor({ ...editingItem, ...cleanedData }) : addFlavor(cleanedData),
+      topping: () => editingItem ? updateTopping({ ...editingItem, ...cleanedData }) : addTopping(cleanedData),
+      promotion: () => editingItem ? updatePromotion({ ...editingItem, ...cleanedData }) : addPromotion(cleanedData),
+      gallery: () => editingItem ? updateGalleryImage({ ...editingItem, ...cleanedData }) : addGalleryImage(cleanedData),
+      store: () => updateStoreInfo(cleanedData),
     };
 
     actions[editType]?.();
@@ -556,7 +560,18 @@ const AdminScreen: React.FC = () => {
                 </View>
 
                 <Text style={styles.inputLabel}>Price per Gram ($)</Text>
-                <TextInput style={styles.input} value={formData.pricePerGram?.toString()} onChangeText={t => setFormData({ ...formData, pricePerGram: parseFloat(t) || 0 })} placeholder="0.015" placeholderTextColor={colors.text.muted} keyboardType="decimal-pad" />
+                <TextInput
+                  style={styles.input}
+                  value={formData.pricePerGramStr !== undefined ? formData.pricePerGramStr : (formData.pricePerGram?.toString() || '')}
+                  onChangeText={t => {
+                    // Allow typing decimals naturally - only validate on blur/save
+                    const cleaned = t.replace(/[^0-9.]/g, '');
+                    setFormData({ ...formData, pricePerGramStr: cleaned, pricePerGram: parseFloat(cleaned) || 0 });
+                  }}
+                  placeholder="0.015"
+                  placeholderTextColor={colors.text.muted}
+                  keyboardType="decimal-pad"
+                />
                 <Text style={styles.priceHint}>Supports up to 3 decimal places (e.g., 0.015)</Text>
 
                 <Text style={styles.inputLabel}>Max Grams</Text>
@@ -685,7 +700,8 @@ const AdminScreen: React.FC = () => {
   // Render URL input modal
   const renderUrlInputModal = () => (
     <Modal visible={showUrlInput} transparent animationType="fade" onRequestClose={() => setShowUrlInput(false)}>
-      <TouchableOpacity style={styles.pickerOverlay} activeOpacity={1} onPress={() => setShowUrlInput(false)}>
+      <View style={styles.pickerOverlay}>
+        <TouchableOpacity style={StyleSheet.absoluteFill} onPress={() => setShowUrlInput(false)} />
         <View style={styles.urlInputContent}>
           <Text style={styles.pickerTitle}>Enter Image URL</Text>
           <TextInput
@@ -696,8 +712,13 @@ const AdminScreen: React.FC = () => {
             placeholderTextColor={colors.text.muted}
             autoCapitalize="none"
             autoCorrect={false}
-            keyboardType="url"
+            autoFocus={true}
           />
+          {tempImageUrl ? (
+            <View style={styles.urlPreviewContainer}>
+              <Image source={{ uri: tempImageUrl }} style={styles.urlPreviewImage} />
+            </View>
+          ) : null}
           <View style={styles.urlInputButtons}>
             <TouchableOpacity style={styles.urlCancelBtn} onPress={() => setShowUrlInput(false)}>
               <Text style={styles.urlCancelBtnText}>Cancel</Text>
@@ -707,7 +728,7 @@ const AdminScreen: React.FC = () => {
             </TouchableOpacity>
           </View>
         </View>
-      </TouchableOpacity>
+      </View>
     </Modal>
   );
 
@@ -1414,6 +1435,18 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
     color: '#FFF',
+  },
+  urlPreviewContainer: {
+    marginTop: spacing.md,
+    height: 100,
+    borderRadius: borderRadius.md,
+    overflow: 'hidden',
+    backgroundColor: colors.background.main,
+  },
+  urlPreviewImage: {
+    width: '100%',
+    height: '100%',
+    resizeMode: 'cover',
   },
 });
 
