@@ -17,26 +17,9 @@ const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const CUP_WIDTH = Math.min(SCREEN_WIDTH * 0.38, 150);
 const CUP_HEIGHT = CUP_WIDTH * 1.15;
 
-// Topping icons
-const TOPPING_ICONS: Record<string, string> = {
-  'fresh-strawberries': '🍓',
-  'blueberries': '🫐',
-  'mango-chunks': '🥭',
-  'banana-slices': '🍌',
-  'm&ms': '🍬',
-  'gummy-bears': '🐻',
-  'sprinkles': '✨',
-  'cookie-crumbs': '🍪',
-  'walnuts': '🥜',
-  'almonds': '🌰',
-  'peanuts': '🥜',
-  'granola': '🥣',
-  'fruity-pebbles': '🌈',
-};
-
-const getToppingIcon = (id: string) => {
-  const key = id.toLowerCase().replace(/\s+/g, '-');
-  return TOPPING_ICONS[key] || '🍬';
+// Get topping icon directly from topping object (from admin data)
+const getToppingEmoji = (topping: { emoji?: string }) => {
+  return topping.emoji || '🍬';
 };
 
 // Sauce data
@@ -214,7 +197,7 @@ const FinalCup: React.FC = () => {
             {/* Toppings scattered on top of yogurt */}
             <View style={styles.toppingsOnYogurt}>
               {order.toppings.slice(0, 6).map((sel, i) => {
-                const icon = getToppingIcon(sel.topping.id);
+                const emoji = getToppingEmoji(sel.topping);
                 const positions = [
                   { left: 8, top: 2 },
                   { left: 28, top: 6 },
@@ -226,7 +209,7 @@ const FinalCup: React.FC = () => {
                 const pos = positions[i] || { left: 8 + i * 12, top: 5 };
                 return (
                   <Text key={sel.topping.id} style={[styles.toppingEmoji, { left: pos.left, top: pos.top }]}>
-                    {icon}
+                    {emoji}
                   </Text>
                 );
               })}
@@ -435,7 +418,7 @@ const ReviewStep: React.FC = () => {
           emoji="🍓"
           items={order.toppings.map(t => ({
             name: `${t.topping.name} (${t.grams}g)`,
-            icon: getToppingIcon(t.topping.id)
+            icon: getToppingEmoji(t.topping)
           }))}
           emptyText="No toppings added"
         />

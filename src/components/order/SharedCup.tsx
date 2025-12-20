@@ -14,26 +14,12 @@ import { Topping } from '../../types';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
-// Topping visual data with icons/emojis
-const TOPPING_ICONS: Record<string, { emoji: string; color: string }> = {
-  'fresh-strawberries': { emoji: '🍓', color: '#E53935' },
-  'blueberries': { emoji: '🫐', color: '#3949AB' },
-  'mango-chunks': { emoji: '🥭', color: '#FFB300' },
-  'banana-slices': { emoji: '🍌', color: '#FBC02D' },
-  'm&ms': { emoji: '🍬', color: '#E91E63' },
-  'gummy-bears': { emoji: '🐻', color: '#FF7043' },
-  'sprinkles': { emoji: '✨', color: '#EC407A' },
-  'cookie-crumbs': { emoji: '🍪', color: '#8D6E63' },
-  'walnuts': { emoji: '🥜', color: '#795548' },
-  'almonds': { emoji: '🌰', color: '#8D6E63' },
-  'peanuts': { emoji: '🥜', color: '#A1887F' },
-  'granola': { emoji: '🥣', color: '#BCAAA4' },
-  'fruity-pebbles': { emoji: '🌈', color: '#9C27B0' },
-};
-
-const getToppingIcon = (id: string) => {
-  const key = id.toLowerCase().replace(/\s+/g, '-');
-  return TOPPING_ICONS[key] || { emoji: '🍬', color: '#FFB74D' };
+// Get topping visual data from the actual topping object (from admin)
+const getToppingDisplay = (topping: Topping) => {
+  return {
+    emoji: topping.emoji || '🍬',
+    color: topping.color || '#FFB74D',
+  };
 };
 
 // Sauce colors
@@ -183,7 +169,7 @@ export const SharedCup: React.FC<SharedCupProps> = ({
           {showToppings && order.toppings.length > 0 && (
             <View style={styles.toppingsOnSwirl}>
               {order.toppings.slice(0, 6).map((sel, i) => {
-                const icon = getToppingIcon(sel.topping.id);
+                const display = getToppingDisplay(sel.topping);
                 const positions = [
                   { top: 15, left: '15%' },
                   { top: 25, left: '60%' },
@@ -201,7 +187,7 @@ export const SharedCup: React.FC<SharedCupProps> = ({
                       { top: pos.top, left: pos.left as any },
                     ]}
                   >
-                    {icon.emoji}
+                    {display.emoji}
                   </Text>
                 );
               })}

@@ -20,26 +20,9 @@ const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const CUP_WIDTH = Math.min(SCREEN_WIDTH * 0.4, 160);
 const CUP_HEIGHT = CUP_WIDTH * 1.2;
 
-// Topping data with icons
-const TOPPING_ICONS: Record<string, string> = {
-  'fresh-strawberries': '🍓',
-  'blueberries': '🫐',
-  'mango-chunks': '🥭',
-  'banana-slices': '🍌',
-  'm&ms': '🍬',
-  'gummy-bears': '🐻',
-  'sprinkles': '✨',
-  'cookie-crumbs': '🍪',
-  'walnuts': '🥜',
-  'almonds': '🌰',
-  'peanuts': '🥜',
-  'granola': '🥣',
-  'fruity-pebbles': '🌈',
-};
-
-const getToppingIcon = (id: string) => {
-  const key = id.toLowerCase().replace(/\s+/g, '-');
-  return TOPPING_ICONS[key] || '🍬';
+// Get topping emoji from actual topping object (from admin data)
+const getToppingEmoji = (topping: { emoji?: string }) => {
+  return topping.emoji || '🍬';
 };
 
 // Sauce color and data
@@ -331,7 +314,7 @@ const SauceStation: React.FC<{
               {/* Toppings on surface */}
               <View style={styles.toppingsOnYogurt}>
                 {order.toppings.slice(0, 4).map((sel, i) => {
-                  const icon = getToppingIcon(sel.topping.id);
+                  const emoji = getToppingEmoji(sel.topping);
                   const positions = [
                     { left: 12, top: 4 },
                     { left: 40, top: 2 },
@@ -341,7 +324,7 @@ const SauceStation: React.FC<{
                   const pos = positions[i];
                   return (
                     <Text key={sel.topping.id} style={[styles.toppingMini, { left: pos.left, top: pos.top }]}>
-                      {icon}
+                      {emoji}
                     </Text>
                   );
                 })}

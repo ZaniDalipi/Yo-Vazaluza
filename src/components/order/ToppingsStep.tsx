@@ -21,41 +21,39 @@ const CUP_WIDTH = Math.min(SCREEN_WIDTH * 0.35, 140);
 const CUP_HEIGHT = CUP_WIDTH * 1.15;
 const CARD_WIDTH = (SCREEN_WIDTH - spacing.lg * 2 - spacing.md) / 2;
 
-// Topping data with proper icons and colors for each type
-const TOPPING_DATA: Record<string, { color: string; lightColor: string; emoji: string; pricePerGram: number; maxGrams: number }> = {
-  'fresh-strawberries': { color: '#E53935', lightColor: '#FFCDD2', emoji: '🍓', pricePerGram: 0.10, maxGrams: 30 },
-  'strawberries': { color: '#E53935', lightColor: '#FFCDD2', emoji: '🍓', pricePerGram: 0.10, maxGrams: 30 },
-  'blueberries': { color: '#3949AB', lightColor: '#C5CAE9', emoji: '🫐', pricePerGram: 0.10, maxGrams: 30 },
-  'mango-chunks': { color: '#FF9800', lightColor: '#FFE0B2', emoji: '🥭', pricePerGram: 0.08, maxGrams: 30 },
-  'mango': { color: '#FF9800', lightColor: '#FFE0B2', emoji: '🥭', pricePerGram: 0.08, maxGrams: 30 },
-  'banana-slices': { color: '#FDD835', lightColor: '#FFF9C4', emoji: '🍌', pricePerGram: 0.06, maxGrams: 35 },
-  'banana': { color: '#FDD835', lightColor: '#FFF9C4', emoji: '🍌', pricePerGram: 0.06, maxGrams: 35 },
-  'm&ms': { color: '#E91E63', lightColor: '#F8BBD9', emoji: '🍬', pricePerGram: 0.08, maxGrams: 25 },
-  'gummy-bears': { color: '#FF5722', lightColor: '#FFCCBC', emoji: '🐻', pricePerGram: 0.07, maxGrams: 30 },
-  'sprinkles': { color: '#9C27B0', lightColor: '#E1BEE7', emoji: '🎊', pricePerGram: 0.05, maxGrams: 20 },
-  'cookie-crumbs': { color: '#795548', lightColor: '#D7CCC8', emoji: '🍪', pricePerGram: 0.06, maxGrams: 30 },
-  'cookies': { color: '#795548', lightColor: '#D7CCC8', emoji: '🍪', pricePerGram: 0.06, maxGrams: 30 },
-  'oreo': { color: '#424242', lightColor: '#E0E0E0', emoji: '🍪', pricePerGram: 0.06, maxGrams: 30 },
-  'walnuts': { color: '#8D6E63', lightColor: '#D7CCC8', emoji: '🌰', pricePerGram: 0.15, maxGrams: 20 },
-  'almonds': { color: '#A1887F', lightColor: '#D7CCC8', emoji: '🌰', pricePerGram: 0.15, maxGrams: 20 },
-  'peanuts': { color: '#D4A574', lightColor: '#FFE0B2', emoji: '🥜', pricePerGram: 0.12, maxGrams: 25 },
-  'granola': { color: '#C9B896', lightColor: '#F5F5DC', emoji: '🥣', pricePerGram: 0.05, maxGrams: 35 },
-  'fruity-pebbles': { color: '#9C27B0', lightColor: '#E1BEE7', emoji: '🌈', pricePerGram: 0.04, maxGrams: 35 },
-  'chocolate-chips': { color: '#5D4037', lightColor: '#D7CCC8', emoji: '🍫', pricePerGram: 0.07, maxGrams: 25 },
-  'coconut': { color: '#FAFAFA', lightColor: '#FFFFFF', emoji: '🥥', pricePerGram: 0.06, maxGrams: 25 },
-  'kiwi': { color: '#8BC34A', lightColor: '#DCEDC8', emoji: '🥝', pricePerGram: 0.09, maxGrams: 30 },
-  'raspberries': { color: '#E91E63', lightColor: '#F8BBD9', emoji: '🫐', pricePerGram: 0.12, maxGrams: 25 },
-  'cherries': { color: '#C62828', lightColor: '#FFCDD2', emoji: '🍒', pricePerGram: 0.10, maxGrams: 25 },
-  'pineapple': { color: '#FFCA28', lightColor: '#FFF8E1', emoji: '🍍', pricePerGram: 0.08, maxGrams: 30 },
+// Helper function to generate a lighter version of a color for backgrounds
+const getLightColor = (hexColor: string): string => {
+  // Default fallback
+  if (!hexColor || !hexColor.startsWith('#')) return '#FFE0B2';
+
+  try {
+    // Parse hex color
+    const hex = hexColor.replace('#', '');
+    const r = parseInt(hex.substring(0, 2), 16);
+    const g = parseInt(hex.substring(2, 4), 16);
+    const b = parseInt(hex.substring(4, 6), 16);
+
+    // Mix with white to create lighter version (70% white, 30% original)
+    const lightR = Math.round(r * 0.3 + 255 * 0.7);
+    const lightG = Math.round(g * 0.3 + 255 * 0.7);
+    const lightB = Math.round(b * 0.3 + 255 * 0.7);
+
+    return `#${lightR.toString(16).padStart(2, '0')}${lightG.toString(16).padStart(2, '0')}${lightB.toString(16).padStart(2, '0')}`;
+  } catch {
+    return '#FFE0B2';
+  }
 };
 
-const getToppingData = (id: string) => {
-  const key = id.toLowerCase().replace(/\s+/g, '-');
-  if (TOPPING_DATA[key]) return TOPPING_DATA[key];
-  for (const [k, v] of Object.entries(TOPPING_DATA)) {
-    if (key.includes(k) || k.includes(key)) return v;
-  }
-  return { color: '#FF9800', lightColor: '#FFE0B2', emoji: '🍬', pricePerGram: 0.05, maxGrams: 30 };
+// Get topping display data from the actual topping object (from admin)
+const getToppingDisplayData = (topping: Topping) => {
+  const color = topping.color || '#FF9800';
+  return {
+    color,
+    lightColor: getLightColor(color),
+    emoji: topping.emoji || '🍬',
+    pricePerGram: topping.pricePerGram || 0.05,
+    maxGrams: topping.maxGrams || 30,
+  };
 };
 
 // Cup preview showing toppings being added
@@ -137,7 +135,7 @@ const ToppingsCup: React.FC = () => {
             {/* Toppings on yogurt */}
             <View style={styles.toppingsOnYogurt}>
               {order.toppings.slice(0, 5).map((sel, i) => {
-                const data = getToppingData(sel.topping.id);
+                const data = getToppingDisplayData(sel.topping);
                 const positions = [
                   { left: 10, top: 4 },
                   { left: 35, top: 2 },
@@ -177,7 +175,7 @@ const ToppingCard: React.FC<{
   onRemove: () => void;
   index: number;
 }> = ({ topping, selection, onTap, onAdd, onRemove, index }) => {
-  const data = getToppingData(topping.id);
+  const data = getToppingDisplayData(topping);
   const isSelected = !!selection;
   const grams = selection?.grams || 0;
 
@@ -290,7 +288,7 @@ const SummaryBar: React.FC = () => {
     let t = 0;
     let g = 0;
     order.toppings.forEach(sel => {
-      const data = getToppingData(sel.topping.id);
+      const data = getToppingDisplayData(sel.topping);
       t += data.pricePerGram * sel.grams;
       g += sel.grams;
     });
@@ -323,7 +321,7 @@ const SelectedToppings: React.FC = () => {
       <Text style={styles.selectedLabel}>Added:</Text>
       <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.selectedScroll}>
         {order.toppings.map((sel) => {
-          const data = getToppingData(sel.topping.id);
+          const data = getToppingDisplayData(sel.topping);
           return (
             <TouchableOpacity
               key={sel.topping.id}
@@ -362,7 +360,7 @@ const ToppingsStep: React.FC = () => {
 
   const handleAdd = (topping: Topping) => {
     const sel = getSelection(topping.id);
-    const data = getToppingData(topping.id);
+    const data = getToppingDisplayData(topping);
     if (sel && sel.grams < data.maxGrams) {
       updateToppingGrams(topping.id, Math.min(sel.grams + 5, data.maxGrams));
     }
