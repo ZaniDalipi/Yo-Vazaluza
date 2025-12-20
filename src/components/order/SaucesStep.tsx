@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useMemo } from 'react';
+import React, { useRef, useEffect, useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -17,8 +17,8 @@ import { colors, spacing, typography, borderRadius, shadows } from '../../theme'
 import { Topping } from '../../types';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
-const CUP_WIDTH = Math.min(SCREEN_WIDTH * 0.32, 130);
-const CUP_HEIGHT = CUP_WIDTH * 1.1;
+const CUP_WIDTH = Math.min(SCREEN_WIDTH * 0.4, 160);
+const CUP_HEIGHT = CUP_WIDTH * 1.2;
 
 // Topping data with icons
 const TOPPING_ICONS: Record<string, string> = {
@@ -60,9 +60,79 @@ const getSauceData = (name: string): { color: string; darkColor: string; emoji: 
   return { color: '#5C4033', darkColor: '#3E2723', emoji: '🍫' };
 };
 
-// Compact froyo cup with toppings and sauce drizzles
-const FroYoCup: React.FC = () => {
+// Mini sauce dispenser button
+const SauceDispenser: React.FC<{
+  sauce: Topping;
+  isSelected: boolean;
+  onPress: () => void;
+  index: number;
+}> = ({ sauce, isSelected, onPress, index }) => {
+  const data = getSauceData(sauce.name);
+  const scaleAnim = useRef(new Animated.Value(0)).current;
+  const bounceAnim = useRef(new Animated.Value(1)).current;
+
+  useEffect(() => {
+    Animated.spring(scaleAnim, {
+      toValue: 1,
+      delay: index * 100,
+      friction: 6,
+      useNativeDriver: true,
+    }).start();
+  }, []);
+
+  useEffect(() => {
+    if (isSelected) {
+      Animated.loop(
+        Animated.sequence([
+          Animated.timing(bounceAnim, { toValue: 1.05, duration: 400, useNativeDriver: true }),
+          Animated.timing(bounceAnim, { toValue: 1, duration: 400, useNativeDriver: true }),
+        ])
+      ).start();
+    } else {
+      bounceAnim.setValue(1);
+    }
+  }, [isSelected]);
+
+  return (
+    <Animated.View style={[
+      styles.dispenserBtn,
+      { opacity: scaleAnim, transform: [{ scale: Animated.multiply(scaleAnim, bounceAnim) }] }
+    ]}>
+      <TouchableOpacity
+        style={[
+          styles.dispenserBtnInner,
+          { backgroundColor: isSelected ? data.color : '#FFF' },
+          isSelected && styles.dispenserBtnSelected
+        ]}
+        onPress={onPress}
+        activeOpacity={0.7}
+      >
+        <Text style={styles.dispenserEmoji}>{data.emoji}</Text>
+        <Text style={[styles.dispenserLabel, isSelected && { color: '#FFF' }]} numberOfLines={1}>
+          {sauce.name.split(' ')[0]}
+        </Text>
+        {isSelected && (
+          <View style={styles.dispenserCheck}>
+            <Ionicons name="checkmark" size={10} color="#FFF" />
+          </View>
+        )}
+      </TouchableOpacity>
+    </Animated.View>
+  );
+};
+
+// Main sauce dispensing area with cup
+const SauceStation: React.FC<{
+  sauces: Topping[];
+  selectedSauces: Topping[];
+  onToggle: (sauce: Topping) => void;
+}> = ({ sauces, selectedSauces, onToggle }) => {
   const { order } = useOrder();
+  const wobbleAnim = useRef(new Animated.Value(0)).current;
+
+  // Drip animations for each sauce position
+  const dripAnims = useRef(selectedSauces.map(() => new Animated.Value(0))).current;
+  const streamAnims = useRef(selectedSauces.map(() => new Animated.Value(0))).current;
 
   // Calculate fill level based on selected size
   const fillLevel = useMemo(() => {
@@ -77,303 +147,257 @@ const FroYoCup: React.FC = () => {
 
   // Get flavor colors
   const flavorColors = useMemo(() => {
-    if (order.flavors.length === 0) return ['#FFFFFF', '#F8F8F8'];
+    if (order.flavors.length === 0) return ['#FFB6C1', '#FFC0CB'];
     if (order.flavors.length === 1) return [order.flavors[0].color, order.flavors[0].color];
     return order.flavors.map(f => f.color);
   }, [order.flavors]);
 
-  const cupBottomWidth = CUP_WIDTH * 0.7;
-
-  return (
-    <View style={styles.cupContainer}>
-      {/* Cup body */}
-      <View style={[styles.cupBody, { width: CUP_WIDTH, height: CUP_HEIGHT }]}>
-        <View style={[
-          styles.cupOuter,
-          {
-            width: CUP_WIDTH,
-            height: CUP_HEIGHT,
-            borderBottomLeftRadius: cupBottomWidth * 0.5,
-            borderBottomRightRadius: cupBottomWidth * 0.5,
-          }
-        ]}>
-          {/* Rim */}
-          <View style={[styles.cupRim, { width: CUP_WIDTH + 6 }]} />
-
-          {/* Cup wall */}
-          <LinearGradient
-            colors={['#FAFAFA', '#F0F0F0', '#E8E8E8'] as const}
-            style={styles.cupWall}
-          >
-            <View style={styles.cupBrand}>
-              <Text style={styles.cupBrandText}>Yo-V</Text>
-            </View>
-          </LinearGradient>
-
-          {/* Inner cup with yogurt, toppings, and drizzles */}
-          <View style={styles.cupInner}>
-            {/* Yogurt fill */}
-            <View style={[styles.yogurtFill, { height: `${fillLevel * 85}%` }]}>
-              <LinearGradient
-                colors={flavorColors.length > 1 ? flavorColors as [string, string, ...string[]] : [flavorColors[0], flavorColors[0]] as [string, string]}
-                locations={flavorColors.map((_, i) => i / (flavorColors.length - 1 || 1))}
-                style={styles.yogurtGradient}
-                start={{ x: 0.2, y: 0 }}
-                end={{ x: 0.8, y: 1 }}
-              />
-            </View>
-
-            {/* Toppings on surface */}
-            <View style={styles.toppingsOnYogurt}>
-              {order.toppings.slice(0, 3).map((sel, i) => {
-                const icon = getToppingIcon(sel.topping.id);
-                const positions = [
-                  { left: 8, top: 4 },
-                  { left: 28, top: 2 },
-                  { left: 48, top: 5 },
-                ];
-                const pos = positions[i];
-                return (
-                  <Text key={sel.topping.id} style={[styles.toppingMini, { left: pos.left, top: pos.top }]}>
-                    {icon}
-                  </Text>
-                );
-              })}
-            </View>
-
-            {/* Sauce drizzles on top */}
-            <View style={styles.sauceDrizzles}>
-              {order.sauces.slice(0, 3).map((sauce, i) => {
-                const data = getSauceData(sauce.name);
-                const positions = [
-                  { left: 10, width: 30 },
-                  { left: 25, width: 25 },
-                  { left: 40, width: 28 },
-                ];
-                const pos = positions[i];
-                return (
-                  <View
-                    key={sauce.id}
-                    style={[
-                      styles.drizzleLine,
-                      {
-                        backgroundColor: data.color,
-                        left: pos.left,
-                        width: pos.width,
-                      }
-                    ]}
-                  />
-                );
-              })}
-            </View>
-          </View>
-        </View>
-      </View>
-
-      {/* Shadow */}
-      <View style={[styles.cupShadow, { width: cupBottomWidth + 10 }]} />
-
-      {/* Sauce count badge */}
-      {order.sauces.length > 0 && (
-        <View style={styles.sauceBadge}>
-          <Text style={styles.sauceBadgeText}>{order.sauces.length}</Text>
-        </View>
-      )}
-    </View>
-  );
-};
-
-
-// Sauce dispensing nozzle card - like yogurt machine style
-const SauceNozzle: React.FC<{
-  sauce: Topping;
-  isSelected: boolean;
-  onSelect: () => void;
-  index: number;
-}> = ({ sauce, isSelected, onSelect, index }) => {
-  const scaleAnim = useRef(new Animated.Value(0)).current;
-  const streamAnim = useRef(new Animated.Value(0)).current;
-  const dripAnim = useRef(new Animated.Value(0)).current;
-  const pulseAnim = useRef(new Animated.Value(1)).current;
-
-  const data = getSauceData(sauce.name);
-
   useEffect(() => {
-    Animated.spring(scaleAnim, {
-      toValue: 1,
-      delay: index * 80,
-      friction: 5,
-      tension: 80,
-      useNativeDriver: true,
-    }).start();
-  }, [index]);
+    // Cup wobble when sauces change
+    Animated.sequence([
+      Animated.timing(wobbleAnim, { toValue: 1, duration: 100, useNativeDriver: true }),
+      Animated.timing(wobbleAnim, { toValue: -1, duration: 100, useNativeDriver: true }),
+      Animated.timing(wobbleAnim, { toValue: 0, duration: 100, useNativeDriver: true }),
+    ]).start();
+  }, [selectedSauces.length]);
 
+  // Animate drips for selected sauces
   useEffect(() => {
-    if (isSelected) {
-      // Continuous stream animation - sauce flowing
+    selectedSauces.forEach((_, i) => {
+      if (!dripAnims[i]) {
+        dripAnims[i] = new Animated.Value(0);
+        streamAnims[i] = new Animated.Value(0);
+      }
+
+      // Stream animation
       Animated.loop(
         Animated.sequence([
-          Animated.timing(streamAnim, { toValue: 1, duration: 500, easing: Easing.linear, useNativeDriver: true }),
-          Animated.timing(streamAnim, { toValue: 0, duration: 0, useNativeDriver: true }),
+          Animated.timing(streamAnims[i], { toValue: 1, duration: 400, easing: Easing.linear, useNativeDriver: true }),
+          Animated.timing(streamAnims[i], { toValue: 0, duration: 0, useNativeDriver: true }),
         ])
       ).start();
 
       // Drip animation
       Animated.loop(
         Animated.sequence([
-          Animated.timing(dripAnim, { toValue: 1, duration: 700, easing: Easing.in(Easing.quad), useNativeDriver: true }),
-          Animated.timing(dripAnim, { toValue: 0, duration: 0, useNativeDriver: true }),
+          Animated.timing(dripAnims[i], { toValue: 1, duration: 800, easing: Easing.in(Easing.quad), useNativeDriver: true }),
+          Animated.timing(dripAnims[i], { toValue: 0, duration: 0, useNativeDriver: true }),
         ])
       ).start();
+    });
+  }, [selectedSauces]);
 
-      // Pulse animation on the machine
-      Animated.loop(
-        Animated.sequence([
-          Animated.timing(pulseAnim, { toValue: 1.02, duration: 800, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
-          Animated.timing(pulseAnim, { toValue: 1, duration: 800, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
-        ])
-      ).start();
-    } else {
-      streamAnim.setValue(0);
-      dripAnim.setValue(0);
-      pulseAnim.setValue(1);
-    }
-  }, [isSelected]);
+  const cupBottomWidth = CUP_WIDTH * 0.7;
+
+  // Position dispensers above the cup
+  const getDispenserPosition = (index: number, total: number) => {
+    const spacing = 70;
+    const startX = (SCREEN_WIDTH - (total - 1) * spacing) / 2;
+    return startX + index * spacing;
+  };
 
   return (
-    <Animated.View
-      style={[
-        styles.nozzleContainer,
-        {
-          opacity: scaleAnim,
-          transform: [
-            { scale: scaleAnim },
-            {
-              translateY: scaleAnim.interpolate({
-                inputRange: [0, 1],
-                outputRange: [50, 0],
-              }),
-            },
-          ],
-        },
-      ]}
-    >
-      <TouchableOpacity
-        style={[styles.nozzleCard, isSelected && styles.nozzleCardSelected]}
-        onPress={onSelect}
-        activeOpacity={0.8}
+    <View style={styles.stationContainer}>
+      {/* Sauce dispensers row */}
+      <View style={styles.dispensersRow}>
+        {sauces.map((sauce, i) => (
+          <SauceDispenser
+            key={sauce.id}
+            sauce={sauce}
+            isSelected={selectedSauces.some(s => s.id === sauce.id)}
+            onPress={() => onToggle(sauce)}
+            index={i}
+          />
+        ))}
+      </View>
+
+      {/* Nozzles and streams for selected sauces */}
+      <View style={styles.nozzlesArea}>
+        {selectedSauces.slice(0, 3).map((sauce, i) => {
+          const data = getSauceData(sauce.name);
+          const positions = [
+            { left: SCREEN_WIDTH / 2 - 50 },
+            { left: SCREEN_WIDTH / 2 },
+            { left: SCREEN_WIDTH / 2 + 50 },
+          ];
+          const pos = positions[i] || positions[0];
+
+          return (
+            <View key={sauce.id} style={[styles.nozzleGroup, { left: pos.left - 15 }]}>
+              {/* Nozzle */}
+              <View style={[styles.nozzle, { backgroundColor: data.darkColor }]}>
+                <View style={[styles.nozzleInner, { backgroundColor: data.color }]} />
+              </View>
+
+              {/* Stream */}
+              <Animated.View
+                style={[
+                  styles.sauceStream,
+                  {
+                    backgroundColor: data.color,
+                    opacity: streamAnims[i]?.interpolate({
+                      inputRange: [0, 0.3, 0.7, 1],
+                      outputRange: [0.5, 1, 1, 0.5],
+                    }) || 1,
+                  },
+                ]}
+              />
+
+              {/* Drip */}
+              <Animated.View
+                style={[
+                  styles.sauceDrip,
+                  {
+                    backgroundColor: data.color,
+                    transform: [
+                      {
+                        translateY: dripAnims[i]?.interpolate({
+                          inputRange: [0, 1],
+                          outputRange: [0, 60],
+                        }) || 0,
+                      },
+                      {
+                        scale: dripAnims[i]?.interpolate({
+                          inputRange: [0, 0.5, 1],
+                          outputRange: [0.8, 1.2, 0.5],
+                        }) || 1,
+                      },
+                    ],
+                    opacity: dripAnims[i]?.interpolate({
+                      inputRange: [0, 0.8, 1],
+                      outputRange: [1, 0.8, 0],
+                    }) || 1,
+                  },
+                ]}
+              />
+            </View>
+          );
+        })}
+      </View>
+
+      {/* Cup */}
+      <Animated.View
+        style={[
+          styles.cupContainer,
+          {
+            transform: [
+              {
+                rotate: wobbleAnim.interpolate({
+                  inputRange: [-1, 0, 1],
+                  outputRange: ['-2deg', '0deg', '2deg'],
+                }),
+              },
+            ],
+          },
+        ]}
       >
-        {/* Selected badge */}
-        {isSelected && (
-          <View style={styles.selectedBadge}>
-            <Ionicons name="checkmark" size={14} color="#FFF" />
+        <View style={[styles.cupBody, { width: CUP_WIDTH, height: CUP_HEIGHT }]}>
+          <View style={[
+            styles.cupOuter,
+            {
+              width: CUP_WIDTH,
+              height: CUP_HEIGHT,
+              borderBottomLeftRadius: cupBottomWidth * 0.5,
+              borderBottomRightRadius: cupBottomWidth * 0.5,
+            }
+          ]}>
+            {/* Rim */}
+            <View style={[styles.cupRim, { width: CUP_WIDTH + 8 }]} />
+
+            {/* Cup wall */}
+            <LinearGradient
+              colors={['#FAFAFA', '#F0F0F0', '#E8E8E8'] as const}
+              style={styles.cupWall}
+            >
+              <View style={styles.cupBrand}>
+                <Text style={styles.cupBrandText}>Yo-V</Text>
+              </View>
+              <View style={[styles.cupShine, { height: CUP_HEIGHT * 0.5 }]} />
+            </LinearGradient>
+
+            {/* Inner cup with yogurt, toppings, and drizzles */}
+            <View style={styles.cupInner}>
+              {/* Yogurt fill */}
+              <View style={[styles.yogurtFill, { height: `${fillLevel * 85}%` }]}>
+                <LinearGradient
+                  colors={flavorColors.length > 1 ? flavorColors as [string, string, ...string[]] : [flavorColors[0], flavorColors[0]] as [string, string]}
+                  locations={flavorColors.length > 1 ? flavorColors.map((_, i) => i / (flavorColors.length - 1)) as [number, number, ...number[]] : [0, 1] as [number, number]}
+                  style={styles.yogurtGradient}
+                  start={{ x: 0.2, y: 0 }}
+                  end={{ x: 0.8, y: 1 }}
+                />
+              </View>
+
+              {/* Toppings on surface */}
+              <View style={styles.toppingsOnYogurt}>
+                {order.toppings.slice(0, 4).map((sel, i) => {
+                  const icon = getToppingIcon(sel.topping.id);
+                  const positions = [
+                    { left: 12, top: 4 },
+                    { left: 40, top: 2 },
+                    { left: 68, top: 5 },
+                    { left: 96, top: 3 },
+                  ];
+                  const pos = positions[i];
+                  return (
+                    <Text key={sel.topping.id} style={[styles.toppingMini, { left: pos.left, top: pos.top }]}>
+                      {icon}
+                    </Text>
+                  );
+                })}
+              </View>
+
+              {/* Sauce drizzles on top */}
+              <View style={styles.sauceDrizzles}>
+                {selectedSauces.slice(0, 3).map((sauce, i) => {
+                  const data = getSauceData(sauce.name);
+                  const drizzleStyles = [
+                    { left: 15, width: 50, rotation: '-5deg' },
+                    { left: 45, width: 45, rotation: '3deg' },
+                    { left: 75, width: 48, rotation: '-2deg' },
+                  ];
+                  const style = drizzleStyles[i];
+                  return (
+                    <View
+                      key={sauce.id}
+                      style={[
+                        styles.drizzleLine,
+                        {
+                          backgroundColor: data.color,
+                          left: style.left,
+                          width: style.width,
+                          transform: [{ rotate: style.rotation }],
+                        }
+                      ]}
+                    />
+                  );
+                })}
+              </View>
+            </View>
+          </View>
+        </View>
+
+        {/* Shadow */}
+        <View style={[styles.cupShadow, { width: cupBottomWidth + 15 }]} />
+
+        {/* Sauce count badge */}
+        {selectedSauces.length > 0 && (
+          <View style={styles.sauceBadge}>
+            <Text style={styles.sauceBadgeText}>{selectedSauces.length}</Text>
           </View>
         )}
+      </Animated.View>
 
-        {/* Sauce dispenser machine */}
-        <Animated.View
-          style={[
-            styles.dispenserContainer,
-            { transform: [{ scale: pulseAnim }] }
-          ]}
-        >
-          {/* Machine body */}
-          <View style={styles.machineBody}>
-            <LinearGradient
-              colors={[data.color, data.darkColor] as [string, string]}
-              style={styles.machineGradient}
-            >
-              {/* Window showing sauce inside */}
-              <View style={styles.machineWindow}>
-                <View style={[styles.sauceLevel, { backgroundColor: data.color + 'AA' }]} />
-              </View>
-              {/* Brand label */}
-              <View style={styles.machineLabelBg}>
-                <Text style={styles.machineLabelText}>{data.emoji}</Text>
-              </View>
-              {/* Shine effect */}
-              <View style={styles.machineShine} />
-            </LinearGradient>
-          </View>
-
-          {/* Dispenser nozzle tip */}
-          <View style={[styles.nozzleTip, { backgroundColor: data.darkColor }]}>
-            <View style={styles.nozzleOpening} />
-          </View>
-
-          {/* Sauce stream when dispensing */}
-          {isSelected && (
-            <Animated.View
-              style={[
-                styles.sauceStream,
-                {
-                  backgroundColor: data.color,
-                  opacity: streamAnim.interpolate({
-                    inputRange: [0, 0.3, 0.7, 1],
-                    outputRange: [0.6, 1, 1, 0.6],
-                  }),
-                },
-              ]}
-            />
-          )}
-
-          {/* Drip at nozzle */}
-          {isSelected && (
-            <Animated.View
-              style={[
-                styles.sauceDrip,
-                {
-                  backgroundColor: data.color,
-                  transform: [
-                    {
-                      translateY: dripAnim.interpolate({
-                        inputRange: [0, 1],
-                        outputRange: [0, 20],
-                      }),
-                    },
-                    {
-                      scale: dripAnim.interpolate({
-                        inputRange: [0, 0.5, 1],
-                        outputRange: [0.7, 1.1, 0.4],
-                      }),
-                    },
-                  ],
-                  opacity: dripAnim.interpolate({
-                    inputRange: [0, 0.8, 1],
-                    outputRange: [1, 0.7, 0],
-                  }),
-                },
-              ]}
-            />
-          )}
-
-          {/* Dispensing indicator */}
-          {isSelected && (
-            <View style={[styles.dispensingBadge, { backgroundColor: data.color }]}>
-              <Text style={styles.dispensingText}>ON</Text>
-            </View>
-          )}
-        </Animated.View>
-
-        {/* Sauce name */}
-        <Text style={[styles.sauceName, isSelected && { color: data.color }]}>
-          {sauce.name}
-        </Text>
-
-        {/* Add indicator */}
-        <View style={[styles.addButton, isSelected && { backgroundColor: data.color }]}>
-          <Ionicons
-            name={isSelected ? 'remove' : 'add'}
-            size={18}
-            color={isSelected ? '#FFF' : colors.text.muted}
-          />
-        </View>
-      </TouchableOpacity>
-    </Animated.View>
+      {/* Tap hint */}
+      <View style={styles.tapHint}>
+        <Ionicons name="hand-left-outline" size={14} color={colors.accent.gold} />
+        <Text style={styles.tapHintText}>Tap a sauce to drizzle it on your cup!</Text>
+      </View>
+    </View>
   );
 };
 
-// Selected sauces preview
+// Selected sauces preview chips
 const SelectedSauces: React.FC = () => {
   const { order, removeSauce } = useOrder();
 
@@ -425,10 +449,12 @@ const SaucesStep: React.FC = () => {
 
   return (
     <View style={styles.container}>
-      {/* Cup preview */}
-      <View style={styles.cupSection}>
-        <FroYoCup />
-      </View>
+      {/* Main sauce station with cup and dispensers */}
+      <SauceStation
+        sauces={sauces}
+        selectedSauces={order.sauces}
+        onToggle={handleToggle}
+      />
 
       <ScrollView
         style={styles.scrollView}
@@ -438,29 +464,10 @@ const SaucesStep: React.FC = () => {
         {/* Selected sauces */}
         <SelectedSauces />
 
-        {/* Hint */}
-        <View style={styles.hintContainer}>
-          <Text style={styles.hintEmoji}>🍫</Text>
-          <Text style={styles.hintText}>Add drizzles to your frozen yogurt!</Text>
-        </View>
-
-        {/* Skip hint */}
-        <View style={styles.skipHint}>
-          <Ionicons name="information-circle-outline" size={14} color={colors.text.muted} />
-          <Text style={styles.skipHintText}>Sauces are free and optional</Text>
-        </View>
-
-        {/* Sauce nozzles grid */}
-        <View style={styles.grid}>
-          {sauces.map((sauce, index) => (
-            <SauceNozzle
-              key={sauce.id}
-              sauce={sauce}
-              isSelected={!!order.sauces.find(s => s.id === sauce.id)}
-              onSelect={() => handleToggle(sauce)}
-              index={index}
-            />
-          ))}
+        {/* Info */}
+        <View style={styles.infoBox}>
+          <Ionicons name="information-circle-outline" size={18} color={colors.accent.gold} />
+          <Text style={styles.infoText}>Sauces are free and optional - add as many as you like!</Text>
         </View>
 
         {sauces.length === 0 && (
@@ -479,15 +486,98 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  cupSection: {
-    alignItems: 'center',
-    paddingVertical: spacing.sm,
+  stationContainer: {
     backgroundColor: colors.background.main,
+    paddingTop: spacing.md,
+    paddingBottom: spacing.lg,
     borderBottomWidth: 1,
     borderBottomColor: colors.ui.border,
+    alignItems: 'center',
+  },
+  dispensersRow: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: spacing.sm,
+    paddingHorizontal: spacing.md,
+    marginBottom: spacing.sm,
+  },
+  dispenserBtn: {
+    alignItems: 'center',
+  },
+  dispenserBtnInner: {
+    width: 70,
+    height: 70,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: colors.ui.border,
+    ...shadows.small,
+  },
+  dispenserBtnSelected: {
+    borderColor: 'transparent',
+  },
+  dispenserEmoji: {
+    fontSize: 24,
+    marginBottom: 2,
+  },
+  dispenserLabel: {
+    fontSize: 10,
+    fontWeight: '600' as const,
+    color: colors.text.secondary,
+  },
+  dispenserCheck: {
+    position: 'absolute',
+    top: -4,
+    right: -4,
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    backgroundColor: colors.ui.success,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  nozzlesArea: {
+    height: 80,
+    width: '100%',
+    position: 'relative',
+  },
+  nozzleGroup: {
+    position: 'absolute',
+    top: 0,
+    alignItems: 'center',
+    width: 30,
+  },
+  nozzle: {
+    width: 24,
+    height: 12,
+    borderBottomLeftRadius: 8,
+    borderBottomRightRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  nozzleInner: {
+    width: 12,
+    height: 6,
+    borderRadius: 3,
+    marginTop: 2,
+  },
+  sauceStream: {
+    width: 6,
+    height: 50,
+    borderRadius: 3,
+    marginTop: -2,
+  },
+  sauceDrip: {
+    position: 'absolute',
+    top: 8,
+    width: 10,
+    height: 10,
+    borderRadius: 5,
   },
   cupContainer: {
     alignItems: 'center',
+    marginTop: -10,
   },
   cupBody: {
     alignItems: 'center',
@@ -495,19 +585,19 @@ const styles = StyleSheet.create({
   },
   cupOuter: {
     backgroundColor: '#FFF',
-    borderTopLeftRadius: 6,
-    borderTopRightRadius: 6,
+    borderTopLeftRadius: 8,
+    borderTopRightRadius: 8,
     overflow: 'hidden',
-    ...shadows.small,
+    ...shadows.medium,
   },
   cupRim: {
     position: 'absolute',
     top: -2,
-    left: -3,
-    height: 10,
+    left: -4,
+    height: 12,
     backgroundColor: '#E8E8E8',
-    borderRadius: 5,
-    borderWidth: 1,
+    borderRadius: 6,
+    borderWidth: 2,
     borderColor: '#D0D0D0',
     zIndex: 10,
   },
@@ -519,25 +609,33 @@ const styles = StyleSheet.create({
     position: 'absolute',
     bottom: '20%',
     alignSelf: 'center',
-    backgroundColor: 'rgba(201, 169, 98, 0.1)',
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 3,
+    backgroundColor: 'rgba(201, 169, 98, 0.12)',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 4,
   },
   cupBrandText: {
-    fontSize: 8,
+    fontSize: 10,
     fontWeight: '700' as const,
     color: colors.accent.gold,
     letterSpacing: 0.3,
   },
+  cupShine: {
+    position: 'absolute',
+    top: 14,
+    left: 10,
+    width: 5,
+    backgroundColor: 'rgba(255,255,255,0.5)',
+    borderRadius: 3,
+  },
   cupInner: {
     position: 'absolute',
-    top: 8,
-    left: 4,
-    right: 4,
-    bottom: 5,
+    top: 10,
+    left: 6,
+    right: 6,
+    bottom: 8,
     backgroundColor: '#F5F5F5',
-    borderRadius: 3,
+    borderRadius: 4,
     overflow: 'hidden',
   },
   yogurtFill: {
@@ -552,62 +650,74 @@ const styles = StyleSheet.create({
   },
   toppingsOnYogurt: {
     position: 'absolute',
-    top: 1,
+    top: 2,
     left: 0,
     right: 0,
-    height: 18,
+    height: 20,
   },
   toppingMini: {
     position: 'absolute',
-    fontSize: 9,
+    fontSize: 12,
   },
   sauceDrizzles: {
     position: 'absolute',
     top: 0,
     left: 0,
     right: 0,
-    height: 12,
+    height: 15,
   },
   drizzleLine: {
     position: 'absolute',
-    top: 2,
-    height: 3,
-    borderRadius: 1,
+    top: 3,
+    height: 5,
+    borderRadius: 2,
   },
   cupShadow: {
-    height: 6,
-    backgroundColor: 'rgba(0,0,0,0.06)',
+    height: 10,
+    backgroundColor: 'rgba(0,0,0,0.08)',
     borderRadius: 50,
-    marginTop: 2,
+    marginTop: spacing.xs,
   },
   sauceBadge: {
     position: 'absolute',
-    top: -4,
-    right: -4,
+    top: -6,
+    right: -6,
     backgroundColor: colors.accent.gold,
-    width: 18,
-    height: 18,
-    borderRadius: 9,
+    width: 22,
+    height: 22,
+    borderRadius: 11,
     alignItems: 'center',
     justifyContent: 'center',
+    ...shadows.small,
   },
   sauceBadgeText: {
-    fontSize: 10,
+    fontSize: 12,
     fontWeight: '700' as const,
     color: '#FFF',
+  },
+  tapHint: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.xs,
+    marginTop: spacing.md,
+  },
+  tapHintText: {
+    fontSize: typography.fontSizes.xs,
+    color: colors.text.muted,
   },
   scrollView: {
     flex: 1,
   },
   content: {
     paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
     paddingBottom: spacing.xl,
   },
   selectedContainer: {
     backgroundColor: colors.background.card,
     borderRadius: borderRadius.xl,
     padding: spacing.md,
-    marginTop: spacing.md,
     marginBottom: spacing.md,
     ...shadows.small,
   },
@@ -656,179 +766,20 @@ const styles = StyleSheet.create({
     fontSize: typography.fontSizes.sm,
     fontWeight: '500' as const,
   },
-  hintContainer: {
+  infoBox: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: spacing.sm,
-    marginBottom: spacing.sm,
+    backgroundColor: colors.accent.gold + '15',
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.lg,
+    borderRadius: borderRadius.lg,
   },
-  hintEmoji: {
-    fontSize: 24,
-  },
-  hintText: {
-    fontSize: typography.fontSizes.md,
+  infoText: {
+    fontSize: typography.fontSizes.sm,
     color: colors.text.secondary,
-  },
-  skipHint: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: spacing.xs,
-    marginBottom: spacing.lg,
-  },
-  skipHintText: {
-    fontSize: typography.fontSizes.xs,
-    color: colors.text.muted,
-  },
-  grid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
-  },
-  nozzleContainer: {
-    width: '48%',
-    marginBottom: spacing.lg,
-  },
-  nozzleCard: {
-    backgroundColor: colors.background.card,
-    borderRadius: borderRadius.xl,
-    padding: spacing.lg,
-    alignItems: 'center',
-    borderWidth: 2,
-    borderColor: 'transparent',
-    ...shadows.medium,
-  },
-  nozzleCardSelected: {
-    borderColor: colors.accent.gold,
-    backgroundColor: colors.accent.gold + '08',
-  },
-  selectedBadge: {
-    position: 'absolute',
-    top: -8,
-    right: -8,
-    width: 26,
-    height: 26,
-    borderRadius: 13,
-    backgroundColor: colors.ui.success,
-    alignItems: 'center',
-    justifyContent: 'center',
-    ...shadows.small,
-  },
-  dispenserContainer: {
-    alignItems: 'center',
-    marginBottom: spacing.md,
-  },
-  machineBody: {
-    width: 65,
-    height: 70,
-    borderRadius: 10,
-    overflow: 'hidden',
-    ...shadows.medium,
-  },
-  machineGradient: {
     flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    position: 'relative',
-  },
-  machineWindow: {
-    position: 'absolute',
-    top: 8,
-    width: 45,
-    height: 25,
-    backgroundColor: 'rgba(255,255,255,0.3)',
-    borderRadius: 4,
-    overflow: 'hidden',
-  },
-  sauceLevel: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    height: '70%',
-    borderRadius: 2,
-  },
-  machineLabelBg: {
-    position: 'absolute',
-    bottom: 10,
-    width: 32,
-    height: 26,
-    backgroundColor: 'rgba(255,255,255,0.9)',
-    borderRadius: 5,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  machineLabelText: {
-    fontSize: 16,
-  },
-  machineShine: {
-    position: 'absolute',
-    top: 6,
-    left: 8,
-    width: 5,
-    height: 40,
-    backgroundColor: 'rgba(255,255,255,0.25)',
-    borderRadius: 3,
-  },
-  nozzleTip: {
-    width: 22,
-    height: 14,
-    borderBottomLeftRadius: 8,
-    borderBottomRightRadius: 8,
-    alignItems: 'center',
-    justifyContent: 'flex-end',
-    paddingBottom: 2,
-  },
-  nozzleOpening: {
-    width: 10,
-    height: 4,
-    backgroundColor: 'rgba(0,0,0,0.3)',
-    borderRadius: 2,
-  },
-  sauceStream: {
-    position: 'absolute',
-    top: 83,
-    width: 6,
-    height: 30,
-    borderRadius: 3,
-  },
-  sauceDrip: {
-    position: 'absolute',
-    top: 82,
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    ...shadows.small,
-  },
-  dispensingBadge: {
-    position: 'absolute',
-    top: -6,
-    right: -10,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 8,
-  },
-  dispensingText: {
-    fontSize: 8,
-    fontWeight: '700' as const,
-    color: '#FFF',
-    letterSpacing: 0.5,
-  },
-  sauceName: {
-    fontSize: typography.fontSizes.md,
-    fontWeight: '600' as const,
-    color: colors.text.primary,
-    textAlign: 'center',
-    marginBottom: spacing.sm,
-  },
-  addButton: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: colors.background.main,
-    alignItems: 'center',
-    justifyContent: 'center',
   },
   emptyState: {
     alignItems: 'center',
