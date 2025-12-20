@@ -7,7 +7,6 @@ import {
   TouchableOpacity,
   Animated,
   Dimensions,
-  PanResponder,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
@@ -17,37 +16,33 @@ import { colors, spacing, typography, borderRadius, shadows } from '../../theme'
 import { Topping, ToppingSelection } from '../../types';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
-const BOWL_SIZE = Math.min(SCREEN_WIDTH * 0.85, 340);
+const BOWL_SIZE = Math.min(SCREEN_WIDTH * 0.7, 280);
+const PLATE_ITEM_SIZE = (SCREEN_WIDTH - spacing.lg * 2 - spacing.sm * 2) / 3;
 
 // Topping pricing data - sorted by price (most expensive first)
-const TOPPING_PRICES: Record<string, { pricePerGram: number; maxGrams: number; emoji: string }> = {
-  // Premium toppings - $0.15/g
-  'walnuts': { pricePerGram: 0.15, maxGrams: 20, emoji: '🥜' },
-  'almonds': { pricePerGram: 0.15, maxGrams: 20, emoji: '🥜' },
-  'peanuts': { pricePerGram: 0.12, maxGrams: 25, emoji: '🥜' },
-  // Medium toppings - $0.08-0.10/g
-  'blueberries': { pricePerGram: 0.10, maxGrams: 30, emoji: '🫐' },
-  'fresh-strawberries': { pricePerGram: 0.10, maxGrams: 30, emoji: '🍓' },
-  'mango-chunks': { pricePerGram: 0.08, maxGrams: 30, emoji: '🥭' },
-  'banana-slices': { pricePerGram: 0.06, maxGrams: 35, emoji: '🍌' },
-  // Candy - $0.08/g
-  'm&ms': { pricePerGram: 0.08, maxGrams: 25, emoji: '🍬' },
-  'gummy-bears': { pricePerGram: 0.07, maxGrams: 30, emoji: '🐻' },
-  'sprinkles': { pricePerGram: 0.05, maxGrams: 20, emoji: '✨' },
-  // Budget toppings - $0.04-0.06/g
-  'cookie-crumbs': { pricePerGram: 0.06, maxGrams: 30, emoji: '🍪' },
-  'granola': { pricePerGram: 0.05, maxGrams: 35, emoji: '🥣' },
-  'fruity-pebbles': { pricePerGram: 0.04, maxGrams: 35, emoji: '🥣' },
+const TOPPING_PRICES: Record<string, { pricePerGram: number; maxGrams: number; emoji: string; color: string }> = {
+  'walnuts': { pricePerGram: 0.15, maxGrams: 20, emoji: '🥜', color: '#8D6E63' },
+  'almonds': { pricePerGram: 0.15, maxGrams: 20, emoji: '🥜', color: '#A1887F' },
+  'peanuts': { pricePerGram: 0.12, maxGrams: 25, emoji: '🥜', color: '#BCAAA4' },
+  'blueberries': { pricePerGram: 0.10, maxGrams: 30, emoji: '🫐', color: '#3949AB' },
+  'fresh-strawberries': { pricePerGram: 0.10, maxGrams: 30, emoji: '🍓', color: '#E53935' },
+  'mango-chunks': { pricePerGram: 0.08, maxGrams: 30, emoji: '🥭', color: '#FFB300' },
+  'banana-slices': { pricePerGram: 0.06, maxGrams: 35, emoji: '🍌', color: '#FFF59D' },
+  'm&ms': { pricePerGram: 0.08, maxGrams: 25, emoji: '🍬', color: '#E91E63' },
+  'gummy-bears': { pricePerGram: 0.07, maxGrams: 30, emoji: '🐻', color: '#FF7043' },
+  'sprinkles': { pricePerGram: 0.05, maxGrams: 20, emoji: '✨', color: '#EC407A' },
+  'cookie-crumbs': { pricePerGram: 0.06, maxGrams: 30, emoji: '🍪', color: '#8D6E63' },
+  'granola': { pricePerGram: 0.05, maxGrams: 35, emoji: '🥣', color: '#D7CCC8' },
+  'fruity-pebbles': { pricePerGram: 0.04, maxGrams: 35, emoji: '🥣', color: '#9C27B0' },
 };
 
-// Get topping info with defaults
 const getToppingInfo = (id: string) => {
   const key = id.toLowerCase().replace(/\s+/g, '-');
-  return TOPPING_PRICES[key] || { pricePerGram: 0.05, maxGrams: 30, emoji: '🍬' };
+  return TOPPING_PRICES[key] || { pricePerGram: 0.05, maxGrams: 30, emoji: '🍬', color: colors.accent.gold };
 };
 
-// SVG-style topping shapes for the bowl
-const ToppingShape: React.FC<{
+// Visual topping pieces for the bowl
+const ToppingPiece: React.FC<{
   type: string;
   x: number;
   y: number;
@@ -55,7 +50,6 @@ const ToppingShape: React.FC<{
   delay: number;
 }> = ({ type, x, y, size, delay }) => {
   const scaleAnim = useRef(new Animated.Value(0)).current;
-  const bounceAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     Animated.sequence([
@@ -67,376 +61,234 @@ const ToppingShape: React.FC<{
         useNativeDriver: true,
       }),
     ]).start();
-
-    // Floating animation
-    Animated.loop(
-      Animated.sequence([
-        Animated.timing(bounceAnim, {
-          toValue: 1,
-          duration: 1500 + Math.random() * 500,
-          useNativeDriver: true,
-        }),
-        Animated.timing(bounceAnim, {
-          toValue: 0,
-          duration: 1500 + Math.random() * 500,
-          useNativeDriver: true,
-        }),
-      ])
-    ).start();
   }, []);
 
-  const getShapeStyle = () => {
-    const normalizedType = type.toLowerCase().replace(/\s+/g, '-');
-    switch (normalizedType) {
+  const getStyle = () => {
+    const info = getToppingInfo(type);
+    const normalized = type.toLowerCase().replace(/\s+/g, '-');
+
+    switch (normalized) {
       case 'fresh-strawberries':
-        return {
-          width: size,
-          height: size * 1.2,
-          backgroundColor: '#E53935',
-          borderRadius: size / 2,
-          borderBottomLeftRadius: size / 4,
-          borderBottomRightRadius: size / 4,
-        };
+        return { width: size, height: size * 1.2, backgroundColor: '#E53935', borderRadius: size / 2 };
       case 'blueberries':
-        return {
-          width: size * 0.8,
-          height: size * 0.8,
-          backgroundColor: '#3949AB',
-          borderRadius: size,
-        };
+        return { width: size * 0.7, height: size * 0.7, backgroundColor: '#3949AB', borderRadius: size };
       case 'mango-chunks':
-        return {
-          width: size,
-          height: size * 0.7,
-          backgroundColor: '#FFB300',
-          borderRadius: size / 4,
-        };
+        return { width: size, height: size * 0.7, backgroundColor: '#FFB300', borderRadius: 4 };
       case 'banana-slices':
-        return {
-          width: size * 1.2,
-          height: size * 0.5,
-          backgroundColor: '#FFF59D',
-          borderRadius: size,
-          borderWidth: 1,
-          borderColor: '#F9A825',
-        };
+        return { width: size * 1.1, height: size * 0.4, backgroundColor: '#FFF59D', borderRadius: size, borderWidth: 1, borderColor: '#F9A825' };
       case 'm&ms':
-        return {
-          width: size * 0.7,
-          height: size * 0.5,
-          backgroundColor: ['#E53935', '#1E88E5', '#43A047', '#FB8C00', '#8E24AA'][Math.floor(Math.random() * 5)],
-          borderRadius: size,
-        };
+        return { width: size * 0.6, height: size * 0.45, backgroundColor: ['#E53935', '#1E88E5', '#43A047', '#FB8C00'][Math.floor(Math.random() * 4)], borderRadius: size };
       case 'gummy-bears':
-        return {
-          width: size * 0.8,
-          height: size,
-          backgroundColor: ['#E53935', '#FDD835', '#43A047', '#FB8C00'][Math.floor(Math.random() * 4)],
-          borderRadius: size / 3,
-        };
+        return { width: size * 0.6, height: size * 0.8, backgroundColor: ['#E53935', '#FDD835', '#43A047'][Math.floor(Math.random() * 3)], borderRadius: 4 };
       case 'sprinkles':
-        return {
-          width: size * 0.3,
-          height: size,
-          backgroundColor: ['#E91E63', '#9C27B0', '#2196F3', '#4CAF50', '#FFEB3B'][Math.floor(Math.random() * 5)],
-          borderRadius: size / 6,
-          transform: [{ rotate: `${Math.random() * 90 - 45}deg` }],
-        };
-      case 'cookie-crumbs':
-        return {
-          width: size * 0.9,
-          height: size * 0.7,
-          backgroundColor: '#8D6E63',
-          borderRadius: size / 4,
-        };
+        return { width: size * 0.2, height: size * 0.8, backgroundColor: ['#E91E63', '#9C27B0', '#2196F3', '#4CAF50'][Math.floor(Math.random() * 4)], borderRadius: 2, transform: [{ rotate: `${Math.random() * 60 - 30}deg` }] };
       case 'walnuts':
       case 'almonds':
       case 'peanuts':
-        return {
-          width: size,
-          height: size * 0.6,
-          backgroundColor: '#A1887F',
-          borderRadius: size / 3,
-        };
+        return { width: size * 0.9, height: size * 0.5, backgroundColor: '#A1887F', borderRadius: 6 };
+      case 'cookie-crumbs':
+        return { width: size * 0.7, height: size * 0.5, backgroundColor: '#8D6E63', borderRadius: 3 };
       case 'granola':
       case 'fruity-pebbles':
-        return {
-          width: size * 0.6,
-          height: size * 0.5,
-          backgroundColor: normalizedType === 'fruity-pebbles'
-            ? ['#E53935', '#1E88E5', '#43A047', '#FB8C00', '#8E24AA'][Math.floor(Math.random() * 5)]
-            : '#D7CCC8',
-          borderRadius: size / 4,
-        };
+        return { width: size * 0.5, height: size * 0.4, backgroundColor: normalized === 'fruity-pebbles' ? ['#E53935', '#1E88E5', '#43A047'][Math.floor(Math.random() * 3)] : '#D7CCC8', borderRadius: 2 };
       default:
-        return {
-          width: size * 0.8,
-          height: size * 0.8,
-          backgroundColor: colors.accent.gold,
-          borderRadius: size,
-        };
+        return { width: size * 0.6, height: size * 0.6, backgroundColor: info.color, borderRadius: size };
     }
   };
 
   return (
     <Animated.View
       style={[
-        styles.toppingShape,
-        getShapeStyle(),
-        {
-          left: x,
-          top: y,
-          transform: [
-            { scale: scaleAnim },
-            {
-              translateY: bounceAnim.interpolate({
-                inputRange: [0, 1],
-                outputRange: [0, -3],
-              }),
-            },
-          ],
-        },
+        { position: 'absolute', left: x, top: y },
+        getStyle(),
+        { transform: [{ scale: scaleAnim }] },
       ]}
     />
   );
 };
 
-// Visual yogurt bowl with toppings
+// Yogurt bowl showing selected flavor and toppings
 const YogurtBowl: React.FC = () => {
   const { order } = useOrder();
-  const [toppingPositions, setToppingPositions] = useState<Array<{ type: string; x: number; y: number; size: number; id: string }>>([]);
+  const [pieces, setPieces] = useState<Array<{ id: string; type: string; x: number; y: number; size: number }>>([]);
 
-  // Get primary flavor color
   const flavorColor = order.flavors[0]?.color || colors.flavors.vanilla;
-  const secondaryFlavorColor = order.flavors[1]?.color || flavorColor;
+  const secondaryColor = order.flavors[1]?.color || flavorColor;
 
-  // Generate topping positions when toppings change
   useEffect(() => {
-    const positions: Array<{ type: string; x: number; y: number; size: number; id: string }> = [];
-    const bowlRadius = BOWL_SIZE / 2 - 30;
-    const centerX = BOWL_SIZE / 2;
-    const centerY = BOWL_SIZE / 2;
+    const newPieces: typeof pieces = [];
+    const radius = BOWL_SIZE / 2 - 35;
+    const cx = BOWL_SIZE / 2 - 20;
+    const cy = BOWL_SIZE / 2 - 30;
 
-    order.toppings.forEach((selection) => {
-      // Number of pieces based on grams
-      const pieces = Math.max(3, Math.floor(selection.grams / 4));
-
-      for (let i = 0; i < pieces; i++) {
-        // Distribute in bowl area (ellipse shape)
-        const angle = (i / pieces) * Math.PI * 2 + Math.random() * 0.5;
-        const distance = (0.3 + Math.random() * 0.5) * bowlRadius;
-        const x = centerX + Math.cos(angle) * distance - 10;
-        const y = centerY + Math.sin(angle) * distance * 0.6 - 20;
-
-        positions.push({
-          type: selection.topping.name,
-          x,
-          y,
-          size: 12 + Math.random() * 8,
-          id: `${selection.topping.id}-${i}`,
+    order.toppings.forEach((sel) => {
+      const count = Math.max(2, Math.floor(sel.grams / 5));
+      for (let i = 0; i < count; i++) {
+        const angle = (i / count) * Math.PI * 2 + Math.random() * 0.8;
+        const dist = (0.25 + Math.random() * 0.55) * radius;
+        newPieces.push({
+          id: `${sel.topping.id}-${i}`,
+          type: sel.topping.name,
+          x: cx + Math.cos(angle) * dist,
+          y: cy + Math.sin(angle) * dist * 0.55,
+          size: 14 + Math.random() * 6,
         });
       }
     });
-
-    setToppingPositions(positions);
+    setPieces(newPieces);
   }, [order.toppings]);
 
   return (
-    <View style={styles.bowlContainer}>
-      {/* Bowl shadow */}
+    <View style={styles.bowlWrapper}>
       <View style={styles.bowlShadow} />
-
-      {/* Main bowl */}
       <View style={styles.bowl}>
-        {/* Yogurt base with gradient */}
         <LinearGradient
-          colors={[flavorColor, secondaryFlavorColor, `${flavorColor}DD`]}
-          style={styles.yogurtBase}
+          colors={[flavorColor, secondaryColor, `${flavorColor}DD`] as const}
+          style={styles.yogurt}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
         >
-          {/* Swirl pattern */}
-          <View style={[styles.swirl, { borderColor: `${secondaryFlavorColor}40` }]} />
-          <View style={[styles.swirl, styles.swirlMedium, { borderColor: `${flavorColor}30` }]} />
-          <View style={[styles.swirl, styles.swirlSmall, { borderColor: `${secondaryFlavorColor}50` }]} />
-
-          {/* Shine effect */}
+          <View style={[styles.swirl, { borderColor: `${secondaryColor}40` }]} />
+          <View style={[styles.swirlInner, { borderColor: `${flavorColor}30` }]} />
           <View style={styles.shine} />
         </LinearGradient>
-
-        {/* Toppings on top */}
-        {toppingPositions.map((pos, index) => (
-          <ToppingShape
-            key={pos.id}
-            type={pos.type}
-            x={pos.x}
-            y={pos.y}
-            size={pos.size}
-            delay={index * 30}
-          />
+        {pieces.map((p, i) => (
+          <ToppingPiece key={p.id} type={p.type} x={p.x} y={p.y} size={p.size} delay={i * 20} />
         ))}
       </View>
-
-      {/* Bowl rim */}
-      <View style={styles.bowlRim}>
-        <LinearGradient
-          colors={['#FAFAFA', '#E0E0E0', '#FAFAFA']}
-          style={styles.rimGradient}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 0 }}
-        />
-      </View>
-
-      {/* Flavor label */}
+      <LinearGradient
+        colors={['#FAFAFA', '#E0E0E0', '#FAFAFA'] as const}
+        style={styles.bowlRim}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 0 }}
+      />
       {order.flavors.length > 0 && (
-        <View style={styles.flavorLabel}>
-          <Text style={styles.flavorLabelText}>
-            {order.flavors.map(f => f.name).join(' + ')}
-          </Text>
+        <View style={styles.flavorTag}>
+          <Text style={styles.flavorTagText}>{order.flavors.map(f => f.name).join(' + ')}</Text>
         </View>
       )}
     </View>
   );
 };
 
-// Topping slider for weight selection
-const ToppingSlider: React.FC<{
+// Single topping container on the plate
+const ToppingContainer: React.FC<{
   topping: Topping;
   selection?: ToppingSelection;
-  onAdd: (grams: number) => void;
-  onUpdate: (grams: number) => void;
+  onTap: () => void;
+  onAdd: () => void;
   onRemove: () => void;
   index: number;
-}> = ({ topping, selection, onAdd, onUpdate, onRemove, index }) => {
+}> = ({ topping, selection, onTap, onAdd, onRemove, index }) => {
   const info = getToppingInfo(topping.id);
   const isSelected = !!selection;
   const grams = selection?.grams || 0;
 
   const scaleAnim = useRef(new Animated.Value(0)).current;
-  const slideAnim = useRef(new Animated.Value(grams)).current;
+  const pulseAnim = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
     Animated.spring(scaleAnim, {
       toValue: 1,
-      delay: index * 50,
+      delay: index * 40,
       friction: 6,
-      tension: 80,
       useNativeDriver: true,
     }).start();
-  }, [index]);
+  }, []);
 
   useEffect(() => {
-    slideAnim.setValue(grams);
-  }, [grams]);
-
-  const handlePress = () => {
-    if (!isSelected) {
-      onAdd(10); // Start with 10g
-    }
-  };
-
-  const handleSlide = (value: number) => {
-    const newGrams = Math.round(value);
-    if (newGrams <= 0) {
-      onRemove();
+    if (isSelected) {
+      Animated.loop(
+        Animated.sequence([
+          Animated.timing(pulseAnim, { toValue: 1.03, duration: 800, useNativeDriver: true }),
+          Animated.timing(pulseAnim, { toValue: 1, duration: 800, useNativeDriver: true }),
+        ])
+      ).start();
     } else {
-      onUpdate(newGrams);
+      pulseAnim.setValue(1);
     }
-  };
+  }, [isSelected]);
 
   const price = (info.pricePerGram * grams).toFixed(2);
 
+  // Generate visual pieces for the container
+  const containerPieces = useMemo(() => {
+    const arr = [];
+    for (let i = 0; i < 8; i++) {
+      arr.push({
+        x: 10 + Math.random() * (PLATE_ITEM_SIZE - 50),
+        y: 10 + Math.random() * 35,
+        size: 10 + Math.random() * 6,
+      });
+    }
+    return arr;
+  }, []);
+
   return (
-    <Animated.View
-      style={[
-        styles.sliderCard,
-        isSelected && styles.sliderCardSelected,
-        { opacity: scaleAnim, transform: [{ scale: scaleAnim }] },
-      ]}
-    >
+    <Animated.View style={[styles.plateItem, { opacity: scaleAnim, transform: [{ scale: Animated.multiply(scaleAnim, pulseAnim) }] }]}>
       <TouchableOpacity
-        style={styles.sliderHeader}
-        onPress={handlePress}
-        activeOpacity={0.7}
+        style={[styles.plateItemInner, isSelected && styles.plateItemSelected]}
+        onPress={onTap}
+        activeOpacity={0.8}
       >
-        {/* Emoji and name */}
-        <View style={styles.sliderInfo}>
-          <Text style={styles.sliderEmoji}>{info.emoji}</Text>
-          <View>
-            <Text style={styles.sliderName}>{topping.name}</Text>
-            <Text style={styles.sliderPrice}>
-              ${info.pricePerGram.toFixed(2)}/g • Max {info.maxGrams}g
-            </Text>
-          </View>
+        {/* Visual topping container */}
+        <View style={[styles.toppingBin, { backgroundColor: info.color + '20' }]}>
+          {containerPieces.map((p, i) => (
+            <View
+              key={i}
+              style={[
+                styles.binPiece,
+                {
+                  left: p.x,
+                  top: p.y,
+                  width: p.size,
+                  height: p.size * 0.7,
+                  backgroundColor: info.color,
+                  borderRadius: p.size / 3,
+                },
+              ]}
+            />
+          ))}
         </View>
 
-        {/* Add button or price */}
-        {!isSelected ? (
-          <View style={styles.addButton}>
-            <Ionicons name="add" size={20} color="#FFF" />
-          </View>
-        ) : (
-          <View style={styles.priceTag}>
-            <Text style={styles.priceTagText}>${price}</Text>
+        {/* Label */}
+        <Text style={styles.plateItemEmoji}>{info.emoji}</Text>
+        <Text style={styles.plateItemName} numberOfLines={1}>{topping.name}</Text>
+        <Text style={styles.plateItemPrice}>${info.pricePerGram.toFixed(2)}/g</Text>
+
+        {/* Selection indicator */}
+        {isSelected && (
+          <View style={styles.selectedBadge}>
+            <Text style={styles.selectedBadgeText}>{grams}g</Text>
           </View>
         )}
       </TouchableOpacity>
 
-      {/* Slider when selected */}
+      {/* Quantity controls when selected */}
       {isSelected && (
-        <View style={styles.sliderContainer}>
-          <View style={styles.sliderTrack}>
-            <View
-              style={[
-                styles.sliderFill,
-                { width: `${(grams / info.maxGrams) * 100}%` },
-              ]}
-            />
-            <View
-              style={[
-                styles.sliderThumb,
-                { left: `${(grams / info.maxGrams) * 100}%` },
-              ]}
-            >
-              <Text style={styles.thumbText}>{grams}g</Text>
-            </View>
-          </View>
-
-          {/* Quick buttons */}
-          <View style={styles.quickButtons}>
-            <TouchableOpacity
-              style={styles.quickButton}
-              onPress={() => handleSlide(Math.max(0, grams - 5))}
-            >
-              <Text style={styles.quickButtonText}>-5g</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.quickButton}
-              onPress={() => handleSlide(Math.min(info.maxGrams, grams + 5))}
-            >
-              <Text style={styles.quickButtonText}>+5g</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.quickButton, styles.removeButton]}
-              onPress={onRemove}
-            >
-              <Ionicons name="trash-outline" size={16} color={colors.ui.error} />
-            </TouchableOpacity>
-          </View>
+        <View style={styles.quantityControls}>
+          <TouchableOpacity style={styles.qtyBtn} onPress={onRemove}>
+            <Ionicons name="remove" size={16} color={colors.text.primary} />
+          </TouchableOpacity>
+          <Text style={styles.qtyText}>{grams}g</Text>
+          <TouchableOpacity style={styles.qtyBtn} onPress={onAdd}>
+            <Ionicons name="add" size={16} color={colors.text.primary} />
+          </TouchableOpacity>
+          <Text style={styles.qtyPrice}>${price}</Text>
         </View>
       )}
     </Animated.View>
   );
 };
 
-// Price summary bar
+// Price summary
 const PriceSummary: React.FC = () => {
   const { order } = useOrder();
 
-  const toppingsTotal = useMemo(() => {
+  const total = useMemo(() => {
     return order.toppings.reduce((sum, sel) => {
       const info = getToppingInfo(sel.topping.id);
-      return sum + (info.pricePerGram * sel.grams);
+      return sum + info.pricePerGram * sel.grams;
     }, 0);
   }, [order.toppings]);
 
@@ -447,16 +299,12 @@ const PriceSummary: React.FC = () => {
   if (order.toppings.length === 0) return null;
 
   return (
-    <View style={styles.priceSummary}>
-      <View style={styles.priceSummaryLeft}>
-        <Text style={styles.priceSummaryLabel}>
-          {order.toppings.length} topping{order.toppings.length > 1 ? 's' : ''}
-        </Text>
-        <Text style={styles.priceSummaryGrams}>{totalGrams}g total</Text>
+    <View style={styles.summary}>
+      <View style={styles.summaryLeft}>
+        <Text style={styles.summaryCount}>{order.toppings.length} topping{order.toppings.length > 1 ? 's' : ''}</Text>
+        <Text style={styles.summaryGrams}>{totalGrams}g total</Text>
       </View>
-      <View style={styles.priceSummaryRight}>
-        <Text style={styles.priceSummaryTotal}>+${toppingsTotal.toFixed(2)}</Text>
-      </View>
+      <Text style={styles.summaryPrice}>+${total.toFixed(2)}</Text>
     </View>
   );
 };
@@ -465,7 +313,6 @@ const ToppingsStep: React.FC = () => {
   const { order, addTopping, updateToppingGrams, removeTopping } = useOrder();
   const { toppings: allToppings } = useApp();
 
-  // Filter out sauces and sort by price (most expensive first)
   const sortedToppings = useMemo(() => {
     return allToppings
       .filter(t => t.category !== 'sauces')
@@ -476,13 +323,39 @@ const ToppingsStep: React.FC = () => {
       });
   }, [allToppings]);
 
-  const getSelection = (toppingId: string) => {
-    return order.toppings.find(t => t.topping.id === toppingId);
+  const getSelection = (id: string) => order.toppings.find(t => t.topping.id === id);
+
+  const handleTap = (topping: Topping) => {
+    const sel = getSelection(topping.id);
+    if (sel) {
+      removeTopping(topping.id);
+    } else {
+      addTopping(topping, 10);
+    }
+  };
+
+  const handleAdd = (topping: Topping) => {
+    const sel = getSelection(topping.id);
+    const info = getToppingInfo(topping.id);
+    if (sel && sel.grams < info.maxGrams) {
+      updateToppingGrams(topping.id, Math.min(sel.grams + 5, info.maxGrams));
+    }
+  };
+
+  const handleRemove = (topping: Topping) => {
+    const sel = getSelection(topping.id);
+    if (sel) {
+      if (sel.grams <= 5) {
+        removeTopping(topping.id);
+      } else {
+        updateToppingGrams(topping.id, sel.grams - 5);
+      }
+    }
   };
 
   return (
     <View style={styles.container}>
-      {/* Yogurt bowl visualization */}
+      {/* Yogurt bowl */}
       <View style={styles.bowlSection}>
         <YogurtBowl />
       </View>
@@ -491,33 +364,30 @@ const ToppingsStep: React.FC = () => {
       <PriceSummary />
 
       {/* Hint */}
-      <View style={styles.hintBar}>
-        <Ionicons name="information-circle" size={16} color={colors.accent.gold} />
-        <Text style={styles.hintText}>
-          Sorted by price • Tap to add, adjust weight with buttons
-        </Text>
+      <View style={styles.hint}>
+        <Ionicons name="hand-left-outline" size={14} color={colors.accent.gold} />
+        <Text style={styles.hintText}>Tap to add • Use +/- to adjust amount</Text>
       </View>
 
-      {/* Toppings list */}
-      <ScrollView
-        style={styles.scrollView}
-        contentContainerStyle={styles.content}
-        showsVerticalScrollIndicator={false}
-      >
-        {sortedToppings.map((topping, index) => (
-          <ToppingSlider
-            key={topping.id}
-            topping={topping}
-            selection={getSelection(topping.id)}
-            onAdd={(grams) => addTopping(topping, grams)}
-            onUpdate={(grams) => updateToppingGrams(topping.id, grams)}
-            onRemove={() => removeTopping(topping.id)}
-            index={index}
-          />
-        ))}
-
-        {/* Bottom padding */}
-        <View style={{ height: 100 }} />
+      {/* Toppings plate */}
+      <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+        <View style={styles.plateContainer}>
+          <Text style={styles.plateLabel}>🍽️ Toppings Bar</Text>
+          <View style={styles.plate}>
+            {sortedToppings.map((topping, index) => (
+              <ToppingContainer
+                key={topping.id}
+                topping={topping}
+                selection={getSelection(topping.id)}
+                onTap={() => handleTap(topping)}
+                onAdd={() => handleAdd(topping)}
+                onRemove={() => handleRemove(topping)}
+                index={index}
+              />
+            ))}
+          </View>
+        </View>
+        <View style={{ height: 120 }} />
       </ScrollView>
     </View>
   );
@@ -529,262 +399,233 @@ const styles = StyleSheet.create({
   },
   bowlSection: {
     alignItems: 'center',
-    paddingVertical: spacing.md,
+    paddingTop: spacing.sm,
+    paddingBottom: spacing.md,
     backgroundColor: colors.background.main,
   },
-  bowlContainer: {
+  bowlWrapper: {
     width: BOWL_SIZE,
-    height: BOWL_SIZE * 0.7,
+    height: BOWL_SIZE * 0.65,
     alignItems: 'center',
-    justifyContent: 'center',
   },
   bowlShadow: {
     position: 'absolute',
     bottom: 0,
-    width: BOWL_SIZE * 0.7,
-    height: 20,
+    width: BOWL_SIZE * 0.6,
+    height: 15,
     backgroundColor: 'rgba(0,0,0,0.1)',
     borderRadius: BOWL_SIZE,
   },
   bowl: {
-    width: BOWL_SIZE - 40,
-    height: BOWL_SIZE * 0.55,
+    width: BOWL_SIZE - 30,
+    height: BOWL_SIZE * 0.5,
     borderRadius: BOWL_SIZE / 2,
     borderBottomLeftRadius: BOWL_SIZE / 3,
     borderBottomRightRadius: BOWL_SIZE / 3,
     overflow: 'hidden',
     ...shadows.medium,
   },
-  yogurtBase: {
+  yogurt: {
     flex: 1,
-    position: 'relative',
   },
   swirl: {
     position: 'absolute',
-    width: '80%',
-    height: '60%',
+    width: '75%',
+    height: '55%',
     borderWidth: 3,
-    borderRadius: 100,
-    top: '20%',
-    left: '10%',
+    borderRadius: 80,
+    top: '22%',
+    left: '12%',
   },
-  swirlMedium: {
-    width: '60%',
-    height: '45%',
-    top: '28%',
-    left: '20%',
-  },
-  swirlSmall: {
-    width: '40%',
-    height: '30%',
-    top: '35%',
-    left: '30%',
+  swirlInner: {
+    position: 'absolute',
+    width: '50%',
+    height: '35%',
+    borderWidth: 2,
+    borderRadius: 60,
+    top: '32%',
+    left: '25%',
   },
   shine: {
     position: 'absolute',
-    top: 15,
-    left: 25,
-    width: 40,
-    height: 15,
+    top: 12,
+    left: 20,
+    width: 30,
+    height: 12,
     backgroundColor: 'rgba(255,255,255,0.4)',
-    borderRadius: 20,
+    borderRadius: 15,
     transform: [{ rotate: '-20deg' }],
-  },
-  toppingShape: {
-    position: 'absolute',
-    ...shadows.small,
   },
   bowlRim: {
     position: 'absolute',
-    top: BOWL_SIZE * 0.12,
-    width: BOWL_SIZE - 20,
-    height: 12,
-    borderRadius: 6,
-    overflow: 'hidden',
+    top: BOWL_SIZE * 0.1,
+    width: BOWL_SIZE - 15,
+    height: 10,
+    borderRadius: 5,
   },
-  rimGradient: {
-    flex: 1,
-  },
-  flavorLabel: {
+  flavorTag: {
     position: 'absolute',
-    bottom: 5,
+    bottom: 0,
     backgroundColor: 'rgba(255,255,255,0.95)',
     paddingHorizontal: spacing.md,
-    paddingVertical: spacing.xs,
+    paddingVertical: 4,
     borderRadius: borderRadius.round,
     ...shadows.small,
   },
-  flavorLabelText: {
-    fontSize: typography.fontSizes.sm,
+  flavorTagText: {
+    fontSize: typography.fontSizes.xs,
     fontWeight: typography.fontWeights.semibold,
     color: colors.text.primary,
   },
-  priceSummary: {
+  summary: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md,
+    paddingVertical: spacing.sm,
     backgroundColor: colors.accent.gold + '15',
     borderBottomWidth: 1,
     borderBottomColor: colors.ui.border,
   },
-  priceSummaryLeft: {
+  summaryLeft: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.sm,
   },
-  priceSummaryLabel: {
-    fontSize: typography.fontSizes.md,
+  summaryCount: {
+    fontSize: typography.fontSizes.sm,
     fontWeight: typography.fontWeights.semibold,
     color: colors.text.primary,
   },
-  priceSummaryGrams: {
-    fontSize: typography.fontSizes.sm,
+  summaryGrams: {
+    fontSize: typography.fontSizes.xs,
     color: colors.text.muted,
   },
-  priceSummaryRight: {},
-  priceSummaryTotal: {
+  summaryPrice: {
     fontSize: typography.fontSizes.lg,
     fontWeight: typography.fontWeights.bold,
     color: colors.accent.gold,
   },
-  hintBar: {
+  hint: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: spacing.xs,
-    paddingVertical: spacing.sm,
+    paddingVertical: spacing.xs,
     backgroundColor: colors.accent.gold + '10',
-    marginHorizontal: spacing.lg,
-    marginTop: spacing.sm,
-    borderRadius: borderRadius.lg,
   },
   hintText: {
     fontSize: typography.fontSizes.xs,
-    color: colors.text.secondary,
+    color: colors.text.muted,
   },
-  scrollView: {
+  scroll: {
     flex: 1,
   },
-  content: {
+  scrollContent: {
     paddingHorizontal: spacing.lg,
     paddingTop: spacing.md,
   },
-  sliderCard: {
+  plateContainer: {
     backgroundColor: colors.background.card,
+    borderRadius: borderRadius.xl,
+    padding: spacing.md,
+    ...shadows.medium,
+  },
+  plateLabel: {
+    fontSize: typography.fontSizes.md,
+    fontWeight: typography.fontWeights.bold,
+    color: colors.text.primary,
+    marginBottom: spacing.md,
+    textAlign: 'center',
+  },
+  plate: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.sm,
+  },
+  plateItem: {
+    width: PLATE_ITEM_SIZE,
+  },
+  plateItemInner: {
+    backgroundColor: colors.background.main,
     borderRadius: borderRadius.lg,
-    marginBottom: spacing.sm,
-    overflow: 'hidden',
+    padding: spacing.sm,
+    alignItems: 'center',
     borderWidth: 2,
     borderColor: 'transparent',
-    ...shadows.small,
   },
-  sliderCardSelected: {
+  plateItemSelected: {
     borderColor: colors.accent.gold,
-    backgroundColor: colors.accent.gold + '08',
+    backgroundColor: colors.accent.gold + '10',
   },
-  sliderHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: spacing.md,
+  toppingBin: {
+    width: '100%',
+    height: 50,
+    borderRadius: borderRadius.md,
+    marginBottom: spacing.xs,
+    position: 'relative',
+    overflow: 'hidden',
   },
-  sliderInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.md,
+  binPiece: {
+    position: 'absolute',
   },
-  sliderEmoji: {
-    fontSize: 28,
+  plateItemEmoji: {
+    fontSize: 20,
+    marginBottom: 2,
   },
-  sliderName: {
-    fontSize: typography.fontSizes.md,
-    fontWeight: typography.fontWeights.semibold,
-    color: colors.text.primary,
-  },
-  sliderPrice: {
+  plateItemName: {
     fontSize: typography.fontSizes.xs,
+    fontWeight: typography.fontWeights.medium,
+    color: colors.text.primary,
+    textAlign: 'center',
+  },
+  plateItemPrice: {
+    fontSize: 9,
     color: colors.text.muted,
     marginTop: 2,
   },
-  addButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+  selectedBadge: {
+    position: 'absolute',
+    top: -6,
+    right: -6,
     backgroundColor: colors.accent.gold,
-    alignItems: 'center',
-    justifyContent: 'center',
-    ...shadows.small,
-  },
-  priceTag: {
-    backgroundColor: colors.ui.success + '20',
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.xs,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
     borderRadius: borderRadius.round,
   },
-  priceTagText: {
-    fontSize: typography.fontSizes.md,
-    fontWeight: typography.fontWeights.bold,
-    color: colors.ui.success,
-  },
-  sliderContainer: {
-    paddingHorizontal: spacing.md,
-    paddingBottom: spacing.md,
-  },
-  sliderTrack: {
-    height: 8,
-    backgroundColor: colors.ui.border,
-    borderRadius: 4,
-    marginBottom: spacing.md,
-    position: 'relative',
-  },
-  sliderFill: {
-    position: 'absolute',
-    left: 0,
-    top: 0,
-    bottom: 0,
-    backgroundColor: colors.accent.gold,
-    borderRadius: 4,
-  },
-  sliderThumb: {
-    position: 'absolute',
-    top: -10,
-    marginLeft: -20,
-    width: 40,
-    height: 28,
-    backgroundColor: colors.accent.gold,
-    borderRadius: borderRadius.md,
-    alignItems: 'center',
-    justifyContent: 'center',
-    ...shadows.small,
-  },
-  thumbText: {
-    fontSize: typography.fontSizes.xs,
+  selectedBadgeText: {
+    fontSize: 10,
     fontWeight: typography.fontWeights.bold,
     color: '#FFF',
   },
-  quickButtons: {
+  quantityControls: {
     flexDirection: 'row',
-    gap: spacing.sm,
+    alignItems: 'center',
     justifyContent: 'center',
+    marginTop: spacing.xs,
+    gap: spacing.xs,
   },
-  quickButton: {
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    backgroundColor: colors.background.main,
-    borderRadius: borderRadius.round,
+  qtyBtn: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: colors.background.card,
+    alignItems: 'center',
+    justifyContent: 'center',
     borderWidth: 1,
     borderColor: colors.ui.border,
   },
-  quickButtonText: {
-    fontSize: typography.fontSizes.sm,
-    fontWeight: typography.fontWeights.semibold,
-    color: colors.text.secondary,
+  qtyText: {
+    fontSize: typography.fontSizes.xs,
+    fontWeight: typography.fontWeights.bold,
+    color: colors.text.primary,
+    minWidth: 30,
+    textAlign: 'center',
   },
-  removeButton: {
-    borderColor: colors.ui.error + '50',
-    backgroundColor: colors.ui.error + '10',
+  qtyPrice: {
+    fontSize: typography.fontSizes.xs,
+    fontWeight: typography.fontWeights.semibold,
+    color: colors.ui.success,
   },
 });
 
