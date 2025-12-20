@@ -13,13 +13,13 @@ import {
   Animated,
   Image,
   Dimensions,
+  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as ImagePicker from 'expo-image-picker';
 import { useApp } from '../context/AppContext';
-import { AnimatedButton } from '../components';
 import { colors, spacing, typography, borderRadius, shadows } from '../theme';
 import { Flavor, Topping, Promotion, GalleryImage } from '../types';
 
@@ -42,6 +42,16 @@ const EMOJI_PALETTE = [
   '🥣', '🍩', '🧁', '🍰', '🍦', '⭐', '💎', '🔥', '✨', '🌟',
 ];
 
+// Navigation items
+const NAV_ITEMS: { key: AdminSection; icon: string; label: string }[] = [
+  { key: 'flavors', icon: 'ice-cream', label: 'Flavors' },
+  { key: 'toppings', icon: 'nutrition', label: 'Toppings' },
+  { key: 'promotions', icon: 'gift', label: 'Promos' },
+  { key: 'gallery', icon: 'images', label: 'Gallery' },
+  { key: 'store', icon: 'storefront', label: 'Store' },
+  { key: 'settings', icon: 'settings', label: 'Settings' },
+];
+
 const AdminScreen: React.FC = () => {
   const {
     flavors,
@@ -49,7 +59,6 @@ const AdminScreen: React.FC = () => {
     promotions,
     gallery,
     storeInfo,
-    isAdmin,
     setAdminMode,
     updateFlavor,
     addFlavor,
@@ -74,20 +83,7 @@ const AdminScreen: React.FC = () => {
   const [showColorPicker, setShowColorPicker] = useState(false);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [colorPickerField, setColorPickerField] = useState<string>('color');
-
-  // Form states
   const [formData, setFormData] = useState<any>({});
-
-  // Animation
-  const fadeAnim = useRef(new Animated.Value(0)).current;
-
-  useEffect(() => {
-    Animated.timing(fadeAnim, {
-      toValue: 1,
-      duration: 500,
-      useNativeDriver: true,
-    }).start();
-  }, []);
 
   const handleLogout = () => {
     Alert.alert(
@@ -113,19 +109,16 @@ const AdminScreen: React.FC = () => {
 
   const pickImage = async () => {
     const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
-
     if (permissionResult.granted === false) {
-      Alert.alert('Permission Required', 'Please allow access to your photo library to select images.');
+      Alert.alert('Permission Required', 'Please allow access to your photo library.');
       return;
     }
-
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsEditing: true,
       aspect: [4, 3],
       quality: 0.8,
     });
-
     if (!result.canceled && result.assets[0]) {
       setFormData({ ...formData, imageUrl: result.assets[0].uri });
     }
@@ -133,34 +126,26 @@ const AdminScreen: React.FC = () => {
 
   const takePhoto = async () => {
     const permissionResult = await ImagePicker.requestCameraPermissionsAsync();
-
     if (permissionResult.granted === false) {
-      Alert.alert('Permission Required', 'Please allow camera access to take photos.');
+      Alert.alert('Permission Required', 'Please allow camera access.');
       return;
     }
-
     const result = await ImagePicker.launchCameraAsync({
       allowsEditing: true,
       aspect: [4, 3],
       quality: 0.8,
     });
-
     if (!result.canceled && result.assets[0]) {
       setFormData({ ...formData, imageUrl: result.assets[0].uri });
     }
   };
 
   const showImageOptions = () => {
-    Alert.alert(
-      'Add Image',
-      'Choose an option',
-      [
-        { text: 'Take Photo', onPress: takePhoto },
-        { text: 'Choose from Library', onPress: pickImage },
-        { text: 'Enter URL', onPress: () => {} },
-        { text: 'Cancel', style: 'cancel' },
-      ]
-    );
+    Alert.alert('Add Image', 'Choose an option', [
+      { text: 'Take Photo', onPress: takePhoto },
+      { text: 'Choose from Library', onPress: pickImage },
+      { text: 'Cancel', style: 'cancel' },
+    ]);
   };
 
   const openEditModal = (item: any, type: 'flavor' | 'topping' | 'promotion' | 'gallery' | 'store') => {
@@ -173,761 +158,444 @@ const AdminScreen: React.FC = () => {
   const openAddModal = (type: 'flavor' | 'topping' | 'promotion' | 'gallery') => {
     setEditingItem(null);
     setEditType(type);
-    if (type === 'flavor') {
-      setFormData({
-        name: '',
-        description: '',
-        color: '#FFB6C1',
-        imageUrl: '',
-        isVegan: false,
-        isNew: true,
-        calories: 150,
-      });
-    } else if (type === 'topping') {
-      setFormData({
-        name: '',
-        category: 'fruits',
-        imageUrl: '',
-        emoji: '🍓',
-        color: '#E53935',
-        pricePerGram: 0.08,
-        maxGrams: 30,
-      });
-    } else if (type === 'promotion') {
-      setFormData({
-        title: '',
-        description: '',
-        imageUrl: '',
-        isActive: true,
-        validUntil: '',
-      });
-    } else if (type === 'gallery') {
-      setFormData({
-        title: '',
-        category: 'products',
-        imageUrl: '',
-      });
-    }
-    setEditModalVisible(true);
-  };
-
-  const openStoreEditModal = () => {
-    setEditingItem(storeInfo);
-    setEditType('store');
-    setFormData({ ...storeInfo });
+    const defaults: Record<string, any> = {
+      flavor: { name: '', description: '', color: '#FFB6C1', imageUrl: '', isVegan: false, isNew: true, calories: 150 },
+      topping: { name: '', category: 'fruits', imageUrl: '', emoji: '🍓', color: '#E53935', pricePerGram: 0.08, maxGrams: 30 },
+      promotion: { title: '', description: '', imageUrl: '', isActive: true, validUntil: '' },
+      gallery: { title: '', category: 'products', imageUrl: '' },
+    };
+    setFormData(defaults[type] || {});
     setEditModalVisible(true);
   };
 
   const handleSave = () => {
     if (!editType) return;
-
-    // Validation
-    if (editType === 'flavor' && !formData.name) {
-      Alert.alert('Error', 'Please enter a flavor name');
-      return;
-    }
-    if (editType === 'topping' && !formData.name) {
-      Alert.alert('Error', 'Please enter a topping name');
+    if ((editType === 'flavor' || editType === 'topping') && !formData.name) {
+      Alert.alert('Error', 'Please enter a name');
       return;
     }
 
-    if (editType === 'flavor') {
-      if (editingItem) {
-        updateFlavor({ ...editingItem, ...formData });
-      } else {
-        addFlavor(formData as Flavor);
-      }
-    } else if (editType === 'topping') {
-      if (editingItem) {
-        updateTopping({ ...editingItem, ...formData });
-      } else {
-        addTopping(formData as Topping);
-      }
-    } else if (editType === 'promotion') {
-      if (editingItem) {
-        updatePromotion({ ...editingItem, ...formData });
-      } else {
-        addPromotion(formData as Promotion);
-      }
-    } else if (editType === 'gallery') {
-      if (editingItem) {
-        updateGalleryImage({ ...editingItem, ...formData });
-      } else {
-        addGalleryImage(formData as GalleryImage);
-      }
-    } else if (editType === 'store') {
-      updateStoreInfo(formData);
-    }
+    const actions: Record<string, () => void> = {
+      flavor: () => editingItem ? updateFlavor({ ...editingItem, ...formData }) : addFlavor(formData),
+      topping: () => editingItem ? updateTopping({ ...editingItem, ...formData }) : addTopping(formData),
+      promotion: () => editingItem ? updatePromotion({ ...editingItem, ...formData }) : addPromotion(formData),
+      gallery: () => editingItem ? updateGalleryImage({ ...editingItem, ...formData }) : addGalleryImage(formData),
+      store: () => updateStoreInfo(formData),
+    };
 
+    actions[editType]?.();
     setEditModalVisible(false);
     setEditingItem(null);
     setFormData({});
-    Alert.alert('Success', `${editType} ${editingItem ? 'updated' : 'added'} successfully!`);
   };
 
   const handleDelete = (id: string, type: 'flavor' | 'topping' | 'promotion' | 'gallery') => {
-    Alert.alert(
-      'Delete Item',
-      'Are you sure you want to delete this item?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: () => {
-            if (type === 'flavor') deleteFlavor(id);
-            else if (type === 'topping') deleteTopping(id);
-            else if (type === 'promotion') deletePromotion(id);
-            else if (type === 'gallery') deleteGalleryImage(id);
-          },
+    Alert.alert('Delete Item', 'Are you sure?', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Delete',
+        style: 'destructive',
+        onPress: () => {
+          const actions: Record<string, () => void> = {
+            flavor: () => deleteFlavor(id),
+            topping: () => deleteTopping(id),
+            promotion: () => deletePromotion(id),
+            gallery: () => deleteGalleryImage(id),
+          };
+          actions[type]?.();
         },
-      ]
-    );
+      },
+    ]);
   };
 
-  const selectColor = (color: string) => {
-    setFormData({ ...formData, [colorPickerField]: color });
-    setShowColorPicker(false);
-  };
-
-  const selectEmoji = (emoji: string) => {
-    setFormData({ ...formData, emoji });
-    setShowEmojiPicker(false);
-  };
-
-  const renderNavItem = (section: AdminSection, icon: string, label: string) => {
-    const isActive = activeSection === section;
+  // Render navigation tab
+  const renderNavTab = (item: typeof NAV_ITEMS[0]) => {
+    const isActive = activeSection === item.key;
     return (
       <TouchableOpacity
-        key={section}
-        style={[styles.navItem, isActive && styles.navItemActive]}
-        onPress={() => setActiveSection(section)}
+        key={item.key}
+        style={[styles.navTab, isActive && styles.navTabActive]}
+        onPress={() => setActiveSection(item.key)}
       >
         <Ionicons
-          name={icon as any}
+          name={item.icon as any}
           size={20}
           color={isActive ? colors.accent.gold : colors.text.secondary}
         />
-        <Text style={[styles.navLabel, isActive && styles.navLabelActive]}>
-          {label}
+        <Text style={[styles.navTabText, isActive && styles.navTabTextActive]}>
+          {item.label}
         </Text>
       </TouchableOpacity>
     );
   };
 
-  const renderImagePreview = () => {
-    if (!formData.imageUrl) {
-      return (
-        <TouchableOpacity style={styles.imagePlaceholder} onPress={showImageOptions}>
-          <Ionicons name="camera" size={40} color={colors.text.muted} />
-          <Text style={styles.imagePlaceholderText}>Tap to add image</Text>
-        </TouchableOpacity>
-      );
-    }
+  // Render list item
+  const renderListItem = (item: any, type: 'flavor' | 'topping' | 'promotion' | 'gallery') => {
+    const getItemDisplay = () => {
+      switch (type) {
+        case 'flavor':
+          return {
+            preview: item.imageUrl ? (
+              <Image source={{ uri: item.imageUrl }} style={styles.itemImage} />
+            ) : (
+              <View style={[styles.itemColorDot, { backgroundColor: item.color }]} />
+            ),
+            title: item.name,
+            subtitle: item.description,
+            badges: (
+              <>
+                {item.isNew && <View style={styles.badgeNew}><Text style={styles.badgeText}>NEW</Text></View>}
+                {item.isVegan && <View style={styles.badgeVegan}><Text style={styles.badgeText}>V</Text></View>}
+              </>
+            ),
+          };
+        case 'topping':
+          return {
+            preview: <View style={styles.emojiPreview}><Text style={styles.emojiText}>{item.emoji || '🍬'}</Text></View>,
+            title: item.name,
+            subtitle: `${item.category} • $${(item.pricePerGram || 0).toFixed(2)}/g`,
+            badges: null,
+          };
+        case 'promotion':
+          return {
+            preview: item.imageUrl ? (
+              <Image source={{ uri: item.imageUrl }} style={styles.itemImage} />
+            ) : (
+              <View style={styles.iconPreview}><Ionicons name="gift" size={24} color={colors.accent.gold} /></View>
+            ),
+            title: item.title,
+            subtitle: item.description,
+            badges: (
+              <View style={[styles.statusBadge, { backgroundColor: item.isActive ? colors.ui.success : colors.text.muted }]}>
+                <Text style={styles.statusBadgeText}>{item.isActive ? 'Active' : 'Inactive'}</Text>
+              </View>
+            ),
+          };
+        case 'gallery':
+          return {
+            preview: item.imageUrl ? (
+              <Image source={{ uri: item.imageUrl }} style={styles.itemImage} />
+            ) : (
+              <View style={styles.iconPreview}><Ionicons name="image" size={24} color={colors.accent.gold} /></View>
+            ),
+            title: item.title,
+            subtitle: item.category,
+            badges: null,
+          };
+        default:
+          return { preview: null, title: '', subtitle: '', badges: null };
+      }
+    };
+
+    const display = getItemDisplay();
 
     return (
-      <View style={styles.imagePreviewContainer}>
-        <Image source={{ uri: formData.imageUrl }} style={styles.imagePreview} />
-        <View style={styles.imageActions}>
-          <TouchableOpacity style={styles.imageActionBtn} onPress={showImageOptions}>
-            <Ionicons name="pencil" size={16} color="#FFF" />
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.imageActionBtn, styles.imageDeleteBtn]}
-            onPress={() => setFormData({ ...formData, imageUrl: '' })}
-          >
-            <Ionicons name="trash" size={16} color="#FFF" />
-          </TouchableOpacity>
+      <View key={item.id} style={styles.listItem}>
+        {display.preview}
+        <View style={styles.listItemContent}>
+          <View style={styles.listItemHeader}>
+            <Text style={styles.listItemTitle} numberOfLines={1}>{display.title}</Text>
+            {display.badges}
+          </View>
+          <Text style={styles.listItemSubtitle} numberOfLines={1}>{display.subtitle}</Text>
         </View>
+        <TouchableOpacity style={styles.actionBtn} onPress={() => openEditModal(item, type)}>
+          <Ionicons name="pencil" size={18} color={colors.accent.gold} />
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.actionBtn} onPress={() => handleDelete(item.id, type)}>
+          <Ionicons name="trash" size={18} color={colors.ui.error} />
+        </TouchableOpacity>
       </View>
     );
   };
 
-  const renderColorPicker = () => (
-    <Modal
-      visible={showColorPicker}
-      transparent
-      animationType="fade"
-      onRequestClose={() => setShowColorPicker(false)}
-    >
-      <TouchableOpacity
-        style={styles.pickerOverlay}
-        activeOpacity={1}
-        onPress={() => setShowColorPicker(false)}
-      >
-        <View style={styles.pickerContent}>
-          <Text style={styles.pickerTitle}>Select Color</Text>
-          <View style={styles.colorGrid}>
-            {COLOR_PALETTE.map((color) => (
-              <TouchableOpacity
-                key={color}
-                style={[
-                  styles.colorOption,
-                  { backgroundColor: color },
-                  formData[colorPickerField] === color && styles.colorOptionSelected,
-                ]}
-                onPress={() => selectColor(color)}
-              />
-            ))}
-          </View>
-          <View style={styles.customColorRow}>
-            <Text style={styles.customColorLabel}>Custom:</Text>
-            <TextInput
-              style={styles.customColorInput}
-              value={formData[colorPickerField] || ''}
-              onChangeText={(text) => setFormData({ ...formData, [colorPickerField]: text })}
-              placeholder="#FFFFFF"
-              placeholderTextColor={colors.text.muted}
-            />
-            <View style={[styles.colorPreviewSmall, { backgroundColor: formData[colorPickerField] || '#FFF' }]} />
-          </View>
-        </View>
-      </TouchableOpacity>
-    </Modal>
-  );
-
-  const renderEmojiPicker = () => (
-    <Modal
-      visible={showEmojiPicker}
-      transparent
-      animationType="fade"
-      onRequestClose={() => setShowEmojiPicker(false)}
-    >
-      <TouchableOpacity
-        style={styles.pickerOverlay}
-        activeOpacity={1}
-        onPress={() => setShowEmojiPicker(false)}
-      >
-        <View style={styles.pickerContent}>
-          <Text style={styles.pickerTitle}>Select Emoji</Text>
-          <View style={styles.emojiGrid}>
-            {EMOJI_PALETTE.map((emoji, index) => (
-              <TouchableOpacity
-                key={index}
-                style={[
-                  styles.emojiOption,
-                  formData.emoji === emoji && styles.emojiOptionSelected,
-                ]}
-                onPress={() => selectEmoji(emoji)}
-              >
-                <Text style={styles.emojiText}>{emoji}</Text>
+  // Render section content
+  const renderSectionContent = () => {
+    switch (activeSection) {
+      case 'flavors':
+        return (
+          <>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>Flavors ({flavors.length})</Text>
+              <TouchableOpacity style={styles.addBtn} onPress={() => openAddModal('flavor')}>
+                <Ionicons name="add" size={20} color="#FFF" />
+                <Text style={styles.addBtnText}>Add Flavor</Text>
               </TouchableOpacity>
-            ))}
-          </View>
-          <View style={styles.customEmojiRow}>
-            <Text style={styles.customColorLabel}>Custom:</Text>
-            <TextInput
-              style={styles.customEmojiInput}
-              value={formData.emoji || ''}
-              onChangeText={(text) => setFormData({ ...formData, emoji: text })}
-              placeholder="🍓"
-              placeholderTextColor={colors.text.muted}
-            />
-          </View>
-        </View>
-      </TouchableOpacity>
-    </Modal>
-  );
+            </View>
+            {flavors.map(item => renderListItem(item, 'flavor'))}
+          </>
+        );
+      case 'toppings':
+        return (
+          <>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>Toppings ({toppings.length})</Text>
+              <TouchableOpacity style={styles.addBtn} onPress={() => openAddModal('topping')}>
+                <Ionicons name="add" size={20} color="#FFF" />
+                <Text style={styles.addBtnText}>Add Topping</Text>
+              </TouchableOpacity>
+            </View>
+            {toppings.map(item => renderListItem(item, 'topping'))}
+          </>
+        );
+      case 'promotions':
+        return (
+          <>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>Promotions ({promotions.length})</Text>
+              <TouchableOpacity style={styles.addBtn} onPress={() => openAddModal('promotion')}>
+                <Ionicons name="add" size={20} color="#FFF" />
+                <Text style={styles.addBtnText}>Add Promo</Text>
+              </TouchableOpacity>
+            </View>
+            {promotions.map(item => renderListItem(item, 'promotion'))}
+          </>
+        );
+      case 'gallery':
+        return (
+          <>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>Gallery ({gallery.length})</Text>
+              <TouchableOpacity style={styles.addBtn} onPress={() => openAddModal('gallery')}>
+                <Ionicons name="add" size={20} color="#FFF" />
+                <Text style={styles.addBtnText}>Add Photo</Text>
+              </TouchableOpacity>
+            </View>
+            {gallery.map(item => renderListItem(item, 'gallery'))}
+          </>
+        );
+      case 'store':
+        return (
+          <>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>Store Information</Text>
+              <TouchableOpacity style={styles.addBtn} onPress={() => { setEditType('store'); setFormData({ ...storeInfo }); setEditModalVisible(true); }}>
+                <Ionicons name="pencil" size={18} color="#FFF" />
+                <Text style={styles.addBtnText}>Edit</Text>
+              </TouchableOpacity>
+            </View>
+            <View style={styles.storeCard}>
+              <View style={styles.storeRow}>
+                <Ionicons name="business" size={20} color={colors.accent.gold} />
+                <View style={styles.storeRowContent}>
+                  <Text style={styles.storeLabel}>Name</Text>
+                  <Text style={styles.storeValue}>{storeInfo.name}</Text>
+                </View>
+              </View>
+              <View style={styles.storeRow}>
+                <Ionicons name="location" size={20} color={colors.accent.gold} />
+                <View style={styles.storeRowContent}>
+                  <Text style={styles.storeLabel}>Address</Text>
+                  <Text style={styles.storeValue}>{storeInfo.address}</Text>
+                </View>
+              </View>
+              <View style={styles.storeRow}>
+                <Ionicons name="call" size={20} color={colors.accent.gold} />
+                <View style={styles.storeRowContent}>
+                  <Text style={styles.storeLabel}>Phone</Text>
+                  <Text style={styles.storeValue}>{storeInfo.phone}</Text>
+                </View>
+              </View>
+              <View style={styles.storeRow}>
+                <Ionicons name="mail" size={20} color={colors.accent.gold} />
+                <View style={styles.storeRowContent}>
+                  <Text style={styles.storeLabel}>Email</Text>
+                  <Text style={styles.storeValue}>{storeInfo.email}</Text>
+                </View>
+              </View>
+              <View style={styles.storeRow}>
+                <Ionicons name="time" size={20} color={colors.accent.gold} />
+                <View style={styles.storeRowContent}>
+                  <Text style={styles.storeLabel}>Hours</Text>
+                  <Text style={styles.storeValue}>Weekdays: {storeInfo.hours?.weekdays}</Text>
+                  <Text style={styles.storeValue}>Weekends: {storeInfo.hours?.weekends}</Text>
+                </View>
+              </View>
+            </View>
+          </>
+        );
+      case 'settings':
+        return (
+          <>
+            <Text style={styles.sectionTitle}>Settings</Text>
+            <TouchableOpacity style={styles.settingsItem} onPress={handleReset}>
+              <View style={[styles.settingsIcon, { backgroundColor: colors.ui.warning + '20' }]}>
+                <Ionicons name="refresh" size={24} color={colors.ui.warning} />
+              </View>
+              <View style={styles.settingsContent}>
+                <Text style={styles.settingsTitle}>Reset to Defaults</Text>
+                <Text style={styles.settingsSubtitle}>Restore all data to original state</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={20} color={colors.text.muted} />
+            </TouchableOpacity>
+            <View style={styles.appInfo}>
+              <View style={styles.appLogo}><Text style={styles.appLogoText}>YV</Text></View>
+              <Text style={styles.appInfoTitle}>Yo-Vazaluza Admin</Text>
+              <Text style={styles.appInfoVersion}>Version 1.0.0</Text>
+            </View>
+          </>
+        );
+      default:
+        return null;
+    }
+  };
 
-  const renderFlavorItem = (flavor: Flavor) => (
-    <View key={flavor.id} style={styles.listItem}>
-      {flavor.imageUrl ? (
-        <Image source={{ uri: flavor.imageUrl }} style={styles.listItemImage} />
-      ) : (
-        <View style={[styles.colorDot, { backgroundColor: flavor.color }]} />
-      )}
-      <View style={styles.listItemContent}>
-        <View style={styles.listItemHeader}>
-          <Text style={styles.listItemTitle}>{flavor.name}</Text>
-          {flavor.isNew && <View style={styles.newBadge}><Text style={styles.newBadgeText}>NEW</Text></View>}
-          {flavor.isVegan && <View style={styles.veganBadge}><Text style={styles.veganBadgeText}>V</Text></View>}
-        </View>
-        <Text style={styles.listItemSubtitle} numberOfLines={1}>
-          {flavor.description}
-        </Text>
-      </View>
-      <View style={styles.listItemActions}>
-        <TouchableOpacity
-          style={styles.actionButton}
-          onPress={() => openEditModal(flavor, 'flavor')}
-        >
-          <Ionicons name="pencil" size={18} color={colors.accent.gold} />
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={styles.actionButton}
-          onPress={() => handleDelete(flavor.id, 'flavor')}
-        >
-          <Ionicons name="trash" size={18} color={colors.ui.error} />
-        </TouchableOpacity>
-      </View>
-    </View>
-  );
-
-  const renderToppingItem = (topping: Topping) => (
-    <View key={topping.id} style={styles.listItem}>
-      <View style={styles.toppingPreview}>
-        <Text style={styles.toppingEmoji}>{topping.emoji || '🍬'}</Text>
-      </View>
-      <View style={styles.listItemContent}>
-        <Text style={styles.listItemTitle}>{topping.name}</Text>
-        <View style={styles.toppingMeta}>
-          <Text style={styles.listItemSubtitle}>{topping.category}</Text>
-          {topping.pricePerGram && (
-            <Text style={styles.toppingPrice}>${topping.pricePerGram.toFixed(2)}/g</Text>
-          )}
-        </View>
-      </View>
-      <View style={styles.listItemActions}>
-        <TouchableOpacity
-          style={styles.actionButton}
-          onPress={() => openEditModal(topping, 'topping')}
-        >
-          <Ionicons name="pencil" size={18} color={colors.accent.gold} />
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={styles.actionButton}
-          onPress={() => handleDelete(topping.id, 'topping')}
-        >
-          <Ionicons name="trash" size={18} color={colors.ui.error} />
-        </TouchableOpacity>
-      </View>
-    </View>
-  );
-
-  const renderPromotionItem = (promo: Promotion) => (
-    <View key={promo.id} style={styles.listItem}>
-      {promo.imageUrl ? (
-        <Image source={{ uri: promo.imageUrl }} style={styles.listItemImage} />
-      ) : (
-        <View style={styles.promoIcon}>
-          <Ionicons name="gift" size={20} color={colors.accent.gold} />
-        </View>
-      )}
-      <View style={styles.listItemContent}>
-        <View style={styles.listItemHeader}>
-          <Text style={styles.listItemTitle}>{promo.title}</Text>
-          <View style={[styles.statusBadge, { backgroundColor: promo.isActive ? colors.ui.success : colors.text.muted }]}>
-            <Text style={styles.statusBadgeText}>{promo.isActive ? 'Active' : 'Inactive'}</Text>
-          </View>
-        </View>
-        <Text style={styles.listItemSubtitle} numberOfLines={1}>
-          {promo.description}
-        </Text>
-      </View>
-      <View style={styles.listItemActions}>
-        <TouchableOpacity
-          style={styles.actionButton}
-          onPress={() => openEditModal(promo, 'promotion')}
-        >
-          <Ionicons name="pencil" size={18} color={colors.accent.gold} />
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={styles.actionButton}
-          onPress={() => handleDelete(promo.id, 'promotion')}
-        >
-          <Ionicons name="trash" size={18} color={colors.ui.error} />
-        </TouchableOpacity>
-      </View>
-    </View>
-  );
-
-  const renderGalleryItem = (image: GalleryImage) => (
-    <View key={image.id} style={styles.listItem}>
-      {image.imageUrl ? (
-        <Image source={{ uri: image.imageUrl }} style={styles.listItemImage} />
-      ) : (
-        <View style={styles.galleryThumb}>
-          <Ionicons name="image" size={20} color={colors.accent.gold} />
-        </View>
-      )}
-      <View style={styles.listItemContent}>
-        <Text style={styles.listItemTitle}>{image.title}</Text>
-        <Text style={styles.listItemSubtitle}>{image.category}</Text>
-      </View>
-      <View style={styles.listItemActions}>
-        <TouchableOpacity
-          style={styles.actionButton}
-          onPress={() => openEditModal(image, 'gallery')}
-        >
-          <Ionicons name="pencil" size={18} color={colors.accent.gold} />
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={styles.actionButton}
-          onPress={() => handleDelete(image.id, 'gallery')}
-        >
-          <Ionicons name="trash" size={18} color={colors.ui.error} />
-        </TouchableOpacity>
-      </View>
-    </View>
-  );
-
+  // Render edit modal
   const renderEditModal = () => (
-    <Modal
-      visible={editModalVisible}
-      animationType="slide"
-      transparent
-      onRequestClose={() => setEditModalVisible(false)}
-    >
+    <Modal visible={editModalVisible} animationType="slide" transparent onRequestClose={() => setEditModalVisible(false)}>
       <View style={styles.modalOverlay}>
         <View style={styles.modalContent}>
           <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle}>
-              {editingItem ? 'Edit' : 'Add'} {editType}
-            </Text>
+            <Text style={styles.modalTitle}>{editingItem ? 'Edit' : 'Add'} {editType}</Text>
             <TouchableOpacity onPress={() => setEditModalVisible(false)}>
               <Ionicons name="close" size={24} color={colors.text.primary} />
             </TouchableOpacity>
           </View>
 
           <ScrollView style={styles.modalBody} showsVerticalScrollIndicator={false}>
-            {/* Flavor Form */}
-            {editType === 'flavor' && (
+            {/* Image picker for all types except store */}
+            {editType !== 'store' && (
               <>
                 <Text style={styles.inputLabel}>Image</Text>
-                {renderImagePreview()}
+                {formData.imageUrl ? (
+                  <View style={styles.imagePreviewContainer}>
+                    <Image source={{ uri: formData.imageUrl }} style={styles.imagePreview} />
+                    <TouchableOpacity style={styles.imageRemoveBtn} onPress={() => setFormData({ ...formData, imageUrl: '' })}>
+                      <Ionicons name="close" size={16} color="#FFF" />
+                    </TouchableOpacity>
+                  </View>
+                ) : (
+                  <TouchableOpacity style={styles.imagePlaceholder} onPress={showImageOptions}>
+                    <Ionicons name="camera" size={32} color={colors.text.muted} />
+                    <Text style={styles.imagePlaceholderText}>Tap to add image</Text>
+                  </TouchableOpacity>
+                )}
+              </>
+            )}
 
+            {/* Flavor form */}
+            {editType === 'flavor' && (
+              <>
                 <Text style={styles.inputLabel}>Name *</Text>
-                <TextInput
-                  style={styles.input}
-                  value={formData.name}
-                  onChangeText={(text) => setFormData({ ...formData, name: text })}
-                  placeholder="e.g., Strawberry Bliss"
-                  placeholderTextColor={colors.text.muted}
-                />
+                <TextInput style={styles.input} value={formData.name} onChangeText={t => setFormData({ ...formData, name: t })} placeholder="Flavor name" placeholderTextColor={colors.text.muted} />
 
                 <Text style={styles.inputLabel}>Description</Text>
-                <TextInput
-                  style={[styles.input, styles.textArea]}
-                  value={formData.description}
-                  onChangeText={(text) => setFormData({ ...formData, description: text })}
-                  placeholder="Describe this delicious flavor..."
-                  placeholderTextColor={colors.text.muted}
-                  multiline
-                />
+                <TextInput style={[styles.input, styles.textArea]} value={formData.description} onChangeText={t => setFormData({ ...formData, description: t })} placeholder="Description" placeholderTextColor={colors.text.muted} multiline />
 
                 <Text style={styles.inputLabel}>Color</Text>
-                <TouchableOpacity
-                  style={styles.colorSelector}
-                  onPress={() => { setColorPickerField('color'); setShowColorPicker(true); }}
-                >
-                  <View style={[styles.colorPreview, { backgroundColor: formData.color || '#FFB6C1' }]} />
+                <TouchableOpacity style={styles.colorSelector} onPress={() => { setColorPickerField('color'); setShowColorPicker(true); }}>
+                  <View style={[styles.colorDot, { backgroundColor: formData.color || '#FFB6C1' }]} />
                   <Text style={styles.colorValue}>{formData.color || '#FFB6C1'}</Text>
-                  <Ionicons name="chevron-forward" size={20} color={colors.text.muted} />
                 </TouchableOpacity>
 
                 <Text style={styles.inputLabel}>Calories</Text>
-                <TextInput
-                  style={styles.input}
-                  value={formData.calories?.toString() || ''}
-                  onChangeText={(text) => setFormData({ ...formData, calories: parseInt(text) || 0 })}
-                  placeholder="150"
-                  placeholderTextColor={colors.text.muted}
-                  keyboardType="numeric"
-                />
+                <TextInput style={styles.input} value={formData.calories?.toString()} onChangeText={t => setFormData({ ...formData, calories: parseInt(t) || 0 })} placeholder="150" placeholderTextColor={colors.text.muted} keyboardType="numeric" />
 
                 <View style={styles.switchRow}>
                   <Text style={styles.switchLabel}>Vegan</Text>
-                  <Switch
-                    value={formData.isVegan}
-                    onValueChange={(val) => setFormData({ ...formData, isVegan: val })}
-                    trackColor={{ false: colors.ui.border, true: colors.ui.success }}
-                    thumbColor="#FFF"
-                  />
+                  <Switch value={formData.isVegan} onValueChange={v => setFormData({ ...formData, isVegan: v })} trackColor={{ false: colors.ui.border, true: colors.ui.success }} />
                 </View>
-
                 <View style={styles.switchRow}>
                   <Text style={styles.switchLabel}>Mark as New</Text>
-                  <Switch
-                    value={formData.isNew}
-                    onValueChange={(val) => setFormData({ ...formData, isNew: val })}
-                    trackColor={{ false: colors.ui.border, true: colors.accent.gold }}
-                    thumbColor="#FFF"
-                  />
+                  <Switch value={formData.isNew} onValueChange={v => setFormData({ ...formData, isNew: v })} trackColor={{ false: colors.ui.border, true: colors.accent.gold }} />
                 </View>
               </>
             )}
 
-            {/* Topping Form */}
+            {/* Topping form */}
             {editType === 'topping' && (
               <>
-                <Text style={styles.inputLabel}>Image (Optional)</Text>
-                {renderImagePreview()}
-
                 <Text style={styles.inputLabel}>Name *</Text>
-                <TextInput
-                  style={styles.input}
-                  value={formData.name}
-                  onChangeText={(text) => setFormData({ ...formData, name: text })}
-                  placeholder="e.g., Fresh Strawberries"
-                  placeholderTextColor={colors.text.muted}
-                />
+                <TextInput style={styles.input} value={formData.name} onChangeText={t => setFormData({ ...formData, name: t })} placeholder="Topping name" placeholderTextColor={colors.text.muted} />
 
-                <Text style={styles.inputLabel}>Emoji Icon</Text>
-                <TouchableOpacity
-                  style={styles.emojiSelector}
-                  onPress={() => setShowEmojiPicker(true)}
-                >
-                  <Text style={styles.emojiPreview}>{formData.emoji || '🍓'}</Text>
-                  <Text style={styles.emojiSelectorText}>Tap to change</Text>
-                  <Ionicons name="chevron-forward" size={20} color={colors.text.muted} />
+                <Text style={styles.inputLabel}>Emoji</Text>
+                <TouchableOpacity style={styles.emojiSelector} onPress={() => setShowEmojiPicker(true)}>
+                  <Text style={styles.emojiSelectorText}>{formData.emoji || '🍓'}</Text>
+                  <Text style={styles.emojiSelectorHint}>Tap to change</Text>
                 </TouchableOpacity>
 
                 <Text style={styles.inputLabel}>Color</Text>
-                <TouchableOpacity
-                  style={styles.colorSelector}
-                  onPress={() => { setColorPickerField('color'); setShowColorPicker(true); }}
-                >
-                  <View style={[styles.colorPreview, { backgroundColor: formData.color || '#E53935' }]} />
+                <TouchableOpacity style={styles.colorSelector} onPress={() => { setColorPickerField('color'); setShowColorPicker(true); }}>
+                  <View style={[styles.colorDot, { backgroundColor: formData.color || '#E53935' }]} />
                   <Text style={styles.colorValue}>{formData.color || '#E53935'}</Text>
-                  <Ionicons name="chevron-forward" size={20} color={colors.text.muted} />
                 </TouchableOpacity>
 
                 <Text style={styles.inputLabel}>Category</Text>
                 <View style={styles.categoryPicker}>
-                  {['fruits', 'candy', 'nuts', 'sauces', 'cereals'].map((cat) => (
-                    <TouchableOpacity
-                      key={cat}
-                      style={[
-                        styles.categoryOption,
-                        formData.category === cat && styles.categoryOptionActive,
-                      ]}
-                      onPress={() => setFormData({ ...formData, category: cat })}
-                    >
-                      <Text
-                        style={[
-                          styles.categoryOptionText,
-                          formData.category === cat && styles.categoryOptionTextActive,
-                        ]}
-                      >
-                        {cat}
-                      </Text>
+                  {['fruits', 'candy', 'nuts', 'sauces', 'cereals'].map(cat => (
+                    <TouchableOpacity key={cat} style={[styles.categoryOption, formData.category === cat && styles.categoryOptionActive]} onPress={() => setFormData({ ...formData, category: cat })}>
+                      <Text style={[styles.categoryText, formData.category === cat && styles.categoryTextActive]}>{cat}</Text>
                     </TouchableOpacity>
                   ))}
                 </View>
 
                 <Text style={styles.inputLabel}>Price per Gram ($)</Text>
-                <TextInput
-                  style={styles.input}
-                  value={formData.pricePerGram?.toString() || ''}
-                  onChangeText={(text) => setFormData({ ...formData, pricePerGram: parseFloat(text) || 0 })}
-                  placeholder="0.08"
-                  placeholderTextColor={colors.text.muted}
-                  keyboardType="decimal-pad"
-                />
+                <TextInput style={styles.input} value={formData.pricePerGram?.toString()} onChangeText={t => setFormData({ ...formData, pricePerGram: parseFloat(t) || 0 })} placeholder="0.08" placeholderTextColor={colors.text.muted} keyboardType="decimal-pad" />
 
                 <Text style={styles.inputLabel}>Max Grams</Text>
-                <TextInput
-                  style={styles.input}
-                  value={formData.maxGrams?.toString() || ''}
-                  onChangeText={(text) => setFormData({ ...formData, maxGrams: parseInt(text) || 30 })}
-                  placeholder="30"
-                  placeholderTextColor={colors.text.muted}
-                  keyboardType="numeric"
-                />
-
-                <View style={styles.priceSummary}>
-                  <Ionicons name="information-circle" size={16} color={colors.accent.gold} />
-                  <Text style={styles.priceSummaryText}>
-                    Max price: ${((formData.pricePerGram || 0) * (formData.maxGrams || 30)).toFixed(2)}
-                  </Text>
-                </View>
+                <TextInput style={styles.input} value={formData.maxGrams?.toString()} onChangeText={t => setFormData({ ...formData, maxGrams: parseInt(t) || 30 })} placeholder="30" placeholderTextColor={colors.text.muted} keyboardType="numeric" />
               </>
             )}
 
-            {/* Promotion Form */}
+            {/* Promotion form */}
             {editType === 'promotion' && (
               <>
-                <Text style={styles.inputLabel}>Banner Image</Text>
-                {renderImagePreview()}
-
                 <Text style={styles.inputLabel}>Title *</Text>
-                <TextInput
-                  style={styles.input}
-                  value={formData.title}
-                  onChangeText={(text) => setFormData({ ...formData, title: text })}
-                  placeholder="e.g., Summer Special!"
-                  placeholderTextColor={colors.text.muted}
-                />
+                <TextInput style={styles.input} value={formData.title} onChangeText={t => setFormData({ ...formData, title: t })} placeholder="Promotion title" placeholderTextColor={colors.text.muted} />
 
                 <Text style={styles.inputLabel}>Description</Text>
-                <TextInput
-                  style={[styles.input, styles.textArea]}
-                  value={formData.description}
-                  onChangeText={(text) => setFormData({ ...formData, description: text })}
-                  placeholder="Describe your promotion..."
-                  placeholderTextColor={colors.text.muted}
-                  multiline
-                />
-
-                <Text style={styles.inputLabel}>Valid Until</Text>
-                <TextInput
-                  style={styles.input}
-                  value={formData.validUntil || ''}
-                  onChangeText={(text) => setFormData({ ...formData, validUntil: text })}
-                  placeholder="e.g., December 31, 2024"
-                  placeholderTextColor={colors.text.muted}
-                />
+                <TextInput style={[styles.input, styles.textArea]} value={formData.description} onChangeText={t => setFormData({ ...formData, description: t })} placeholder="Description" placeholderTextColor={colors.text.muted} multiline />
 
                 <View style={styles.switchRow}>
                   <Text style={styles.switchLabel}>Active</Text>
-                  <Switch
-                    value={formData.isActive}
-                    onValueChange={(val) => setFormData({ ...formData, isActive: val })}
-                    trackColor={{ false: colors.ui.border, true: colors.ui.success }}
-                    thumbColor="#FFF"
-                  />
+                  <Switch value={formData.isActive} onValueChange={v => setFormData({ ...formData, isActive: v })} trackColor={{ false: colors.ui.border, true: colors.ui.success }} />
                 </View>
               </>
             )}
 
-            {/* Gallery Form */}
+            {/* Gallery form */}
             {editType === 'gallery' && (
               <>
-                <Text style={styles.inputLabel}>Image *</Text>
-                {renderImagePreview()}
-
                 <Text style={styles.inputLabel}>Title *</Text>
-                <TextInput
-                  style={styles.input}
-                  value={formData.title}
-                  onChangeText={(text) => setFormData({ ...formData, title: text })}
-                  placeholder="e.g., Our Signature Sundae"
-                  placeholderTextColor={colors.text.muted}
-                />
+                <TextInput style={styles.input} value={formData.title} onChangeText={t => setFormData({ ...formData, title: t })} placeholder="Image title" placeholderTextColor={colors.text.muted} />
 
                 <Text style={styles.inputLabel}>Category</Text>
                 <View style={styles.categoryPicker}>
-                  {['store', 'products', 'moments'].map((cat) => (
-                    <TouchableOpacity
-                      key={cat}
-                      style={[
-                        styles.categoryOption,
-                        formData.category === cat && styles.categoryOptionActive,
-                      ]}
-                      onPress={() => setFormData({ ...formData, category: cat })}
-                    >
-                      <Text
-                        style={[
-                          styles.categoryOptionText,
-                          formData.category === cat && styles.categoryOptionTextActive,
-                        ]}
-                      >
-                        {cat}
-                      </Text>
+                  {['store', 'products', 'moments'].map(cat => (
+                    <TouchableOpacity key={cat} style={[styles.categoryOption, formData.category === cat && styles.categoryOptionActive]} onPress={() => setFormData({ ...formData, category: cat })}>
+                      <Text style={[styles.categoryText, formData.category === cat && styles.categoryTextActive]}>{cat}</Text>
                     </TouchableOpacity>
                   ))}
                 </View>
               </>
             )}
 
-            {/* Store Form */}
+            {/* Store form */}
             {editType === 'store' && (
               <>
                 <Text style={styles.inputLabel}>Store Name</Text>
-                <TextInput
-                  style={styles.input}
-                  value={formData.name}
-                  onChangeText={(text) => setFormData({ ...formData, name: text })}
-                  placeholder="Store name"
-                  placeholderTextColor={colors.text.muted}
-                />
+                <TextInput style={styles.input} value={formData.name} onChangeText={t => setFormData({ ...formData, name: t })} placeholder="Store name" placeholderTextColor={colors.text.muted} />
 
                 <Text style={styles.inputLabel}>Tagline</Text>
-                <TextInput
-                  style={styles.input}
-                  value={formData.tagline}
-                  onChangeText={(text) => setFormData({ ...formData, tagline: text })}
-                  placeholder="Store tagline"
-                  placeholderTextColor={colors.text.muted}
-                />
+                <TextInput style={styles.input} value={formData.tagline} onChangeText={t => setFormData({ ...formData, tagline: t })} placeholder="Tagline" placeholderTextColor={colors.text.muted} />
 
                 <Text style={styles.inputLabel}>Description</Text>
-                <TextInput
-                  style={[styles.input, styles.textArea]}
-                  value={formData.description}
-                  onChangeText={(text) => setFormData({ ...formData, description: text })}
-                  placeholder="Store description"
-                  placeholderTextColor={colors.text.muted}
-                  multiline
-                />
+                <TextInput style={[styles.input, styles.textArea]} value={formData.description} onChangeText={t => setFormData({ ...formData, description: t })} placeholder="Description" placeholderTextColor={colors.text.muted} multiline />
 
                 <Text style={styles.inputLabel}>Address</Text>
-                <TextInput
-                  style={styles.input}
-                  value={formData.address}
-                  onChangeText={(text) => setFormData({ ...formData, address: text })}
-                  placeholder="Store address"
-                  placeholderTextColor={colors.text.muted}
-                />
+                <TextInput style={styles.input} value={formData.address} onChangeText={t => setFormData({ ...formData, address: t })} placeholder="Address" placeholderTextColor={colors.text.muted} />
 
                 <Text style={styles.inputLabel}>Phone</Text>
-                <TextInput
-                  style={styles.input}
-                  value={formData.phone}
-                  onChangeText={(text) => setFormData({ ...formData, phone: text })}
-                  placeholder="Phone number"
-                  placeholderTextColor={colors.text.muted}
-                  keyboardType="phone-pad"
-                />
+                <TextInput style={styles.input} value={formData.phone} onChangeText={t => setFormData({ ...formData, phone: t })} placeholder="Phone" placeholderTextColor={colors.text.muted} keyboardType="phone-pad" />
 
                 <Text style={styles.inputLabel}>Email</Text>
-                <TextInput
-                  style={styles.input}
-                  value={formData.email}
-                  onChangeText={(text) => setFormData({ ...formData, email: text })}
-                  placeholder="Email address"
-                  placeholderTextColor={colors.text.muted}
-                  keyboardType="email-address"
-                />
+                <TextInput style={styles.input} value={formData.email} onChangeText={t => setFormData({ ...formData, email: t })} placeholder="Email" placeholderTextColor={colors.text.muted} keyboardType="email-address" />
 
-                <Text style={styles.sectionDivider}>Business Hours</Text>
+                <Text style={styles.inputLabel}>Weekday Hours</Text>
+                <TextInput style={styles.input} value={formData.hours?.weekdays} onChangeText={t => setFormData({ ...formData, hours: { ...formData.hours, weekdays: t } })} placeholder="e.g., 10:00 AM - 10:00 PM" placeholderTextColor={colors.text.muted} />
 
-                <Text style={styles.inputLabel}>Weekdays</Text>
-                <TextInput
-                  style={styles.input}
-                  value={formData.hours?.weekdays}
-                  onChangeText={(text) => setFormData({ ...formData, hours: { ...formData.hours, weekdays: text } })}
-                  placeholder="e.g., 10:00 AM - 10:00 PM"
-                  placeholderTextColor={colors.text.muted}
-                />
-
-                <Text style={styles.inputLabel}>Weekends</Text>
-                <TextInput
-                  style={styles.input}
-                  value={formData.hours?.weekends}
-                  onChangeText={(text) => setFormData({ ...formData, hours: { ...formData.hours, weekends: text } })}
-                  placeholder="e.g., 11:00 AM - 11:00 PM"
-                  placeholderTextColor={colors.text.muted}
-                />
-
-                <Text style={styles.sectionDivider}>Social Media</Text>
-
-                <Text style={styles.inputLabel}>Instagram</Text>
-                <TextInput
-                  style={styles.input}
-                  value={formData.socialMedia?.instagram}
-                  onChangeText={(text) => setFormData({ ...formData, socialMedia: { ...formData.socialMedia, instagram: text } })}
-                  placeholder="@yourhandle"
-                  placeholderTextColor={colors.text.muted}
-                />
-
-                <Text style={styles.inputLabel}>Facebook</Text>
-                <TextInput
-                  style={styles.input}
-                  value={formData.socialMedia?.facebook}
-                  onChangeText={(text) => setFormData({ ...formData, socialMedia: { ...formData.socialMedia, facebook: text } })}
-                  placeholder="Your Facebook page"
-                  placeholderTextColor={colors.text.muted}
-                />
-
-                <Text style={styles.inputLabel}>TikTok</Text>
-                <TextInput
-                  style={styles.input}
-                  value={formData.socialMedia?.tiktok}
-                  onChangeText={(text) => setFormData({ ...formData, socialMedia: { ...formData.socialMedia, tiktok: text } })}
-                  placeholder="@yourhandle"
-                  placeholderTextColor={colors.text.muted}
-                />
+                <Text style={styles.inputLabel}>Weekend Hours</Text>
+                <TextInput style={styles.input} value={formData.hours?.weekends} onChangeText={t => setFormData({ ...formData, hours: { ...formData.hours, weekends: t } })} placeholder="e.g., 11:00 AM - 11:00 PM" placeholderTextColor={colors.text.muted} />
               </>
             )}
 
@@ -935,23 +603,11 @@ const AdminScreen: React.FC = () => {
           </ScrollView>
 
           <View style={styles.modalFooter}>
-            <TouchableOpacity
-              style={styles.cancelBtn}
-              onPress={() => setEditModalVisible(false)}
-            >
+            <TouchableOpacity style={styles.cancelBtn} onPress={() => setEditModalVisible(false)}>
               <Text style={styles.cancelBtnText}>Cancel</Text>
             </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.saveBtn}
-              onPress={handleSave}
-            >
-              <LinearGradient
-                colors={[colors.accent.gold, '#D4A84B']}
-                style={styles.saveBtnGradient}
-              >
-                <Ionicons name="checkmark" size={20} color="#FFF" />
-                <Text style={styles.saveBtnText}>Save</Text>
-              </LinearGradient>
+            <TouchableOpacity style={styles.saveBtn} onPress={handleSave}>
+              <Text style={styles.saveBtnText}>Save</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -959,41 +615,62 @@ const AdminScreen: React.FC = () => {
     </Modal>
   );
 
+  // Render color picker modal
+  const renderColorPicker = () => (
+    <Modal visible={showColorPicker} transparent animationType="fade" onRequestClose={() => setShowColorPicker(false)}>
+      <TouchableOpacity style={styles.pickerOverlay} activeOpacity={1} onPress={() => setShowColorPicker(false)}>
+        <View style={styles.pickerContent}>
+          <Text style={styles.pickerTitle}>Select Color</Text>
+          <View style={styles.colorGrid}>
+            {COLOR_PALETTE.map(color => (
+              <TouchableOpacity key={color} style={[styles.colorGridItem, { backgroundColor: color }, formData[colorPickerField] === color && styles.colorGridItemSelected]} onPress={() => { setFormData({ ...formData, [colorPickerField]: color }); setShowColorPicker(false); }} />
+            ))}
+          </View>
+          <TextInput style={styles.customColorInput} value={formData[colorPickerField] || ''} onChangeText={t => setFormData({ ...formData, [colorPickerField]: t })} placeholder="#FFFFFF" placeholderTextColor={colors.text.muted} />
+        </View>
+      </TouchableOpacity>
+    </Modal>
+  );
+
+  // Render emoji picker modal
+  const renderEmojiPicker = () => (
+    <Modal visible={showEmojiPicker} transparent animationType="fade" onRequestClose={() => setShowEmojiPicker(false)}>
+      <TouchableOpacity style={styles.pickerOverlay} activeOpacity={1} onPress={() => setShowEmojiPicker(false)}>
+        <View style={styles.pickerContent}>
+          <Text style={styles.pickerTitle}>Select Emoji</Text>
+          <View style={styles.emojiGrid}>
+            {EMOJI_PALETTE.map((emoji, i) => (
+              <TouchableOpacity key={i} style={[styles.emojiGridItem, formData.emoji === emoji && styles.emojiGridItemSelected]} onPress={() => { setFormData({ ...formData, emoji }); setShowEmojiPicker(false); }}>
+                <Text style={styles.emojiGridText}>{emoji}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
+      </TouchableOpacity>
+    </Modal>
+  );
+
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top']}>
       <StatusBar barStyle="light-content" />
 
-      <LinearGradient
-        colors={colors.gradients.dark}
-        style={styles.headerGradient}
-      >
-        <SafeAreaView edges={['top']}>
-          <View style={styles.header}>
-            <View>
-              <Text style={styles.headerTitle}>Admin Panel</Text>
-              <Text style={styles.headerSubtitle}>Manage your app content</Text>
-            </View>
-            <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
-              <Ionicons name="log-out" size={24} color={colors.text.light} />
-            </TouchableOpacity>
-          </View>
-        </SafeAreaView>
-      </LinearGradient>
+      {/* Header */}
+      <View style={styles.header}>
+        <View>
+          <Text style={styles.headerTitle}>Admin Panel</Text>
+          <Text style={styles.headerSubtitle}>Manage your app content</Text>
+        </View>
+        <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout}>
+          <Ionicons name="log-out-outline" size={22} color="#FFF" />
+        </TouchableOpacity>
+      </View>
 
-      {/* Navigation */}
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        style={styles.navContainer}
-        contentContainerStyle={styles.navContent}
-      >
-        {renderNavItem('flavors', 'ice-cream', 'Flavors')}
-        {renderNavItem('toppings', 'nutrition', 'Toppings')}
-        {renderNavItem('promotions', 'gift', 'Promos')}
-        {renderNavItem('gallery', 'images', 'Gallery')}
-        {renderNavItem('store', 'storefront', 'Store')}
-        {renderNavItem('settings', 'settings', 'Settings')}
-      </ScrollView>
+      {/* Navigation Tabs */}
+      <View style={styles.navBar}>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.navBarContent}>
+          {NAV_ITEMS.map(renderNavTab)}
+        </ScrollView>
+      </View>
 
       {/* Stats Bar */}
       <View style={styles.statsBar}>
@@ -1019,281 +696,78 @@ const AdminScreen: React.FC = () => {
       </View>
 
       {/* Content */}
-      <Animated.View style={[styles.content, { opacity: fadeAnim }]}>
-        <ScrollView showsVerticalScrollIndicator={false}>
-          {activeSection === 'flavors' && (
-            <>
-              <View style={styles.sectionHeader}>
-                <Text style={styles.sectionTitle}>Flavors ({flavors.length})</Text>
-                <TouchableOpacity
-                  style={styles.addButton}
-                  onPress={() => openAddModal('flavor')}
-                >
-                  <Ionicons name="add" size={20} color={colors.text.light} />
-                  <Text style={styles.addButtonText}>Add Flavor</Text>
-                </TouchableOpacity>
-              </View>
-              {flavors.map(renderFlavorItem)}
-            </>
-          )}
-
-          {activeSection === 'toppings' && (
-            <>
-              <View style={styles.sectionHeader}>
-                <Text style={styles.sectionTitle}>Toppings ({toppings.length})</Text>
-                <TouchableOpacity
-                  style={styles.addButton}
-                  onPress={() => openAddModal('topping')}
-                >
-                  <Ionicons name="add" size={20} color={colors.text.light} />
-                  <Text style={styles.addButtonText}>Add Topping</Text>
-                </TouchableOpacity>
-              </View>
-              {toppings.map(renderToppingItem)}
-            </>
-          )}
-
-          {activeSection === 'promotions' && (
-            <>
-              <View style={styles.sectionHeader}>
-                <Text style={styles.sectionTitle}>Promotions ({promotions.length})</Text>
-                <TouchableOpacity
-                  style={styles.addButton}
-                  onPress={() => openAddModal('promotion')}
-                >
-                  <Ionicons name="add" size={20} color={colors.text.light} />
-                  <Text style={styles.addButtonText}>Add Promo</Text>
-                </TouchableOpacity>
-              </View>
-              {promotions.map(renderPromotionItem)}
-            </>
-          )}
-
-          {activeSection === 'gallery' && (
-            <>
-              <View style={styles.sectionHeader}>
-                <Text style={styles.sectionTitle}>Gallery ({gallery.length})</Text>
-                <TouchableOpacity
-                  style={styles.addButton}
-                  onPress={() => openAddModal('gallery')}
-                >
-                  <Ionicons name="add" size={20} color={colors.text.light} />
-                  <Text style={styles.addButtonText}>Add Photo</Text>
-                </TouchableOpacity>
-              </View>
-              {gallery.map(renderGalleryItem)}
-            </>
-          )}
-
-          {activeSection === 'store' && (
-            <View style={styles.storeSection}>
-              <View style={styles.sectionHeader}>
-                <Text style={styles.sectionTitle}>Store Information</Text>
-                <TouchableOpacity
-                  style={styles.addButton}
-                  onPress={openStoreEditModal}
-                >
-                  <Ionicons name="pencil" size={18} color={colors.text.light} />
-                  <Text style={styles.addButtonText}>Edit</Text>
-                </TouchableOpacity>
-              </View>
-              <View style={styles.storeCard}>
-                <View style={styles.storeRow}>
-                  <Ionicons name="business" size={20} color={colors.accent.gold} />
-                  <View style={styles.storeRowContent}>
-                    <Text style={styles.storeLabel}>Name</Text>
-                    <Text style={styles.storeValue}>{storeInfo.name}</Text>
-                  </View>
-                </View>
-
-                <View style={styles.storeRow}>
-                  <Ionicons name="text" size={20} color={colors.accent.gold} />
-                  <View style={styles.storeRowContent}>
-                    <Text style={styles.storeLabel}>Tagline</Text>
-                    <Text style={styles.storeValue}>{storeInfo.tagline}</Text>
-                  </View>
-                </View>
-
-                <View style={styles.storeRow}>
-                  <Ionicons name="location" size={20} color={colors.accent.gold} />
-                  <View style={styles.storeRowContent}>
-                    <Text style={styles.storeLabel}>Address</Text>
-                    <Text style={styles.storeValue}>{storeInfo.address}</Text>
-                  </View>
-                </View>
-
-                <View style={styles.storeRow}>
-                  <Ionicons name="call" size={20} color={colors.accent.gold} />
-                  <View style={styles.storeRowContent}>
-                    <Text style={styles.storeLabel}>Phone</Text>
-                    <Text style={styles.storeValue}>{storeInfo.phone}</Text>
-                  </View>
-                </View>
-
-                <View style={styles.storeRow}>
-                  <Ionicons name="mail" size={20} color={colors.accent.gold} />
-                  <View style={styles.storeRowContent}>
-                    <Text style={styles.storeLabel}>Email</Text>
-                    <Text style={styles.storeValue}>{storeInfo.email}</Text>
-                  </View>
-                </View>
-
-                <View style={styles.storeRow}>
-                  <Ionicons name="time" size={20} color={colors.accent.gold} />
-                  <View style={styles.storeRowContent}>
-                    <Text style={styles.storeLabel}>Hours</Text>
-                    <Text style={styles.storeValue}>Weekdays: {storeInfo.hours?.weekdays}</Text>
-                    <Text style={styles.storeValue}>Weekends: {storeInfo.hours?.weekends}</Text>
-                  </View>
-                </View>
-
-                <View style={styles.socialSection}>
-                  <Text style={styles.socialTitle}>Social Media</Text>
-                  <View style={styles.socialIcons}>
-                    {storeInfo.socialMedia?.instagram && (
-                      <View style={styles.socialBadge}>
-                        <Ionicons name="logo-instagram" size={16} color="#E1306C" />
-                        <Text style={styles.socialHandle}>{storeInfo.socialMedia.instagram}</Text>
-                      </View>
-                    )}
-                    {storeInfo.socialMedia?.facebook && (
-                      <View style={styles.socialBadge}>
-                        <Ionicons name="logo-facebook" size={16} color="#4267B2" />
-                        <Text style={styles.socialHandle}>{storeInfo.socialMedia.facebook}</Text>
-                      </View>
-                    )}
-                    {storeInfo.socialMedia?.tiktok && (
-                      <View style={styles.socialBadge}>
-                        <Ionicons name="logo-tiktok" size={16} color="#000" />
-                        <Text style={styles.socialHandle}>{storeInfo.socialMedia.tiktok}</Text>
-                      </View>
-                    )}
-                  </View>
-                </View>
-              </View>
-            </View>
-          )}
-
-          {activeSection === 'settings' && (
-            <View style={styles.settingsSection}>
-              <Text style={styles.sectionTitle}>Settings</Text>
-
-              <TouchableOpacity style={styles.settingsItem} onPress={handleReset}>
-                <View style={[styles.settingsIcon, { backgroundColor: colors.ui.warning + '20' }]}>
-                  <Ionicons name="refresh" size={24} color={colors.ui.warning} />
-                </View>
-                <View style={styles.settingsItemContent}>
-                  <Text style={styles.settingsItemTitle}>Reset to Defaults</Text>
-                  <Text style={styles.settingsItemSubtitle}>
-                    Restore all data to original state
-                  </Text>
-                </View>
-                <Ionicons name="chevron-forward" size={20} color={colors.text.muted} />
-              </TouchableOpacity>
-
-              <TouchableOpacity style={styles.settingsItem}>
-                <View style={[styles.settingsIcon, { backgroundColor: colors.accent.gold + '20' }]}>
-                  <Ionicons name="cloud-upload" size={24} color={colors.accent.gold} />
-                </View>
-                <View style={styles.settingsItemContent}>
-                  <Text style={styles.settingsItemTitle}>Export Data</Text>
-                  <Text style={styles.settingsItemSubtitle}>
-                    Backup your app data
-                  </Text>
-                </View>
-                <Ionicons name="chevron-forward" size={20} color={colors.text.muted} />
-              </TouchableOpacity>
-
-              <TouchableOpacity style={styles.settingsItem}>
-                <View style={[styles.settingsIcon, { backgroundColor: '#3949AB20' }]}>
-                  <Ionicons name="cloud-download" size={24} color="#3949AB" />
-                </View>
-                <View style={styles.settingsItemContent}>
-                  <Text style={styles.settingsItemTitle}>Import Data</Text>
-                  <Text style={styles.settingsItemSubtitle}>
-                    Restore from backup
-                  </Text>
-                </View>
-                <Ionicons name="chevron-forward" size={20} color={colors.text.muted} />
-              </TouchableOpacity>
-
-              <View style={styles.appInfo}>
-                <View style={styles.appLogo}>
-                  <Text style={styles.appLogoText}>YV</Text>
-                </View>
-                <Text style={styles.appInfoTitle}>Yo-Vazaluza Admin</Text>
-                <Text style={styles.appInfoVersion}>Version 1.0.0</Text>
-              </View>
-            </View>
-          )}
-
-          <View style={{ height: 100 }} />
-        </ScrollView>
-      </Animated.View>
+      <ScrollView style={styles.content} contentContainerStyle={styles.contentContainer} showsVerticalScrollIndicator={false}>
+        {renderSectionContent()}
+        <View style={{ height: 50 }} />
+      </ScrollView>
 
       {renderEditModal()}
       {renderColorPicker()}
       {renderEmojiPicker()}
-    </View>
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background.main,
-  },
-  headerGradient: {
-    paddingBottom: spacing.lg,
+    backgroundColor: colors.primary.dark,
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: spacing.lg,
-    paddingTop: spacing.md,
+    paddingVertical: spacing.md,
+    backgroundColor: colors.primary.dark,
   },
   headerTitle: {
-    fontSize: typography.fontSizes.xxl,
+    fontSize: 24,
     fontWeight: '700',
-    color: colors.text.light,
+    color: '#FFF',
   },
   headerSubtitle: {
-    fontSize: typography.fontSizes.sm,
-    color: colors.text.light,
-    opacity: 0.8,
+    fontSize: 14,
+    color: 'rgba(255,255,255,0.7)',
     marginTop: 2,
   },
-  logoutButton: {
-    padding: spacing.sm,
+  logoutBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     backgroundColor: 'rgba(255,255,255,0.1)',
-    borderRadius: borderRadius.round,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  navContainer: {
+  navBar: {
     backgroundColor: colors.background.card,
-    ...shadows.small,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.ui.border,
   },
-  navContent: {
+  navBarContent: {
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
+    flexDirection: 'row',
+    gap: spacing.xs,
   },
-  navItem: {
+  navTab: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: spacing.sm,
     paddingHorizontal: spacing.md,
-    marginHorizontal: spacing.xs,
     borderRadius: borderRadius.round,
+    backgroundColor: 'transparent',
   },
-  navItemActive: {
+  navTabActive: {
     backgroundColor: colors.accent.gold + '20',
   },
-  navLabel: {
-    fontSize: typography.fontSizes.sm,
+  navTabText: {
+    fontSize: 14,
     color: colors.text.secondary,
     marginLeft: spacing.xs,
+    fontWeight: '500',
   },
-  navLabelActive: {
+  navTabTextActive: {
     color: colors.accent.gold,
     fontWeight: '600',
   },
@@ -1303,28 +777,31 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.md,
     paddingHorizontal: spacing.lg,
     borderBottomWidth: 1,
-    borderBottomColor: colors.ui.divider,
+    borderBottomColor: colors.ui.border,
   },
   statItem: {
     flex: 1,
     alignItems: 'center',
   },
   statValue: {
-    fontSize: typography.fontSizes.xl,
+    fontSize: 20,
     fontWeight: '700',
     color: colors.accent.gold,
   },
   statLabel: {
-    fontSize: typography.fontSizes.xs,
+    fontSize: 11,
     color: colors.text.muted,
     marginTop: 2,
   },
   statDivider: {
     width: 1,
-    backgroundColor: colors.ui.divider,
+    backgroundColor: colors.ui.border,
   },
   content: {
     flex: 1,
+    backgroundColor: colors.background.main,
+  },
+  contentContainer: {
     padding: spacing.lg,
   },
   sectionHeader: {
@@ -1334,11 +811,11 @@ const styles = StyleSheet.create({
     marginBottom: spacing.md,
   },
   sectionTitle: {
-    fontSize: typography.fontSizes.xl,
+    fontSize: 20,
     fontWeight: '700',
     color: colors.text.primary,
   },
-  addButton: {
+  addBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: colors.accent.gold,
@@ -1347,10 +824,10 @@ const styles = StyleSheet.create({
     borderRadius: borderRadius.round,
     gap: spacing.xs,
   },
-  addButtonText: {
-    fontSize: typography.fontSizes.sm,
+  addBtnText: {
+    fontSize: 14,
     fontWeight: '600',
-    color: colors.text.light,
+    color: '#FFF',
   },
   listItem: {
     flexDirection: 'row',
@@ -1361,42 +838,33 @@ const styles = StyleSheet.create({
     marginBottom: spacing.sm,
     ...shadows.small,
   },
-  listItemImage: {
-    width: 50,
-    height: 50,
+  itemImage: {
+    width: 48,
+    height: 48,
     borderRadius: borderRadius.md,
     marginRight: spacing.md,
   },
-  colorDot: {
-    width: 50,
-    height: 50,
+  itemColorDot: {
+    width: 48,
+    height: 48,
     borderRadius: borderRadius.md,
     marginRight: spacing.md,
   },
-  toppingPreview: {
-    width: 50,
-    height: 50,
+  emojiPreview: {
+    width: 48,
+    height: 48,
     borderRadius: borderRadius.md,
     backgroundColor: colors.background.main,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: spacing.md,
   },
-  toppingEmoji: {
-    fontSize: 28,
+  emojiText: {
+    fontSize: 24,
   },
-  promoIcon: {
-    width: 50,
-    height: 50,
-    borderRadius: borderRadius.md,
-    backgroundColor: colors.accent.gold + '20',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: spacing.md,
-  },
-  galleryThumb: {
-    width: 50,
-    height: 50,
+  iconPreview: {
+    width: 48,
+    height: 48,
     borderRadius: borderRadius.md,
     backgroundColor: colors.accent.gold + '20',
     alignItems: 'center',
@@ -1410,38 +878,32 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.xs,
+    flexWrap: 'wrap',
   },
   listItemTitle: {
-    fontSize: typography.fontSizes.md,
+    fontSize: 16,
     fontWeight: '600',
     color: colors.text.primary,
   },
   listItemSubtitle: {
-    fontSize: typography.fontSizes.sm,
+    fontSize: 13,
     color: colors.text.secondary,
     marginTop: 2,
   },
-  newBadge: {
+  badgeNew: {
     backgroundColor: colors.accent.gold,
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: 4,
   },
-  newBadgeText: {
-    fontSize: 9,
-    fontWeight: '700',
-    color: '#FFF',
-  },
-  veganBadge: {
+  badgeVegan: {
     backgroundColor: colors.ui.success,
-    width: 18,
-    height: 18,
-    borderRadius: 9,
-    alignItems: 'center',
-    justifyContent: 'center',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
   },
-  veganBadgeText: {
-    fontSize: 10,
+  badgeText: {
+    fontSize: 9,
     fontWeight: '700',
     color: '#FFF',
   },
@@ -1455,35 +917,20 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#FFF',
   },
-  toppingMeta: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-    marginTop: 2,
-  },
-  toppingPrice: {
-    fontSize: typography.fontSizes.xs,
-    color: colors.ui.success,
-    fontWeight: '600',
-  },
-  listItemActions: {
-    flexDirection: 'row',
-    gap: spacing.xs,
-  },
-  actionButton: {
-    padding: spacing.sm,
+  actionBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 8,
     backgroundColor: colors.background.main,
-    borderRadius: borderRadius.md,
-  },
-  storeSection: {
-    paddingBottom: spacing.xxl,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginLeft: spacing.xs,
   },
   storeCard: {
     backgroundColor: colors.background.card,
+    borderRadius: borderRadius.lg,
     padding: spacing.lg,
-    borderRadius: borderRadius.xl,
-    marginTop: spacing.md,
-    ...shadows.medium,
+    ...shadows.small,
   },
   storeRow: {
     flexDirection: 'row',
@@ -1497,42 +944,13 @@ const styles = StyleSheet.create({
     marginLeft: spacing.md,
   },
   storeLabel: {
-    fontSize: typography.fontSizes.xs,
+    fontSize: 12,
     color: colors.text.muted,
   },
   storeValue: {
-    fontSize: typography.fontSizes.md,
+    fontSize: 15,
     color: colors.text.primary,
     marginTop: 2,
-  },
-  socialSection: {
-    paddingTop: spacing.md,
-  },
-  socialTitle: {
-    fontSize: typography.fontSizes.sm,
-    color: colors.text.muted,
-    marginBottom: spacing.sm,
-  },
-  socialIcons: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: spacing.sm,
-  },
-  socialBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.background.main,
-    paddingVertical: spacing.xs,
-    paddingHorizontal: spacing.sm,
-    borderRadius: borderRadius.round,
-    gap: spacing.xs,
-  },
-  socialHandle: {
-    fontSize: typography.fontSizes.sm,
-    color: colors.text.secondary,
-  },
-  settingsSection: {
-    paddingBottom: spacing.xxl,
   },
   settingsItem: {
     flexDirection: 'row',
@@ -1550,17 +968,17 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  settingsItemContent: {
+  settingsContent: {
     flex: 1,
     marginLeft: spacing.md,
   },
-  settingsItemTitle: {
-    fontSize: typography.fontSizes.md,
+  settingsTitle: {
+    fontSize: 16,
     fontWeight: '600',
     color: colors.text.primary,
   },
-  settingsItemSubtitle: {
-    fontSize: typography.fontSizes.sm,
+  settingsSubtitle: {
+    fontSize: 13,
     color: colors.text.secondary,
     marginTop: 2,
   },
@@ -1586,15 +1004,16 @@ const styles = StyleSheet.create({
     color: '#FFF',
   },
   appInfoTitle: {
-    fontSize: typography.fontSizes.lg,
+    fontSize: 18,
     fontWeight: '700',
     color: colors.text.primary,
   },
   appInfoVersion: {
-    fontSize: typography.fontSizes.sm,
+    fontSize: 14,
     color: colors.text.muted,
     marginTop: spacing.xs,
   },
+  // Modal styles
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.5)',
@@ -1602,9 +1021,9 @@ const styles = StyleSheet.create({
   },
   modalContent: {
     backgroundColor: colors.background.card,
-    borderTopLeftRadius: borderRadius.xl,
-    borderTopRightRadius: borderRadius.xl,
-    maxHeight: '90%',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    maxHeight: '85%',
   },
   modalHeader: {
     flexDirection: 'row',
@@ -1615,14 +1034,13 @@ const styles = StyleSheet.create({
     borderBottomColor: colors.ui.divider,
   },
   modalTitle: {
-    fontSize: typography.fontSizes.xl,
+    fontSize: 20,
     fontWeight: '700',
     color: colors.text.primary,
     textTransform: 'capitalize',
   },
   modalBody: {
     padding: spacing.lg,
-    maxHeight: SCREEN_WIDTH * 1.2,
   },
   modalFooter: {
     flexDirection: 'row',
@@ -1640,28 +1058,23 @@ const styles = StyleSheet.create({
     borderColor: colors.ui.border,
   },
   cancelBtnText: {
-    fontSize: typography.fontSizes.md,
+    fontSize: 16,
     fontWeight: '600',
     color: colors.text.secondary,
   },
   saveBtn: {
-    borderRadius: borderRadius.round,
-    overflow: 'hidden',
-  },
-  saveBtnGradient: {
-    flexDirection: 'row',
-    alignItems: 'center',
     paddingVertical: spacing.md,
     paddingHorizontal: spacing.xl,
-    gap: spacing.xs,
+    borderRadius: borderRadius.round,
+    backgroundColor: colors.accent.gold,
   },
   saveBtnText: {
-    fontSize: typography.fontSizes.md,
+    fontSize: 16,
     fontWeight: '700',
     color: '#FFF',
   },
   inputLabel: {
-    fontSize: typography.fontSizes.sm,
+    fontSize: 14,
     fontWeight: '600',
     color: colors.text.secondary,
     marginBottom: spacing.xs,
@@ -1671,31 +1084,68 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background.main,
     borderRadius: borderRadius.md,
     padding: spacing.md,
-    fontSize: typography.fontSizes.md,
+    fontSize: 16,
     color: colors.text.primary,
     borderWidth: 1,
     borderColor: colors.ui.border,
   },
   textArea: {
-    minHeight: 100,
+    minHeight: 80,
     textAlignVertical: 'top',
   },
   switchRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginTop: spacing.lg,
+    marginTop: spacing.md,
     paddingVertical: spacing.sm,
   },
   switchLabel: {
-    fontSize: typography.fontSizes.md,
+    fontSize: 16,
     color: colors.text.primary,
+  },
+  colorSelector: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.background.main,
+    borderRadius: borderRadius.md,
+    padding: spacing.md,
+    borderWidth: 1,
+    borderColor: colors.ui.border,
+  },
+  colorDot: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    marginRight: spacing.md,
+    borderWidth: 2,
+    borderColor: '#FFF',
+  },
+  colorValue: {
+    fontSize: 16,
+    color: colors.text.primary,
+  },
+  emojiSelector: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.background.main,
+    borderRadius: borderRadius.md,
+    padding: spacing.md,
+    borderWidth: 1,
+    borderColor: colors.ui.border,
+  },
+  emojiSelectorText: {
+    fontSize: 32,
+    marginRight: spacing.md,
+  },
+  emojiSelectorHint: {
+    fontSize: 14,
+    color: colors.text.muted,
   },
   categoryPicker: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: spacing.sm,
-    marginTop: spacing.xs,
   },
   categoryOption: {
     paddingVertical: spacing.sm,
@@ -1709,28 +1159,17 @@ const styles = StyleSheet.create({
     backgroundColor: colors.accent.gold,
     borderColor: colors.accent.gold,
   },
-  categoryOptionText: {
-    fontSize: typography.fontSizes.sm,
+  categoryText: {
+    fontSize: 14,
     color: colors.text.secondary,
     textTransform: 'capitalize',
   },
-  categoryOptionTextActive: {
-    color: colors.text.light,
+  categoryTextActive: {
+    color: '#FFF',
     fontWeight: '600',
   },
-  sectionDivider: {
-    fontSize: typography.fontSizes.md,
-    fontWeight: '700',
-    color: colors.accent.gold,
-    marginTop: spacing.xl,
-    marginBottom: spacing.sm,
-    paddingTop: spacing.md,
-    borderTopWidth: 1,
-    borderTopColor: colors.ui.divider,
-  },
   imagePlaceholder: {
-    width: '100%',
-    height: 150,
+    height: 120,
     backgroundColor: colors.background.main,
     borderRadius: borderRadius.lg,
     borderWidth: 2,
@@ -1740,13 +1179,12 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   imagePlaceholderText: {
-    fontSize: typography.fontSizes.sm,
+    fontSize: 14,
     color: colors.text.muted,
     marginTop: spacing.sm,
   },
   imagePreviewContainer: {
-    width: '100%',
-    height: 150,
+    height: 120,
     borderRadius: borderRadius.lg,
     overflow: 'hidden',
     position: 'relative',
@@ -1754,81 +1192,19 @@ const styles = StyleSheet.create({
   imagePreview: {
     width: '100%',
     height: '100%',
-    resizeMode: 'cover',
   },
-  imageActions: {
+  imageRemoveBtn: {
     position: 'absolute',
-    bottom: spacing.sm,
+    top: spacing.sm,
     right: spacing.sm,
-    flexDirection: 'row',
-    gap: spacing.xs,
-  },
-  imageActionBtn: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: colors.accent.gold,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: colors.ui.error,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  imageDeleteBtn: {
-    backgroundColor: colors.ui.error,
-  },
-  colorSelector: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.background.main,
-    borderRadius: borderRadius.md,
-    padding: spacing.md,
-    borderWidth: 1,
-    borderColor: colors.ui.border,
-  },
-  colorPreview: {
-    width: 30,
-    height: 30,
-    borderRadius: 15,
-    marginRight: spacing.md,
-    borderWidth: 2,
-    borderColor: '#FFF',
-    ...shadows.small,
-  },
-  colorValue: {
-    flex: 1,
-    fontSize: typography.fontSizes.md,
-    color: colors.text.primary,
-  },
-  emojiSelector: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.background.main,
-    borderRadius: borderRadius.md,
-    padding: spacing.md,
-    borderWidth: 1,
-    borderColor: colors.ui.border,
-  },
-  emojiPreview: {
-    fontSize: 32,
-    marginRight: spacing.md,
-  },
-  emojiSelectorText: {
-    flex: 1,
-    fontSize: typography.fontSizes.md,
-    color: colors.text.muted,
-  },
-  priceSummary: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.accent.gold + '15',
-    padding: spacing.md,
-    borderRadius: borderRadius.md,
-    marginTop: spacing.md,
-    gap: spacing.sm,
-  },
-  priceSummaryText: {
-    fontSize: typography.fontSizes.sm,
-    color: colors.accent.gold,
-    fontWeight: '600',
-  },
+  // Picker modals
   pickerOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.5)',
@@ -1838,13 +1214,13 @@ const styles = StyleSheet.create({
   },
   pickerContent: {
     backgroundColor: colors.background.card,
-    borderRadius: borderRadius.xl,
+    borderRadius: 16,
     padding: spacing.lg,
     width: '100%',
-    maxWidth: 350,
+    maxWidth: 320,
   },
   pickerTitle: {
-    fontSize: typography.fontSizes.lg,
+    fontSize: 18,
     fontWeight: '700',
     color: colors.text.primary,
     marginBottom: spacing.md,
@@ -1856,46 +1232,27 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
     justifyContent: 'center',
   },
-  colorOption: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+  colorGridItem: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     borderWidth: 2,
     borderColor: 'transparent',
   },
-  colorOptionSelected: {
+  colorGridItemSelected: {
     borderColor: colors.text.primary,
     borderWidth: 3,
   },
-  customColorRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: spacing.md,
-    paddingTop: spacing.md,
-    borderTopWidth: 1,
-    borderTopColor: colors.ui.divider,
-    gap: spacing.sm,
-  },
-  customColorLabel: {
-    fontSize: typography.fontSizes.sm,
-    color: colors.text.secondary,
-  },
   customColorInput: {
-    flex: 1,
+    marginTop: spacing.md,
     backgroundColor: colors.background.main,
     borderRadius: borderRadius.md,
     padding: spacing.sm,
-    fontSize: typography.fontSizes.md,
+    fontSize: 16,
     color: colors.text.primary,
     borderWidth: 1,
     borderColor: colors.ui.border,
-  },
-  colorPreviewSmall: {
-    width: 30,
-    height: 30,
-    borderRadius: 15,
-    borderWidth: 1,
-    borderColor: colors.ui.border,
+    textAlign: 'center',
   },
   emojiGrid: {
     flexDirection: 'row',
@@ -1903,7 +1260,7 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
     justifyContent: 'center',
   },
-  emojiOption: {
+  emojiGridItem: {
     width: 44,
     height: 44,
     borderRadius: 22,
@@ -1913,31 +1270,12 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: 'transparent',
   },
-  emojiOptionSelected: {
+  emojiGridItemSelected: {
     borderColor: colors.accent.gold,
     backgroundColor: colors.accent.gold + '20',
   },
-  emojiText: {
+  emojiGridText: {
     fontSize: 24,
-  },
-  customEmojiRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: spacing.md,
-    paddingTop: spacing.md,
-    borderTopWidth: 1,
-    borderTopColor: colors.ui.divider,
-    gap: spacing.sm,
-  },
-  customEmojiInput: {
-    flex: 1,
-    backgroundColor: colors.background.main,
-    borderRadius: borderRadius.md,
-    padding: spacing.sm,
-    fontSize: 24,
-    textAlign: 'center',
-    borderWidth: 1,
-    borderColor: colors.ui.border,
   },
 });
 
