@@ -14,8 +14,8 @@ import { useOrder } from '../../context/OrderContext';
 import { colors, spacing, typography, borderRadius, shadows } from '../../theme';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
-const CUP_WIDTH = Math.min(SCREEN_WIDTH * 0.5, 200);
-const CUP_HEIGHT = CUP_WIDTH * 1.25;
+const CUP_WIDTH = Math.min(SCREEN_WIDTH * 0.38, 150);
+const CUP_HEIGHT = CUP_WIDTH * 1.15;
 
 // Topping icons
 const TOPPING_ICONS: Record<string, string> = {
@@ -57,10 +57,9 @@ const getSauceData = (name: string): { color: string; emoji: string } => {
   return { color: '#5C4033', emoji: '🍫' };
 };
 
-// Animated final cup preview
+// Elegant final cup preview - compact design
 const FinalCup: React.FC = () => {
   const { order } = useOrder();
-  const wobbleAnim = useRef(new Animated.Value(0)).current;
   const floatAnim = useRef(new Animated.Value(0)).current;
   const sparkleAnim = useRef(new Animated.Value(0)).current;
 
@@ -77,48 +76,30 @@ const FinalCup: React.FC = () => {
 
   // Get flavor colors
   const flavorColors = useMemo(() => {
-    if (order.flavors.length === 0) return ['#FFFFFF', '#F5F5F5'];
+    if (order.flavors.length === 0) return ['#FFFFFF', '#F8F8F8'];
     if (order.flavors.length === 1) return [order.flavors[0].color, order.flavors[0].color];
     return order.flavors.map(f => f.color);
   }, [order.flavors]);
 
   useEffect(() => {
-    // Wobble animation
-    Animated.loop(
-      Animated.sequence([
-        Animated.timing(wobbleAnim, { toValue: 1, duration: 2000, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
-        Animated.timing(wobbleAnim, { toValue: 0, duration: 2000, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
-      ])
-    ).start();
-
     // Float animation
     Animated.loop(
       Animated.sequence([
-        Animated.timing(floatAnim, { toValue: 1, duration: 1500, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
-        Animated.timing(floatAnim, { toValue: 0, duration: 1500, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+        Animated.timing(floatAnim, { toValue: 1, duration: 1800, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+        Animated.timing(floatAnim, { toValue: 0, duration: 1800, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
       ])
     ).start();
 
     // Sparkle animation
     Animated.loop(
       Animated.sequence([
-        Animated.timing(sparkleAnim, { toValue: 1, duration: 1000, useNativeDriver: true }),
-        Animated.timing(sparkleAnim, { toValue: 0.3, duration: 1000, useNativeDriver: true }),
+        Animated.timing(sparkleAnim, { toValue: 1, duration: 1200, useNativeDriver: true }),
+        Animated.timing(sparkleAnim, { toValue: 0.4, duration: 1200, useNativeDriver: true }),
       ])
     ).start();
   }, []);
 
-  const swirlHeight = CUP_WIDTH * 0.55;
-
-  // Topping positions
-  const toppingPositions = [
-    { top: 18, left: '12%' },
-    { top: 10, left: '42%' },
-    { top: 22, left: '72%' },
-    { top: 40, left: '22%' },
-    { top: 35, left: '58%' },
-    { top: 50, left: '38%' },
-  ];
+  const cupBottomWidth = CUP_WIDTH * 0.7;
 
   return (
     <Animated.View
@@ -127,15 +108,9 @@ const FinalCup: React.FC = () => {
         {
           transform: [
             {
-              rotate: wobbleAnim.interpolate({
-                inputRange: [0, 1],
-                outputRange: ['-3deg', '3deg'],
-              }),
-            },
-            {
               translateY: floatAnim.interpolate({
                 inputRange: [0, 1],
-                outputRange: [0, -8],
+                outputRange: [0, -6],
               }),
             },
           ],
@@ -144,99 +119,104 @@ const FinalCup: React.FC = () => {
     >
       {/* Sparkles around cup */}
       <Animated.View style={[styles.sparkle, styles.sparkle1, { opacity: sparkleAnim }]}>
-        <Ionicons name="sparkles" size={20} color={colors.accent.gold} />
+        <Ionicons name="sparkles" size={18} color={colors.accent.gold} />
       </Animated.View>
-      <Animated.View style={[styles.sparkle, styles.sparkle2, { opacity: sparkleAnim.interpolate({ inputRange: [0, 1], outputRange: [1, 0.3] }) }]}>
-        <Ionicons name="sparkles" size={16} color={flavorColors[0]} />
-      </Animated.View>
-      <Animated.View style={[styles.sparkle, styles.sparkle3, { opacity: sparkleAnim }]}>
-        <Ionicons name="sparkles" size={14} color={colors.accent.gold} />
+      <Animated.View style={[styles.sparkle, styles.sparkle2, { opacity: sparkleAnim.interpolate({ inputRange: [0, 1], outputRange: [1, 0.4] }) }]}>
+        <Ionicons name="sparkles" size={14} color={flavorColors[0]} />
       </Animated.View>
 
-      {/* Soft-serve swirl with flavor colors */}
-      <View style={[styles.swirlContainer, { height: swirlHeight, marginBottom: -swirlHeight * 0.15 }]}>
-        <View style={[styles.swirlLayer, styles.swirlLayer1, { backgroundColor: flavorColors[0], width: CUP_WIDTH * 0.6 }]} />
-        <View style={[styles.swirlLayer, styles.swirlLayer2, { backgroundColor: flavorColors[flavorColors.length > 1 ? 1 : 0], width: CUP_WIDTH * 0.5 }]} />
-        <View style={[styles.swirlLayer, styles.swirlLayer3, { backgroundColor: flavorColors[0], width: CUP_WIDTH * 0.4 }]} />
-        <View style={[styles.swirlLayer, styles.swirlLayer4, { backgroundColor: flavorColors[flavorColors.length > 2 ? 2 : flavorColors.length > 1 ? 1 : 0], width: CUP_WIDTH * 0.32 }]} />
-        <View style={[styles.swirlTip, { backgroundColor: flavorColors[0] }]} />
-        <View style={styles.swirlHighlight1} />
-        <View style={styles.swirlHighlight2} />
+      {/* Cup body */}
+      <View style={[styles.cupBody, { width: CUP_WIDTH, height: CUP_HEIGHT }]}>
+        <View style={[
+          styles.cupOuter,
+          {
+            width: CUP_WIDTH,
+            height: CUP_HEIGHT,
+            borderBottomLeftRadius: cupBottomWidth * 0.5,
+            borderBottomRightRadius: cupBottomWidth * 0.5,
+          }
+        ]}>
+          {/* Rim */}
+          <View style={[styles.cupRim, { width: CUP_WIDTH + 8 }]} />
 
-        {/* Toppings on swirl */}
-        {order.toppings.slice(0, 6).map((sel, i) => {
-          const icon = getToppingIcon(sel.topping.id);
-          const pos = toppingPositions[i];
-          return (
-            <Text key={sel.topping.id} style={[styles.toppingEmoji, { top: pos.top, left: pos.left as any }]}>
-              {icon}
-            </Text>
-          );
-        })}
+          {/* Cup wall */}
+          <LinearGradient
+            colors={['#FAFAFA', '#F0F0F0', '#E8E8E8'] as const}
+            style={styles.cupWall}
+          >
+            {[0, 1, 2].map((i) => (
+              <View key={i} style={[styles.cupStripe, { top: 20 + i * (CUP_HEIGHT * 0.22) }]} />
+            ))}
+            <View style={styles.cupBrand}>
+              <Text style={styles.cupBrandText}>Yo-V</Text>
+            </View>
+            <View style={[styles.cupShine, { height: CUP_HEIGHT * 0.5 }]} />
+          </LinearGradient>
 
-        {/* Sauce drizzles */}
-        {order.sauces.map((sauce, i) => {
-          const data = getSauceData(sauce.name);
-          const positions = [
-            { left: 25, rotation: -15, height: 60 },
-            { left: 55, rotation: 10, height: 65 },
-            { left: 85, rotation: -5, height: 55 },
-          ];
-          const pos = positions[i % positions.length];
-          return (
-            <View
-              key={sauce.id}
-              style={[
-                styles.drizzle,
-                {
-                  backgroundColor: data.color,
-                  left: pos.left,
-                  height: pos.height,
-                  transform: [{ rotate: `${pos.rotation}deg` }],
-                },
-              ]}
-            />
-          );
-        })}
-      </View>
+          {/* Inner cup with everything */}
+          <View style={styles.cupInner}>
+            {/* Yogurt fill */}
+            <View style={[styles.yogurtFill, { height: `${fillLevel * 85}%` }]}>
+              <LinearGradient
+                colors={flavorColors.length > 1 ? flavorColors as [string, string, ...string[]] : [flavorColors[0], flavorColors[0]] as [string, string]}
+                locations={flavorColors.map((_, i) => i / (flavorColors.length - 1 || 1))}
+                style={styles.yogurtGradient}
+                start={{ x: 0.2, y: 0 }}
+                end={{ x: 0.8, y: 1 }}
+              />
+            </View>
 
-      {/* Cup */}
-      <View style={[styles.cup, { width: CUP_WIDTH, height: CUP_HEIGHT }]}>
-        <LinearGradient
-          colors={['#FFFFFF', '#F5F5F5', '#EEEEEE'] as const}
-          style={[styles.cupGradient, { borderBottomLeftRadius: CUP_WIDTH * 0.35, borderBottomRightRadius: CUP_WIDTH * 0.35 }]}
-        >
-          {/* Cup rim */}
-          <View style={[styles.cupRim, { width: CUP_WIDTH + 12 }]} />
+            {/* Toppings on surface */}
+            <View style={styles.toppingsOnYogurt}>
+              {order.toppings.slice(0, 5).map((sel, i) => {
+                const icon = getToppingIcon(sel.topping.id);
+                const positions = [
+                  { left: 6, top: 3 },
+                  { left: 22, top: 6 },
+                  { left: 38, top: 2 },
+                  { left: 54, top: 5 },
+                  { left: 70, top: 4 },
+                ];
+                const pos = positions[i];
+                return (
+                  <Text key={sel.topping.id} style={[styles.toppingEmoji, { left: pos.left, top: pos.top }]}>
+                    {icon}
+                  </Text>
+                );
+              })}
+            </View>
 
-          {/* Yogurt fill */}
-          <View style={[styles.yogurtFill, { height: CUP_HEIGHT * fillLevel * 0.65 }]}>
-            <LinearGradient
-              colors={flavorColors.length > 1 ? flavorColors as [string, string, ...string[]] : [flavorColors[0], flavorColors[0]] as [string, string]}
-              locations={flavorColors.map((_, i) => i / (flavorColors.length - 1 || 1))}
-              style={styles.yogurtGradient}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 0, y: 1 }}
-            />
+            {/* Sauce drizzles */}
+            <View style={styles.sauceDrizzles}>
+              {order.sauces.slice(0, 3).map((sauce, i) => {
+                const data = getSauceData(sauce.name);
+                const positions = [
+                  { left: 8, width: 35 },
+                  { left: 28, width: 30 },
+                  { left: 48, width: 32 },
+                ];
+                const pos = positions[i];
+                return (
+                  <View
+                    key={sauce.id}
+                    style={[
+                      styles.drizzle,
+                      {
+                        backgroundColor: data.color,
+                        left: pos.left,
+                        width: pos.width,
+                      }
+                    ]}
+                  />
+                );
+              })}
+            </View>
           </View>
-
-          {/* Cup stripes */}
-          {[0, 1, 2, 3, 4].map(i => (
-            <View key={i} style={[styles.cupStripe, { top: 28 + i * (CUP_HEIGHT / 6) }]} />
-          ))}
-
-          {/* Brand */}
-          <View style={styles.cupBrand}>
-            <Text style={styles.cupBrandText}>Yo-V</Text>
-          </View>
-
-          {/* Shine */}
-          <View style={styles.cupShine} />
-        </LinearGradient>
+        </View>
       </View>
 
       {/* Shadow */}
-      <View style={[styles.cupShadow, { width: CUP_WIDTH * 0.55 }]} />
+      <View style={[styles.cupShadow, { width: cupBottomWidth + 15 }]} />
     </Animated.View>
   );
 };
@@ -447,7 +427,7 @@ const styles = StyleSheet.create({
   },
   cupPreviewSection: {
     alignItems: 'center',
-    paddingVertical: spacing.lg,
+    paddingVertical: spacing.md,
   },
   cupContainer: {
     alignItems: 'center',
@@ -458,149 +438,118 @@ const styles = StyleSheet.create({
     zIndex: 20,
   },
   sparkle1: {
-    top: -10,
-    left: -20,
-  },
-  sparkle2: {
-    top: 30,
-    right: -25,
-  },
-  sparkle3: {
-    bottom: 50,
+    top: -8,
     left: -15,
   },
-  swirlContainer: {
-    position: 'relative',
-    width: '100%',
+  sparkle2: {
+    top: 25,
+    right: -18,
+  },
+  cupBody: {
     alignItems: 'center',
-    zIndex: 10,
-  },
-  swirlLayer: {
-    position: 'absolute',
-    height: 24,
-    borderRadius: 50,
-  },
-  swirlLayer1: {
-    bottom: 0,
-  },
-  swirlLayer2: {
-    bottom: 16,
-    transform: [{ rotate: '-5deg' }],
-  },
-  swirlLayer3: {
-    bottom: 30,
-    transform: [{ rotate: '8deg' }],
-  },
-  swirlLayer4: {
-    bottom: 44,
-    transform: [{ rotate: '-3deg' }],
-  },
-  swirlTip: {
-    position: 'absolute',
-    width: 18,
-    height: 28,
-    bottom: 58,
-    borderTopLeftRadius: 14,
-    borderTopRightRadius: 14,
-    borderBottomLeftRadius: 4,
-    borderBottomRightRadius: 4,
-    transform: [{ rotate: '12deg' }],
-  },
-  swirlHighlight1: {
-    position: 'absolute',
-    width: 14,
-    height: 8,
-    backgroundColor: 'rgba(255,255,255,0.4)',
-    borderRadius: 10,
-    bottom: 52,
-    left: '22%',
-  },
-  swirlHighlight2: {
-    position: 'absolute',
-    width: 10,
-    height: 6,
-    backgroundColor: 'rgba(255,255,255,0.3)',
-    borderRadius: 10,
-    bottom: 22,
-    right: '22%',
-  },
-  toppingEmoji: {
-    position: 'absolute',
-    fontSize: 18,
-  },
-  drizzle: {
-    position: 'absolute',
-    width: 5,
-    top: 5,
-    borderRadius: 2,
-  },
-  cup: {
-    overflow: 'hidden',
-  },
-  cupGradient: {
-    flex: 1,
-    borderTopLeftRadius: 12,
-    borderTopRightRadius: 12,
     position: 'relative',
-    ...shadows.large,
+  },
+  cupOuter: {
+    backgroundColor: '#FFF',
+    borderTopLeftRadius: 8,
+    borderTopRightRadius: 8,
+    overflow: 'hidden',
+    ...shadows.medium,
   },
   cupRim: {
     position: 'absolute',
-    top: -4,
-    left: -6,
-    height: 15,
+    top: -2,
+    left: -4,
+    height: 12,
+    backgroundColor: '#E8E8E8',
+    borderRadius: 6,
+    borderWidth: 2,
+    borderColor: '#D0D0D0',
+    zIndex: 10,
+  },
+  cupWall: {
+    flex: 1,
+    position: 'relative',
+  },
+  cupStripe: {
+    position: 'absolute',
+    left: 10,
+    right: 10,
+    height: 1,
     backgroundColor: '#E0E0E0',
-    borderRadius: 7,
-    borderWidth: 1,
-    borderColor: '#BDBDBD',
+  },
+  cupBrand: {
+    position: 'absolute',
+    bottom: '22%',
+    alignSelf: 'center',
+    backgroundColor: 'rgba(201, 169, 98, 0.12)',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 5,
+  },
+  cupBrandText: {
+    fontSize: 11,
+    fontWeight: '700' as const,
+    color: colors.accent.gold,
+    letterSpacing: 0.5,
+  },
+  cupShine: {
+    position: 'absolute',
+    top: 16,
+    left: 10,
+    width: 6,
+    backgroundColor: 'rgba(255,255,255,0.6)',
+    borderRadius: 3,
+  },
+  cupInner: {
+    position: 'absolute',
+    top: 10,
+    left: 6,
+    right: 6,
+    bottom: 8,
+    backgroundColor: '#F5F5F5',
+    borderRadius: 4,
+    overflow: 'hidden',
   },
   yogurtFill: {
     position: 'absolute',
-    left: 12,
-    right: 12,
-    bottom: 18,
-    borderRadius: 12,
+    bottom: 0,
+    left: 0,
+    right: 0,
     overflow: 'hidden',
   },
   yogurtGradient: {
     flex: 1,
   },
-  cupStripe: {
+  toppingsOnYogurt: {
     position: 'absolute',
-    left: 14,
-    right: 14,
-    height: 1,
-    backgroundColor: '#E8E8E8',
+    top: 2,
+    left: 0,
+    right: 0,
+    height: 20,
   },
-  cupBrand: {
+  toppingEmoji: {
     position: 'absolute',
-    bottom: '28%',
-    alignSelf: 'center',
-    backgroundColor: 'rgba(201, 169, 98, 0.15)',
-    paddingHorizontal: 14,
-    paddingVertical: 5,
-    borderRadius: 8,
+    fontSize: 11,
   },
-  cupBrandText: {
-    fontSize: 16,
-    fontWeight: '700' as const,
-    color: colors.accent.gold,
-    letterSpacing: 1,
-  },
-  cupShine: {
+  sauceDrizzles: {
     position: 'absolute',
-    top: 22,
-    left: 16,
-    width: 10,
-    height: CUP_HEIGHT * 0.45,
-    backgroundColor: 'rgba(255,255,255,0.5)',
-    borderRadius: 5,
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 15,
+  },
+  drizzle: {
+    position: 'absolute',
+    top: 3,
+    height: 4,
+    borderRadius: 2,
   },
   cupShadow: {
-    height: 15,
-    backgroundColor: 'rgba(0,0,0,0.1)',
+    height: 10,
+    backgroundColor: 'rgba(0,0,0,0.08)',
     borderRadius: 50,
-    marginTop: spacing.sm,
+    marginTop: spacing.xs,
   },
   readyMessage: {
     flexDirection: 'row',

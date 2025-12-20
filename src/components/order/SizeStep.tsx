@@ -19,109 +19,20 @@ const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const CARD_WIDTH = SCREEN_WIDTH * 0.75;
 const CARD_MARGIN = spacing.md;
 
-// Yogurt machine nozzle with dispensing animation
-const MachineNozzle: React.FC<{ isDispensing: boolean }> = ({ isDispensing }) => {
-  const flowAnim = useRef(new Animated.Value(0)).current;
-  const dripAnim = useRef(new Animated.Value(0)).current;
+// No machine nozzle needed - we show realistic froyo cups
 
-  useEffect(() => {
-    if (isDispensing) {
-      // Flow animation
-      Animated.loop(
-        Animated.sequence([
-          Animated.timing(flowAnim, { toValue: 1, duration: 400, useNativeDriver: true }),
-          Animated.timing(flowAnim, { toValue: 0.7, duration: 300, useNativeDriver: true }),
-        ])
-      ).start();
-
-      // Drip animation
-      Animated.loop(
-        Animated.sequence([
-          Animated.timing(dripAnim, { toValue: 1, duration: 700, easing: Easing.in(Easing.quad), useNativeDriver: true }),
-          Animated.timing(dripAnim, { toValue: 0, duration: 0, useNativeDriver: true }),
-        ])
-      ).start();
-    } else {
-      flowAnim.setValue(0);
-      dripAnim.setValue(0);
-    }
-  }, [isDispensing]);
-
-  return (
-    <View style={styles.nozzleContainer}>
-      {/* Machine body */}
-      <LinearGradient
-        colors={['#E0E0E0', '#BDBDBD', '#9E9E9E'] as const}
-        style={styles.machineBody}
-      >
-        <View style={styles.machineLogo}>
-          <Text style={styles.machineLogoText}>YO</Text>
-        </View>
-      </LinearGradient>
-
-      {/* Nozzle */}
-      <View style={styles.nozzle}>
-        <LinearGradient
-          colors={['#9E9E9E', '#757575'] as const}
-          style={styles.nozzleInner}
-        />
-      </View>
-
-      {/* Yogurt flow - white color */}
-      {isDispensing && (
-        <Animated.View style={[
-          styles.yogurtFlow,
-          {
-            opacity: flowAnim,
-            transform: [{
-              scaleY: flowAnim.interpolate({
-                inputRange: [0, 1],
-                outputRange: [0.5, 1],
-              })
-            }],
-          }
-        ]}>
-          <LinearGradient
-            colors={['#FFFFFF', '#F5F5F5'] as const}
-            style={styles.flowGradient}
-          />
-        </Animated.View>
-      )}
-
-      {/* Drip */}
-      {isDispensing && (
-        <Animated.View style={[
-          styles.drip,
-          {
-            opacity: dripAnim.interpolate({
-              inputRange: [0, 0.5, 1],
-              outputRange: [1, 0.8, 0],
-            }),
-            transform: [{
-              translateY: dripAnim.interpolate({
-                inputRange: [0, 1],
-                outputRange: [0, 40],
-              })
-            }],
-          }
-        ]} />
-      )}
-    </View>
-  );
-};
-
-// Empty frozen yogurt cup that fills based on size
+// Realistic frozen yogurt cup that fills based on size
 const FroYoCup: React.FC<{ size: CupSize; isSelected: boolean }> = ({ size, isSelected }) => {
   const fillAnim = useRef(new Animated.Value(0)).current;
   const wobbleAnim = useRef(new Animated.Value(0)).current;
-  const swirlAnim = useRef(new Animated.Value(0)).current;
 
   // Fill level based on size: small=50%, medium=75%, large=100%
   const fillLevel = size.size === 'small' ? 0.5 : size.size === 'medium' ? 0.75 : 1;
 
-  const cupHeight = size.size === 'small' ? 100 : size.size === 'medium' ? 130 : 160;
-  const cupTopWidth = size.size === 'small' ? 90 : size.size === 'medium' ? 110 : 130;
-  const swirlSize = size.size === 'small' ? 60 : size.size === 'medium' ? 80 : 100;
+  // Cup dimensions based on size
+  const cupHeight = size.size === 'small' ? 110 : size.size === 'medium' ? 140 : 170;
+  const cupTopWidth = size.size === 'small' ? 100 : size.size === 'medium' ? 120 : 140;
+  const cupBottomWidth = cupTopWidth * 0.7;
 
   useEffect(() => {
     if (isSelected) {
@@ -133,22 +44,16 @@ const FroYoCup: React.FC<{ size: CupSize; isSelected: boolean }> = ({ size, isSe
         useNativeDriver: false,
       }).start();
 
-      // Wobble animation
+      // Gentle wobble animation
       Animated.loop(
         Animated.sequence([
-          Animated.timing(wobbleAnim, { toValue: 1, duration: 1500, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
-          Animated.timing(wobbleAnim, { toValue: 0, duration: 1500, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+          Animated.timing(wobbleAnim, { toValue: 1, duration: 1800, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+          Animated.timing(wobbleAnim, { toValue: 0, duration: 1800, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
         ])
       ).start();
-
-      // Swirl build animation
-      Animated.stagger(100, [
-        Animated.spring(swirlAnim, { toValue: 1, friction: 6, tension: 80, useNativeDriver: true }),
-      ]).start();
     } else {
       fillAnim.setValue(0);
       wobbleAnim.setValue(0);
-      swirlAnim.setValue(0);
     }
   }, [isSelected, fillLevel]);
 
@@ -160,100 +65,95 @@ const FroYoCup: React.FC<{ size: CupSize; isSelected: boolean }> = ({ size, isSe
           {
             rotate: wobbleAnim.interpolate({
               inputRange: [0, 1],
-              outputRange: ['-2deg', '2deg'],
+              outputRange: ['-1deg', '1deg'],
             })
           },
         ],
       }
     ]}>
-      {/* Soft-serve swirl on top - only when selected */}
-      {isSelected && (
-        <Animated.View style={[
-          styles.swirlPosition,
+      {/* Cup body - tapered shape */}
+      <View style={[styles.cupBody, { height: cupHeight, width: cupTopWidth }]}>
+        {/* Cup outer shell */}
+        <View style={[
+          styles.cupOuter,
           {
-            top: -swirlSize * 0.7,
-            opacity: swirlAnim,
-            transform: [{ scale: swirlAnim }],
+            width: cupTopWidth,
+            height: cupHeight,
+            borderBottomLeftRadius: cupBottomWidth * 0.5,
+            borderBottomRightRadius: cupBottomWidth * 0.5,
           }
         ]}>
-          <View style={[styles.swirlContainer, { width: swirlSize, height: swirlSize * 1.2 }]}>
-            {/* Swirl layers - white color (no flavor yet) */}
-            <View style={[styles.swirlLayer, { width: swirlSize * 0.65, height: swirlSize * 0.22, bottom: 0, backgroundColor: '#FFFFFF' }]} />
-            <View style={[styles.swirlLayer, { width: swirlSize * 0.55, height: swirlSize * 0.2, bottom: swirlSize * 0.15, left: swirlSize * 0.08, backgroundColor: '#F8F8F8', transform: [{ rotate: '-5deg' }] }]} />
-            <View style={[styles.swirlLayer, { width: swirlSize * 0.45, height: swirlSize * 0.18, bottom: swirlSize * 0.28, left: swirlSize * 0.05, backgroundColor: '#FFFFFF', transform: [{ rotate: '8deg' }] }]} />
-            <View style={[styles.swirlLayer, { width: swirlSize * 0.35, height: swirlSize * 0.16, bottom: swirlSize * 0.4, left: swirlSize * 0.15, backgroundColor: '#F8F8F8', transform: [{ rotate: '-3deg' }] }]} />
-            {/* Tip */}
-            <View style={[styles.swirlTip, { width: swirlSize * 0.15, height: swirlSize * 0.25, bottom: swirlSize * 0.5, left: swirlSize * 0.28, backgroundColor: '#FFFFFF' }]} />
-            {/* Highlights */}
-            <View style={[styles.swirlHighlight, { width: 10, height: 6, bottom: swirlSize * 0.45, left: '20%' }]} />
-            <View style={[styles.swirlHighlight, { width: 6, height: 4, bottom: swirlSize * 0.2, right: '25%' }]} />
+          {/* Rim/lip at top */}
+          <View style={[styles.cupRim, { width: cupTopWidth + 8 }]}>
+            <View style={styles.rimInner} />
           </View>
-        </Animated.View>
-      )}
 
-      {/* Cup body */}
-      <View style={[styles.cupBody, { height: cupHeight }]}>
-        <LinearGradient
-          colors={['#FFFFFF', '#F5F5F5', '#EEEEEE'] as const}
-          style={[
-            styles.cupShape,
-            {
-              width: cupTopWidth,
-              height: cupHeight,
-              borderBottomLeftRadius: cupTopWidth * 0.35,
-              borderBottomRightRadius: cupTopWidth * 0.35,
-            }
-          ]}
-        >
-          {/* Cup rim */}
-          <View style={[styles.cupRim, { width: cupTopWidth + 10 }]} />
-
-          {/* Yogurt inside cup - animated fill */}
-          <Animated.View style={[
-            styles.yogurtInside,
-            {
-              height: fillAnim.interpolate({
-                inputRange: [0, 1],
-                outputRange: [0, cupHeight * 0.7],
-              }),
-              bottom: 10,
-            }
-          ]}>
-            <LinearGradient
-              colors={['#FFFFFF', '#F8F8F8'] as const}
-              style={styles.yogurtInsideGradient}
-            />
-          </Animated.View>
-
-          {/* Empty indicator when not selected */}
-          {!isSelected && (
-            <View style={styles.emptyIndicator}>
-              <Text style={styles.emptyText}>Empty</Text>
-            </View>
-          )}
-
-          {/* Cup pattern */}
-          <View style={styles.cupPattern}>
-            {[...Array(4)].map((_, i) => (
+          {/* Cup wall with gradient */}
+          <LinearGradient
+            colors={['#FAFAFA', '#F0F0F0', '#E8E8E8'] as const}
+            style={styles.cupWall}
+          >
+            {/* Decorative stripes */}
+            {[0, 1, 2].map((i) => (
               <View
                 key={i}
-                style={[styles.cupStripe, { top: 25 + i * (cupHeight / 5) }]}
+                style={[
+                  styles.cupStripe,
+                  { top: 20 + i * (cupHeight * 0.25) }
+                ]}
               />
             ))}
-          </View>
 
-          {/* Brand logo on cup */}
-          <View style={styles.brandLogo}>
-            <Text style={styles.brandText}>Yo-V</Text>
-          </View>
+            {/* Brand logo */}
+            <View style={styles.brandLogo}>
+              <Text style={styles.brandText}>Yo-V</Text>
+            </View>
 
-          {/* Shine effect */}
-          <View style={[styles.cupShineStrip, { height: cupHeight * 0.5 }]} />
-        </LinearGradient>
+            {/* Shine effect */}
+            <View style={[styles.cupShine, { height: cupHeight * 0.6 }]} />
+          </LinearGradient>
+
+          {/* Inner cup - visible yogurt area */}
+          <View style={styles.cupInner}>
+            {/* Yogurt fill */}
+            <Animated.View
+              style={[
+                styles.yogurtFill,
+                {
+                  height: fillAnim.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: ['0%', '85%'],
+                  }),
+                }
+              ]}
+            >
+              <LinearGradient
+                colors={['#FFFFFF', '#FAFAFA', '#F5F5F5'] as const}
+                style={styles.yogurtGradient}
+              >
+                {/* Yogurt surface texture */}
+                {isSelected && (
+                  <View style={styles.yogurtSurface}>
+                    <View style={[styles.yogurtSwirl, { left: '20%', top: 8 }]} />
+                    <View style={[styles.yogurtSwirl, { right: '25%', top: 12 }]} />
+                    <View style={[styles.yogurtSwirl, { left: '40%', top: 5 }]} />
+                  </View>
+                )}
+              </LinearGradient>
+            </Animated.View>
+
+            {/* Empty state */}
+            {!isSelected && (
+              <View style={styles.emptyState}>
+                <Text style={styles.emptyText}>Empty</Text>
+              </View>
+            )}
+          </View>
+        </View>
       </View>
 
       {/* Shadow */}
-      <View style={[styles.cupShadow, { width: cupTopWidth * 0.5 + 10 }]} />
+      <View style={[styles.cupShadow, { width: cupBottomWidth + 20 }]} />
 
       {/* Fill percentage label */}
       {isSelected && (
@@ -314,9 +214,6 @@ const SizeCard: React.FC<{
             <Ionicons name="checkmark" size={20} color="#FFF" />
           </View>
         )}
-
-        {/* Machine nozzle */}
-        <MachineNozzle isDispensing={isSelected} />
 
         {/* Cup illustration */}
         <FroYoCup size={size} isSelected={isSelected} />
@@ -466,7 +363,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderWidth: 3,
     borderColor: 'transparent',
-    minHeight: 420,
+    minHeight: 380,
     ...shadows.large,
   },
   cardSelected: {
@@ -502,176 +399,122 @@ const styles = StyleSheet.create({
     zIndex: 10,
     ...shadows.medium,
   },
-  nozzleContainer: {
-    alignItems: 'center',
-    marginBottom: spacing.sm,
-  },
-  machineBody: {
-    width: 80,
-    height: 40,
-    borderRadius: borderRadius.md,
-    borderBottomLeftRadius: 0,
-    borderBottomRightRadius: 0,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  machineLogo: {
-    backgroundColor: colors.accent.gold,
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 4,
-  },
-  machineLogoText: {
-    fontSize: 10,
-    fontWeight: '700' as const,
-    color: '#FFF',
-  },
-  nozzle: {
-    width: 24,
-    height: 20,
-    overflow: 'hidden',
-  },
-  nozzleInner: {
-    flex: 1,
-    borderBottomLeftRadius: 8,
-    borderBottomRightRadius: 8,
-  },
-  yogurtFlow: {
-    position: 'absolute',
-    bottom: -30,
-    width: 12,
-    height: 35,
-    borderRadius: 6,
-    overflow: 'hidden',
-  },
-  flowGradient: {
-    flex: 1,
-  },
-  drip: {
-    position: 'absolute',
-    bottom: -40,
-    width: 8,
-    height: 12,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 4,
-    borderWidth: 1,
-    borderColor: '#F0F0F0',
-  },
   cupWrapper: {
     alignItems: 'center',
-    marginTop: spacing.xl,
-  },
-  swirlPosition: {
-    position: 'absolute',
-    zIndex: 10,
-  },
-  swirlContainer: {
-    position: 'relative',
-  },
-  swirlLayer: {
-    position: 'absolute',
-    borderRadius: 50,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-  },
-  swirlTip: {
-    position: 'absolute',
-    borderTopLeftRadius: 15,
-    borderTopRightRadius: 15,
-    borderBottomLeftRadius: 4,
-    borderBottomRightRadius: 4,
-    transform: [{ rotate: '12deg' }],
-  },
-  swirlHighlight: {
-    position: 'absolute',
-    backgroundColor: 'rgba(255,255,255,0.5)',
-    borderRadius: 10,
-    transform: [{ rotate: '-10deg' }],
+    marginTop: spacing.md,
   },
   cupBody: {
     alignItems: 'center',
-  },
-  cupShape: {
     position: 'relative',
-    overflow: 'hidden',
+  },
+  cupOuter: {
+    backgroundColor: '#FFF',
     borderTopLeftRadius: 8,
     borderTopRightRadius: 8,
+    overflow: 'hidden',
     ...shadows.medium,
   },
   cupRim: {
     position: 'absolute',
-    top: -3,
-    left: -5,
-    height: 12,
-    backgroundColor: '#E0E0E0',
-    borderRadius: 6,
-    borderWidth: 1,
-    borderColor: '#BDBDBD',
+    top: -2,
+    left: -4,
+    height: 14,
+    backgroundColor: '#E8E8E8',
+    borderRadius: 7,
+    borderWidth: 2,
+    borderColor: '#D0D0D0',
+    zIndex: 10,
   },
-  yogurtInside: {
+  rimInner: {
     position: 'absolute',
-    left: 8,
-    right: 8,
-    borderRadius: 8,
-    overflow: 'hidden',
+    top: 3,
+    left: 4,
+    right: 4,
+    height: 6,
+    backgroundColor: '#D8D8D8',
+    borderRadius: 3,
   },
-  yogurtInsideGradient: {
+  cupWall: {
     flex: 1,
-  },
-  emptyIndicator: {
-    position: 'absolute',
-    top: '40%',
-    left: 0,
-    right: 0,
-    alignItems: 'center',
-  },
-  emptyText: {
-    fontSize: 12,
-    color: colors.text.muted,
-    fontStyle: 'italic',
-  },
-  cupPattern: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
+    position: 'relative',
   },
   cupStripe: {
     position: 'absolute',
-    left: 10,
-    right: 10,
+    left: 8,
+    right: 8,
     height: 1,
-    backgroundColor: '#E8E8E8',
+    backgroundColor: '#E0E0E0',
   },
   brandLogo: {
     position: 'absolute',
-    bottom: '30%',
+    bottom: '25%',
     alignSelf: 'center',
-    backgroundColor: 'rgba(201, 169, 98, 0.15)',
-    paddingHorizontal: 12,
+    backgroundColor: 'rgba(201, 169, 98, 0.12)',
+    paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: borderRadius.sm,
   },
   brandText: {
-    fontSize: 14,
+    fontSize: 12,
     fontWeight: '700' as const,
     color: colors.accent.gold,
-    letterSpacing: 1,
+    letterSpacing: 0.5,
   },
-  cupShineStrip: {
+  cupShine: {
     position: 'absolute',
-    top: 18,
-    left: 12,
-    width: 8,
-    backgroundColor: 'rgba(255,255,255,0.5)',
+    top: 16,
+    left: 10,
+    width: 6,
+    backgroundColor: 'rgba(255,255,255,0.6)',
+    borderRadius: 3,
+  },
+  cupInner: {
+    position: 'absolute',
+    top: 12,
+    left: 6,
+    right: 6,
+    bottom: 8,
+    backgroundColor: '#F5F5F5',
     borderRadius: 4,
+    overflow: 'hidden',
+  },
+  yogurtFill: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    overflow: 'hidden',
+  },
+  yogurtGradient: {
+    flex: 1,
+  },
+  yogurtSurface: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 20,
+  },
+  yogurtSwirl: {
+    position: 'absolute',
+    width: 12,
+    height: 4,
+    backgroundColor: 'rgba(255,255,255,0.6)',
+    borderRadius: 2,
+  },
+  emptyState: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  emptyText: {
+    fontSize: 11,
+    color: colors.text.muted,
+    fontStyle: 'italic',
   },
   cupShadow: {
-    height: 12,
-    backgroundColor: 'rgba(0,0,0,0.1)',
+    height: 10,
+    backgroundColor: 'rgba(0,0,0,0.08)',
     borderRadius: 50,
     marginTop: spacing.xs,
   },
@@ -689,7 +532,7 @@ const styles = StyleSheet.create({
   },
   sizeInfo: {
     alignItems: 'center',
-    marginTop: spacing.lg,
+    marginTop: spacing.md,
   },
   sizeName: {
     fontSize: typography.fontSizes.xl,
