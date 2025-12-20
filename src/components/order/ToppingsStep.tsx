@@ -169,7 +169,7 @@ const FroYoCup: React.FC = () => {
 };
 
 
-// Topping plate with emoji icons scattered
+// Topping card with bowl/container visual
 const ToppingPlate: React.FC<{
   topping: Topping;
   selection?: ToppingSelection;
@@ -184,6 +184,7 @@ const ToppingPlate: React.FC<{
 
   const scaleAnim = useRef(new Animated.Value(0)).current;
   const shakeAnim = useRef(new Animated.Value(0)).current;
+  const bounceAnim = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
     Animated.spring(scaleAnim, {
@@ -193,6 +194,19 @@ const ToppingPlate: React.FC<{
       useNativeDriver: true,
     }).start();
   }, []);
+
+  useEffect(() => {
+    if (isSelected) {
+      Animated.loop(
+        Animated.sequence([
+          Animated.timing(bounceAnim, { toValue: 1.03, duration: 600, useNativeDriver: true }),
+          Animated.timing(bounceAnim, { toValue: 1, duration: 600, useNativeDriver: true }),
+        ])
+      ).start();
+    } else {
+      bounceAnim.setValue(1);
+    }
+  }, [isSelected]);
 
   const handleTap = () => {
     Animated.sequence([
@@ -204,20 +218,6 @@ const ToppingPlate: React.FC<{
     onTap();
   };
 
-  // Generate emoji icon positions for the plate
-  const iconPositions = useMemo(() => {
-    const arr = [];
-    for (let i = 0; i < 8; i++) {
-      arr.push({
-        x: 15 + Math.random() * (PLATE_WIDTH - 80),
-        y: 8 + Math.random() * 30,
-        size: 14 + Math.random() * 6,
-        rotation: Math.random() * 30 - 15,
-      });
-    }
-    return arr;
-  }, []);
-
   const price = (data.pricePerGram * grams).toFixed(2);
 
   return (
@@ -226,7 +226,7 @@ const ToppingPlate: React.FC<{
       {
         opacity: scaleAnim,
         transform: [
-          { scale: scaleAnim },
+          { scale: Animated.multiply(scaleAnim, bounceAnim) },
           {
             rotate: shakeAnim.interpolate({
               inputRange: [-1, 0, 1],
@@ -241,46 +241,46 @@ const ToppingPlate: React.FC<{
         onPress={handleTap}
         activeOpacity={0.8}
       >
-        {/* Plate surface with emoji icons */}
-        <View style={styles.plateSurface}>
+        {/* Bowl/container with topping */}
+        <View style={styles.bowlContainer}>
+          {/* Bowl background */}
           <LinearGradient
-            colors={[`${data.color}15`, `${data.color}25`] as const}
-            style={styles.plateGradient}
+            colors={[data.color + '30', data.color + '50'] as [string, string]}
+            style={styles.bowlGradient}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 0, y: 1 }}
           />
 
-          {/* Topping icons scattered on plate */}
-          {iconPositions.map((p, i) => (
-            <Text
-              key={i}
-              style={[
-                styles.plateIcon,
-                {
-                  left: p.x,
-                  top: p.y,
-                  fontSize: p.size,
-                  transform: [{ rotate: `${p.rotation}deg` }],
-                },
-              ]}
-            >
-              {data.emoji}
-            </Text>
-          ))}
+          {/* Bowl shape */}
+          <View style={[styles.bowl, { borderColor: data.color + '60' }]}>
+            {/* Bowl inner with topping fill */}
+            <View style={[styles.bowlInner, { backgroundColor: data.color + '20' }]}>
+              {/* Main large emoji */}
+              <Text style={styles.mainEmoji}>{data.emoji}</Text>
+            </View>
 
-          {/* Plate rim */}
-          <View style={[styles.plateRim, { borderColor: `${data.color}40` }]} />
+            {/* Bowl rim highlight */}
+            <View style={[styles.bowlRim, { backgroundColor: data.color + '40' }]} />
+          </View>
+
+          {/* Floating small emojis around */}
+          <Text style={[styles.floatEmoji, styles.floatEmoji1]}>{data.emoji}</Text>
+          <Text style={[styles.floatEmoji, styles.floatEmoji2]}>{data.emoji}</Text>
+          <Text style={[styles.floatEmoji, styles.floatEmoji3]}>{data.emoji}</Text>
         </View>
 
-        {/* Label with emoji */}
-        <View style={styles.plateLabel}>
-          <Text style={styles.plateEmoji}>{data.emoji}</Text>
-          <Text style={styles.plateName} numberOfLines={1}>{topping.name}</Text>
+        {/* Info section */}
+        <View style={styles.plateInfo}>
+          <Text style={[styles.plateName, isSelected && { color: data.color }]} numberOfLines={1}>
+            {topping.name}
+          </Text>
           <Text style={styles.platePrice}>${data.pricePerGram.toFixed(2)}/g</Text>
         </View>
 
         {/* Selected badge */}
         {isSelected && (
           <View style={[styles.selectedBadge, { backgroundColor: data.color }]}>
-            <Text style={styles.selectedBadgeText}>{grams}g</Text>
+            <Ionicons name="checkmark" size={12} color="#FFF" />
           </View>
         )}
       </TouchableOpacity>
@@ -605,39 +605,80 @@ const styles = StyleSheet.create({
   plateSelected: {
     borderColor: colors.accent.gold,
   },
-  plateSurface: {
-    height: 60,
+  bowlContainer: {
+    height: 90,
     position: 'relative',
+    alignItems: 'center',
+    justifyContent: 'center',
     overflow: 'hidden',
   },
-  plateGradient: {
+  bowlGradient: {
     ...StyleSheet.absoluteFillObject,
+    borderTopLeftRadius: borderRadius.xl - 2,
+    borderTopRightRadius: borderRadius.xl - 2,
   },
-  plateIcon: {
-    position: 'absolute',
+  bowl: {
+    width: 70,
+    height: 55,
+    borderRadius: 35,
+    borderBottomLeftRadius: 30,
+    borderBottomRightRadius: 30,
+    borderWidth: 3,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#FFF',
+    overflow: 'hidden',
+    ...shadows.small,
   },
-  plateRim: {
+  bowlInner: {
+    width: '100%',
+    height: '100%',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 30,
+  },
+  bowlRim: {
     position: 'absolute',
     top: 0,
     left: 0,
     right: 0,
-    bottom: 0,
-    borderWidth: 3,
-    borderRadius: borderRadius.xl - 2,
+    height: 8,
+    borderTopLeftRadius: 35,
+    borderTopRightRadius: 35,
   },
-  plateLabel: {
+  mainEmoji: {
+    fontSize: 32,
+  },
+  floatEmoji: {
+    position: 'absolute',
+    fontSize: 14,
+  },
+  floatEmoji1: {
+    top: 10,
+    left: 15,
+    transform: [{ rotate: '-15deg' }],
+  },
+  floatEmoji2: {
+    top: 8,
+    right: 18,
+    transform: [{ rotate: '20deg' }],
+  },
+  floatEmoji3: {
+    bottom: 8,
+    right: 25,
+    fontSize: 12,
+    transform: [{ rotate: '-10deg' }],
+  },
+  plateInfo: {
     padding: spacing.sm,
     alignItems: 'center',
     backgroundColor: '#FFF',
-  },
-  plateEmoji: {
-    fontSize: 24,
   },
   plateName: {
     fontSize: typography.fontSizes.sm,
     fontWeight: '600' as const,
     color: colors.text.primary,
-    marginTop: 4,
+    textAlign: 'center',
   },
   platePrice: {
     fontSize: typography.fontSizes.xs,
@@ -646,16 +687,14 @@ const styles = StyleSheet.create({
   },
   selectedBadge: {
     position: 'absolute',
-    top: -8,
-    right: -8,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: borderRadius.round,
-  },
-  selectedBadgeText: {
-    fontSize: 11,
-    fontWeight: '700' as const,
-    color: '#FFF',
+    top: -6,
+    right: -6,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...shadows.small,
   },
   controls: {
     flexDirection: 'row',
