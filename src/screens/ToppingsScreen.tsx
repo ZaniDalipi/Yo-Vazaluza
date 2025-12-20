@@ -22,18 +22,19 @@ const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 type ToppingCategory = 'all' | Topping['category'];
 
-const categoryFilters: { key: ToppingCategory; label: string; icon: string }[] = [
-  { key: 'all', label: 'All', icon: 'apps' },
-  { key: 'fruits', label: 'Fruits', icon: 'nutrition' },
-  { key: 'candy', label: 'Candy', icon: 'sparkles' },
-  { key: 'nuts', label: 'Nuts', icon: 'ellipse' },
-  { key: 'sauces', label: 'Sauces', icon: 'water' },
-  { key: 'cereals', label: 'Cereals', icon: 'grid' },
+const categoryFilters: { key: ToppingCategory; label: string; icon: string; emoji: string }[] = [
+  { key: 'all', label: 'All', icon: 'apps', emoji: '🍨' },
+  { key: 'fruits', label: 'Fruits', icon: 'nutrition', emoji: '🍓' },
+  { key: 'candy', label: 'Candy', icon: 'sparkles', emoji: '🍬' },
+  { key: 'nuts', label: 'Nuts', icon: 'ellipse', emoji: '🥜' },
+  { key: 'sauces', label: 'Sauces', icon: 'water', emoji: '🍫' },
+  { key: 'cereals', label: 'Cereals', icon: 'grid', emoji: '🥣' },
 ];
 
 const ToppingsScreen: React.FC = () => {
   const { toppings } = useApp();
   const [activeCategory, setActiveCategory] = useState<ToppingCategory>('all');
+  const [selectedToppings, setSelectedToppings] = useState<Set<string>>(new Set());
 
   // Animations
   const headerAnim = useRef(new Animated.Value(0)).current;
@@ -41,6 +42,8 @@ const ToppingsScreen: React.FC = () => {
   const contentAnim = useRef(new Animated.Value(0)).current;
   const pulseAnim = useRef(new Animated.Value(1)).current;
   const fillAnim = useRef(new Animated.Value(0)).current;
+  const counterAnim = useRef(new Animated.Value(0)).current;
+  const counterBounce = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
     Animated.stagger(150, [
@@ -101,6 +104,38 @@ const ToppingsScreen: React.FC = () => {
     ).start();
   }, []);
 
+  // Animate counter when selection changes
+  useEffect(() => {
+    if (selectedToppings.size > 0) {
+      Animated.parallel([
+        Animated.spring(counterAnim, {
+          toValue: 1,
+          friction: 6,
+          tension: 100,
+          useNativeDriver: true,
+        }),
+        Animated.sequence([
+          Animated.timing(counterBounce, {
+            toValue: 1.2,
+            duration: 100,
+            useNativeDriver: true,
+          }),
+          Animated.spring(counterBounce, {
+            toValue: 1,
+            friction: 3,
+            useNativeDriver: true,
+          }),
+        ]),
+      ]).start();
+    } else {
+      Animated.timing(counterAnim, {
+        toValue: 0,
+        duration: 200,
+        useNativeDriver: true,
+      }).start();
+    }
+  }, [selectedToppings.size]);
+
   const filteredToppings =
     activeCategory === 'all'
       ? toppings
@@ -110,8 +145,28 @@ const ToppingsScreen: React.FC = () => {
     setActiveCategory(categoryKey);
   };
 
+  const handleToppingPress = (topping: Topping) => {
+    setSelectedToppings((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(topping.id)) {
+        newSet.delete(topping.id);
+      } else {
+        newSet.add(topping.id);
+      }
+      return newSet;
+    });
+  };
+
+  const clearSelection = () => {
+    setSelectedToppings(new Set());
+  };
+
   const renderCategoryChip = (category: typeof categoryFilters[0], index: number) => {
     const isActive = activeCategory === category.key;
+    const categoryCount = category.key === 'all'
+      ? toppings.length
+      : toppings.filter(t => t.category === category.key).length;
+
     return (
       <Animated.View
         key={category.key}
@@ -139,26 +194,21 @@ const ToppingsScreen: React.FC = () => {
               end={{ x: 1, y: 1 }}
               style={styles.categoryChipGradient}
             >
-              <Ionicons
-                name={category.icon as any}
-                size={16}
-                color={colors.text.light}
-              />
+              <Text style={styles.categoryEmoji}>{category.emoji}</Text>
               <Text style={styles.categoryChipTextActive}>
                 {category.label}
               </Text>
+              <View style={styles.categoryCount}>
+                <Text style={styles.categoryCountText}>{categoryCount}</Text>
+              </View>
             </LinearGradient>
           ) : (
-            <>
-              <Ionicons
-                name={category.icon as any}
-                size={16}
-                color={colors.text.secondary}
-              />
+            <View style={styles.categoryChipInner}>
+              <Text style={styles.categoryEmoji}>{category.emoji}</Text>
               <Text style={styles.categoryChipText}>
                 {category.label}
               </Text>
-            </>
+            </View>
           )}
         </TouchableOpacity>
       </Animated.View>
@@ -179,6 +229,8 @@ const ToppingsScreen: React.FC = () => {
     inputRange: [0, 1],
     outputRange: ['60%', '80%'],
   });
+
+  const counterScale = Animated.multiply(counterAnim, counterBounce);
 
   return (
     <View style={styles.container}>
@@ -223,11 +275,13 @@ const ToppingsScreen: React.FC = () => {
           <View style={styles.headerTop}>
             <View>
               <View style={styles.titleRow}>
-                <Ionicons name="color-fill" size={24} color={colors.accent.gold} />
+                <View style={styles.titleIcon}>
+                  <Ionicons name="color-fill" size={20} color={colors.accent.gold} />
+                </View>
                 <Text style={styles.title}>Toppings</Text>
               </View>
               <Text style={styles.subtitle}>
-                {toppings.length} delicious options to choose from
+                Tap to select your favorites!
               </Text>
             </View>
 
@@ -271,44 +325,6 @@ const ToppingsScreen: React.FC = () => {
           </ScrollView>
         </Animated.View>
 
-        {/* Stats Bar */}
-        <Animated.View
-          style={[
-            styles.statsBar,
-            {
-              opacity: contentAnim,
-              transform: [
-                {
-                  translateY: contentAnim.interpolate({
-                    inputRange: [0, 1],
-                    outputRange: [20, 0],
-                  }),
-                },
-              ],
-            },
-          ]}
-        >
-          <LinearGradient
-            colors={[colors.background.card, '#FFFFFF']}
-            style={styles.statsGradient}
-          >
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.statsScroll}
-            >
-              {Object.entries(stats).map(([category, count]) => (
-                <View key={category} style={styles.statItem}>
-                  <View style={styles.statBadge}>
-                    <Text style={styles.statCount}>{count}</Text>
-                  </View>
-                  <Text style={styles.statLabel}>{category}</Text>
-                </View>
-              ))}
-            </ScrollView>
-          </LinearGradient>
-        </Animated.View>
-
         {/* Toppings Grid */}
         <Animated.View
           style={[
@@ -322,24 +338,26 @@ const ToppingsScreen: React.FC = () => {
             showsVerticalScrollIndicator={false}
             contentContainerStyle={styles.toppingsContainer}
           >
+            {/* Selection hint */}
+            <View style={styles.selectionHint}>
+              <Ionicons name="hand-left" size={16} color={colors.text.muted} />
+              <Text style={styles.selectionHintText}>
+                {selectedToppings.size === 0
+                  ? 'Tap toppings to add them to your cup!'
+                  : `${selectedToppings.size} topping${selectedToppings.size === 1 ? '' : 's'} selected`
+                }
+              </Text>
+            </View>
+
             <View style={styles.toppingsGrid}>
               {filteredToppings.map((topping, index) => (
-                <Animated.View
+                <ToppingCard
                   key={topping.id}
-                  style={{
-                    opacity: contentAnim,
-                    transform: [
-                      {
-                        scale: contentAnim.interpolate({
-                          inputRange: [0, 1],
-                          outputRange: [0.8, 1],
-                        }),
-                      },
-                    ],
-                  }}
-                >
-                  <ToppingCard topping={topping} />
-                </Animated.View>
+                  topping={topping}
+                  isSelected={selectedToppings.has(topping.id)}
+                  onPress={() => handleToppingPress(topping)}
+                  index={index}
+                />
               ))}
             </View>
 
@@ -372,6 +390,49 @@ const ToppingsScreen: React.FC = () => {
           </ScrollView>
         </Animated.View>
       </SafeAreaView>
+
+      {/* Floating Selection Counter */}
+      <Animated.View
+        style={[
+          styles.floatingCounter,
+          {
+            transform: [
+              { scale: counterScale },
+              {
+                translateY: counterAnim.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: [100, 0],
+                }),
+              },
+            ],
+            opacity: counterAnim,
+          },
+        ]}
+      >
+        <LinearGradient
+          colors={[colors.accent.gold, colors.accent.wood]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.floatingCounterGradient}
+        >
+          <View style={styles.counterLeft}>
+            <View style={styles.counterBadge}>
+              <Text style={styles.counterNumber}>{selectedToppings.size}</Text>
+            </View>
+            <View>
+              <Text style={styles.counterLabel}>Toppings</Text>
+              <Text style={styles.counterSubtext}>Selected</Text>
+            </View>
+          </View>
+          <TouchableOpacity
+            style={styles.clearButton}
+            onPress={clearSelection}
+            activeOpacity={0.7}
+          >
+            <Ionicons name="close" size={20} color={colors.accent.gold} />
+          </TouchableOpacity>
+        </LinearGradient>
+      </Animated.View>
     </View>
   );
 };
@@ -398,6 +459,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: spacing.sm,
   },
+  titleIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 12,
+    backgroundColor: colors.accent.gold + '20',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   title: {
     fontSize: typography.fontSizes.xxxl,
     fontWeight: typography.fontWeights.bold,
@@ -407,7 +476,7 @@ const styles = StyleSheet.create({
     fontSize: typography.fontSizes.md,
     color: colors.text.secondary,
     marginTop: spacing.xs,
-    marginLeft: spacing.xl + spacing.sm,
+    marginLeft: spacing.xl + spacing.md,
   },
   dispenserIcon: {
     borderRadius: borderRadius.lg,
@@ -444,10 +513,10 @@ const styles = StyleSheet.create({
   },
   categoryChipActive: {
     shadowColor: colors.accent.gold,
-    shadowOffset: { width: 0, height: 2 },
+    shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
-    shadowRadius: 4,
-    elevation: 4,
+    shadowRadius: 8,
+    elevation: 6,
   },
   categoryChipGradient: {
     flexDirection: 'row',
@@ -456,60 +525,58 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.md,
     gap: spacing.xs,
   },
+  categoryChipInner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+    backgroundColor: colors.background.card,
+    borderRadius: borderRadius.round,
+    gap: spacing.xs,
+  },
+  categoryEmoji: {
+    fontSize: 18,
+  },
   categoryChipText: {
     fontSize: typography.fontSizes.sm,
     fontWeight: typography.fontWeights.medium,
     color: colors.text.secondary,
-    marginLeft: spacing.xs,
-    paddingVertical: spacing.sm,
-    paddingHorizontal: spacing.md,
   },
   categoryChipTextActive: {
     color: colors.text.light,
     fontWeight: typography.fontWeights.semibold,
+    fontSize: typography.fontSizes.sm,
   },
-  statsBar: {
-    marginTop: spacing.sm,
-    borderRadius: borderRadius.lg,
-    marginHorizontal: spacing.lg,
-    overflow: 'hidden',
-    ...shadows.medium,
-  },
-  statsGradient: {
-    borderRadius: borderRadius.lg,
-  },
-  statsScroll: {
-    paddingVertical: spacing.md,
-    paddingHorizontal: spacing.md,
-    gap: spacing.md,
-  },
-  statItem: {
-    alignItems: 'center',
-    marginRight: spacing.lg,
-  },
-  statBadge: {
-    backgroundColor: colors.accent.gold + '15',
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.xs,
+  categoryCount: {
+    backgroundColor: 'rgba(255,255,255,0.3)',
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 2,
     borderRadius: borderRadius.round,
-    marginBottom: spacing.xs,
+    marginLeft: spacing.xs,
   },
-  statCount: {
-    fontSize: typography.fontSizes.lg,
-    fontWeight: typography.fontWeights.bold,
-    color: colors.accent.gold,
-  },
-  statLabel: {
+  categoryCountText: {
     fontSize: typography.fontSizes.xs,
-    color: colors.text.secondary,
-    textTransform: 'capitalize',
+    fontWeight: typography.fontWeights.bold,
+    color: colors.text.light,
   },
   scrollWrapper: {
     flex: 1,
   },
   toppingsContainer: {
     paddingHorizontal: spacing.lg,
-    paddingTop: spacing.lg,
+    paddingTop: spacing.sm,
+  },
+  selectionHint: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.xs,
+    paddingVertical: spacing.sm,
+    marginBottom: spacing.sm,
+  },
+  selectionHintText: {
+    fontSize: typography.fontSizes.sm,
+    color: colors.text.muted,
   },
   toppingsGrid: {
     flexDirection: 'row',
@@ -563,7 +630,58 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
   bottomPadding: {
-    height: 100,
+    height: 120,
+  },
+  floatingCounter: {
+    position: 'absolute',
+    bottom: 100,
+    left: spacing.lg,
+    right: spacing.lg,
+    borderRadius: borderRadius.xl,
+    overflow: 'hidden',
+    ...shadows.large,
+  },
+  floatingCounterGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.lg,
+  },
+  counterLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+  },
+  counterBadge: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(255,255,255,0.25)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  counterNumber: {
+    fontSize: typography.fontSizes.xl,
+    fontWeight: typography.fontWeights.bold,
+    color: colors.text.light,
+  },
+  counterLabel: {
+    fontSize: typography.fontSizes.md,
+    fontWeight: typography.fontWeights.semibold,
+    color: colors.text.light,
+  },
+  counterSubtext: {
+    fontSize: typography.fontSizes.xs,
+    color: 'rgba(255,255,255,0.8)',
+  },
+  clearButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: colors.background.card,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });
 
