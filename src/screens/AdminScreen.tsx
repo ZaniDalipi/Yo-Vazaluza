@@ -495,10 +495,20 @@ const AdminScreen: React.FC = () => {
                     </TouchableOpacity>
                   </View>
                 ) : (
-                  <TouchableOpacity style={styles.imagePlaceholder} onPress={showImageOptions}>
-                    <Ionicons name="camera" size={32} color={colors.text.muted} />
-                    <Text style={styles.imagePlaceholderText}>Tap to add image</Text>
-                  </TouchableOpacity>
+                  <View style={styles.imageOptionsContainer}>
+                    <TouchableOpacity style={styles.imageOptionBtn} onPress={pickImage}>
+                      <Ionicons name="images" size={28} color={colors.accent.gold} />
+                      <Text style={styles.imageOptionText}>Gallery</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity style={styles.imageOptionBtn} onPress={takePhoto}>
+                      <Ionicons name="camera" size={28} color={colors.accent.gold} />
+                      <Text style={styles.imageOptionText}>Camera</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity style={styles.imageOptionBtn} onPress={() => { setTempImageUrl(formData.imageUrl || ''); setShowUrlInput(true); }}>
+                      <Ionicons name="link" size={28} color={colors.accent.gold} />
+                      <Text style={styles.imageOptionText}>URL</Text>
+                    </TouchableOpacity>
+                  </View>
                 )}
               </>
             )}
@@ -699,11 +709,19 @@ const AdminScreen: React.FC = () => {
 
   // Render URL input modal
   const renderUrlInputModal = () => (
-    <Modal visible={showUrlInput} transparent animationType="fade" onRequestClose={() => setShowUrlInput(false)}>
-      <View style={styles.pickerOverlay}>
-        <TouchableOpacity style={StyleSheet.absoluteFill} onPress={() => setShowUrlInput(false)} />
-        <View style={styles.urlInputContent}>
-          <Text style={styles.pickerTitle}>Enter Image URL</Text>
+    <Modal visible={showUrlInput} transparent animationType="fade" onRequestClose={() => { setShowUrlInput(false); setTempImageUrl(''); }}>
+      <View style={styles.urlModalOverlay}>
+        <View style={styles.urlModalBackdrop}>
+          <TouchableOpacity style={{ flex: 1 }} activeOpacity={1} onPress={() => { setShowUrlInput(false); setTempImageUrl(''); }} />
+        </View>
+        <View style={styles.urlInputContent} pointerEvents="auto">
+          <View style={styles.urlInputHeader}>
+            <Text style={styles.urlInputTitle}>Add Image from URL</Text>
+            <TouchableOpacity onPress={() => { setShowUrlInput(false); setTempImageUrl(''); }}>
+              <Ionicons name="close" size={24} color={colors.text.primary} />
+            </TouchableOpacity>
+          </View>
+          <Text style={styles.urlInputLabel}>Paste your image URL below:</Text>
           <TextInput
             style={styles.urlInput}
             value={tempImageUrl}
@@ -712,18 +730,28 @@ const AdminScreen: React.FC = () => {
             placeholderTextColor={colors.text.muted}
             autoCapitalize="none"
             autoCorrect={false}
-            autoFocus={true}
+            keyboardType="url"
+            selectTextOnFocus
           />
-          {tempImageUrl ? (
+          {tempImageUrl.length > 0 && (
             <View style={styles.urlPreviewContainer}>
-              <Image source={{ uri: tempImageUrl }} style={styles.urlPreviewImage} />
+              <Text style={styles.urlPreviewLabel}>Preview:</Text>
+              <Image
+                source={{ uri: tempImageUrl }}
+                style={styles.urlPreviewImage}
+                onError={() => {}}
+              />
             </View>
-          ) : null}
+          )}
           <View style={styles.urlInputButtons}>
-            <TouchableOpacity style={styles.urlCancelBtn} onPress={() => setShowUrlInput(false)}>
+            <TouchableOpacity style={styles.urlCancelBtn} onPress={() => { setShowUrlInput(false); setTempImageUrl(''); }}>
               <Text style={styles.urlCancelBtnText}>Cancel</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.urlSubmitBtn} onPress={handleUrlSubmit}>
+            <TouchableOpacity
+              style={[styles.urlSubmitBtn, !tempImageUrl.trim() && styles.urlSubmitBtnDisabled]}
+              onPress={handleUrlSubmit}
+              disabled={!tempImageUrl.trim()}
+            >
               <Text style={styles.urlSubmitBtnText}>Add Image</Text>
             </TouchableOpacity>
           </View>
@@ -1266,6 +1294,28 @@ const styles = StyleSheet.create({
     color: colors.text.muted,
     marginTop: spacing.sm,
   },
+  imageOptionsContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    backgroundColor: colors.background.main,
+    borderRadius: borderRadius.lg,
+    borderWidth: 2,
+    borderColor: colors.ui.border,
+    borderStyle: 'dashed',
+    padding: spacing.lg,
+  },
+  imageOptionBtn: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: spacing.md,
+    minWidth: 80,
+  },
+  imageOptionText: {
+    fontSize: 13,
+    color: colors.text.secondary,
+    marginTop: spacing.xs,
+    fontWeight: '500',
+  },
   imagePreviewContainer: {
     height: 120,
     borderRadius: borderRadius.lg,
@@ -1390,12 +1440,40 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: colors.text.secondary,
   },
+  urlModalOverlay: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: spacing.lg,
+  },
+  urlModalBackdrop: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+  },
   urlInputContent: {
     backgroundColor: colors.background.card,
     borderRadius: 16,
     padding: spacing.lg,
     width: '100%',
     maxWidth: 400,
+    zIndex: 10,
+    elevation: 10,
+  },
+  urlInputHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: spacing.md,
+  },
+  urlInputTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: colors.text.primary,
+  },
+  urlInputLabel: {
+    fontSize: 14,
+    color: colors.text.secondary,
+    marginBottom: spacing.sm,
   },
   urlInput: {
     backgroundColor: colors.background.main,
@@ -1405,7 +1483,6 @@ const styles = StyleSheet.create({
     color: colors.text.primary,
     borderWidth: 1,
     borderColor: colors.ui.border,
-    marginTop: spacing.sm,
   },
   urlInputButtons: {
     flexDirection: 'row',
@@ -1431,6 +1508,10 @@ const styles = StyleSheet.create({
     borderRadius: borderRadius.md,
     backgroundColor: colors.accent.gold,
   },
+  urlSubmitBtnDisabled: {
+    backgroundColor: colors.text.muted,
+    opacity: 0.5,
+  },
   urlSubmitBtnText: {
     fontSize: 14,
     fontWeight: '600',
@@ -1438,14 +1519,17 @@ const styles = StyleSheet.create({
   },
   urlPreviewContainer: {
     marginTop: spacing.md,
-    height: 100,
-    borderRadius: borderRadius.md,
-    overflow: 'hidden',
-    backgroundColor: colors.background.main,
+  },
+  urlPreviewLabel: {
+    fontSize: 12,
+    color: colors.text.muted,
+    marginBottom: spacing.xs,
   },
   urlPreviewImage: {
     width: '100%',
-    height: '100%',
+    height: 120,
+    borderRadius: borderRadius.md,
+    backgroundColor: colors.background.main,
     resizeMode: 'cover',
   },
 });
