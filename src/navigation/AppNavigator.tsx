@@ -14,7 +14,6 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createStackNavigator } from '@react-navigation/stack';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { BlurView } from 'expo-blur';
 import {
   HomeScreen,
   FlavorsScreen,
@@ -59,8 +58,188 @@ const useScreenWidth = () => {
   return screenWidth;
 };
 
-// Custom Sidebar Component for Web
-const WebSidebar: React.FC<{ navigation: any; currentRoute: string }> = ({ navigation, currentRoute }) => {
+// Get layout type based on screen width
+const getLayoutType = (width: number): 'mobile' | 'tablet' | 'desktop' => {
+  if (width < 768) return 'mobile';
+  if (width < 1024) return 'tablet';
+  return 'desktop';
+};
+
+// ============================================
+// TOP NAVIGATION BAR FOR DESKTOP
+// ============================================
+const TopNavBar: React.FC<{ navigation: any; currentRoute: string }> = ({ navigation, currentRoute }) => {
+  const { isAdmin } = useApp();
+  const [adminTapCount, setAdminTapCount] = useState(0);
+  const tapTimeout = useRef<NodeJS.Timeout | null>(null);
+
+  const handleLogoPress = () => {
+    setAdminTapCount((prev) => {
+      const newCount = prev + 1;
+      if (newCount >= 5) {
+        navigation.navigate('AdminLogin');
+        return 0;
+      }
+      return newCount;
+    });
+
+    if (tapTimeout.current) {
+      clearTimeout(tapTimeout.current);
+    }
+    tapTimeout.current = setTimeout(() => {
+      setAdminTapCount(0);
+    }, 2000);
+  };
+
+  return (
+    <View style={topNavStyles.container}>
+      <View style={topNavStyles.inner}>
+        {/* Logo */}
+        <TouchableOpacity onPress={handleLogoPress} style={topNavStyles.logoContainer}>
+          <View style={topNavStyles.logoIcon}>
+            <Ionicons name="ice-cream" size={24} color={colors.accent.gold} />
+          </View>
+          <Text style={topNavStyles.logoText}>Yo-Vazaluza</Text>
+        </TouchableOpacity>
+
+        {/* Navigation Links */}
+        <View style={topNavStyles.navLinks}>
+          {menuItems.map((item) => {
+            const isActive = currentRoute === item.name;
+            return (
+              <TouchableOpacity
+                key={item.name}
+                style={[topNavStyles.navLink, isActive && topNavStyles.navLinkActive]}
+                onPress={() => navigation.navigate(item.name)}
+              >
+                <Ionicons
+                  name={isActive ? item.iconFocused as any : item.icon as any}
+                  size={18}
+                  color={isActive ? colors.accent.gold : colors.text.secondary}
+                  style={topNavStyles.navIcon}
+                />
+                <Text style={[topNavStyles.navLinkText, isActive && topNavStyles.navLinkTextActive]}>
+                  {item.name}
+                </Text>
+                {isActive && <View style={topNavStyles.activeIndicator} />}
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+
+        {/* Right side - Admin link if admin */}
+        <View style={topNavStyles.rightSection}>
+          {isAdmin && (
+            <TouchableOpacity
+              style={topNavStyles.adminButton}
+              onPress={() => navigation.navigate('AdminPanel')}
+            >
+              <Ionicons name="settings" size={18} color={colors.accent.gold} />
+              <Text style={topNavStyles.adminButtonText}>Admin</Text>
+            </TouchableOpacity>
+          )}
+        </View>
+      </View>
+    </View>
+  );
+};
+
+const topNavStyles = StyleSheet.create({
+  container: {
+    backgroundColor: colors.background.card,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.ui.border,
+    ...shadows.small,
+  },
+  inner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: spacing.xl,
+    paddingVertical: spacing.md,
+    maxWidth: 1400,
+    alignSelf: 'center',
+    width: '100%',
+  },
+  logoContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  logoIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: colors.accent.gold + '15',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: spacing.sm,
+  },
+  logoText: {
+    fontSize: typography.fontSizes.xl,
+    fontWeight: typography.fontWeights.bold,
+    color: colors.text.primary,
+  },
+  navLinks: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+  },
+  navLink: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+    borderRadius: borderRadius.md,
+    position: 'relative',
+  },
+  navLinkActive: {
+    backgroundColor: colors.accent.gold + '10',
+  },
+  navIcon: {
+    marginRight: spacing.xs,
+  },
+  navLinkText: {
+    fontSize: typography.fontSizes.md,
+    color: colors.text.secondary,
+    fontWeight: typography.fontWeights.medium,
+  },
+  navLinkTextActive: {
+    color: colors.accent.gold,
+    fontWeight: typography.fontWeights.semibold,
+  },
+  activeIndicator: {
+    position: 'absolute',
+    bottom: 0,
+    left: spacing.md,
+    right: spacing.md,
+    height: 2,
+    backgroundColor: colors.accent.gold,
+    borderRadius: 1,
+  },
+  rightSection: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  adminButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+    backgroundColor: colors.accent.gold + '15',
+    borderRadius: borderRadius.md,
+    gap: spacing.xs,
+  },
+  adminButtonText: {
+    fontSize: typography.fontSizes.sm,
+    color: colors.accent.gold,
+    fontWeight: typography.fontWeights.semibold,
+  },
+});
+
+// ============================================
+// SIDEBAR FOR TABLET
+// ============================================
+const TabletSidebar: React.FC<{ navigation: any; currentRoute: string }> = ({ navigation, currentRoute }) => {
   const { isAdmin } = useApp();
   const [adminTapCount, setAdminTapCount] = useState(0);
   const tapTimeout = useRef<NodeJS.Timeout | null>(null);
@@ -108,7 +287,7 @@ const WebSidebar: React.FC<{ navigation: any; currentRoute: string }> = ({ navig
           style={sidebarStyles.headerOverlay}
         >
           <View style={sidebarStyles.logoContainer}>
-            <Ionicons name="ice-cream" size={32} color={colors.accent.gold} />
+            <Ionicons name="ice-cream" size={28} color={colors.accent.gold} />
           </View>
           <Text style={sidebarStyles.brandName}>Yo-Vazaluza</Text>
           <Text style={sidebarStyles.brandTagline}>DALIPI</Text>
@@ -143,7 +322,7 @@ const WebSidebar: React.FC<{ navigation: any; currentRoute: string }> = ({ navig
               ]}>
                 <Ionicons
                   name={isActive ? item.iconFocused as any : item.icon as any}
-                  size={22}
+                  size={20}
                   color={isActive ? colors.accent.gold : colors.text.secondary}
                 />
               </View>
@@ -153,41 +332,34 @@ const WebSidebar: React.FC<{ navigation: any; currentRoute: string }> = ({ navig
               ]}>
                 {item.name}
               </Text>
-              {isActive && (
-                <View style={sidebarStyles.activeIndicator} />
-              )}
+              {isActive && <View style={sidebarStyles.activeIndicator} />}
             </TouchableOpacity>
           );
         })}
 
-        {/* Divider */}
-        <View style={sidebarStyles.divider} />
-
         {/* Admin Section */}
         {isAdmin && (
-          <TouchableOpacity
-            style={sidebarStyles.menuItem}
-            onPress={() => navigation.navigate('AdminPanel')}
-            activeOpacity={0.7}
-          >
-            <View style={[sidebarStyles.menuIconContainer, sidebarStyles.adminIconContainer]}>
-              <Ionicons name="settings" size={22} color={colors.accent.gold} />
-            </View>
-            <Text style={[sidebarStyles.menuText, sidebarStyles.adminText]}>
-              Admin Panel
-            </Text>
-          </TouchableOpacity>
+          <>
+            <View style={sidebarStyles.divider} />
+            <TouchableOpacity
+              style={sidebarStyles.menuItem}
+              onPress={() => navigation.navigate('AdminPanel')}
+              activeOpacity={0.7}
+            >
+              <View style={[sidebarStyles.menuIconContainer, sidebarStyles.adminIconContainer]}>
+                <Ionicons name="settings" size={20} color={colors.accent.gold} />
+              </View>
+              <Text style={[sidebarStyles.menuText, sidebarStyles.adminText]}>
+                Admin Panel
+              </Text>
+            </TouchableOpacity>
+          </>
         )}
       </ScrollView>
 
       {/* Footer */}
       <View style={sidebarStyles.footer}>
-        <View style={sidebarStyles.footerDivider} />
-        <View style={sidebarStyles.footerContent}>
-          <Ionicons name="location" size={16} color={colors.text.muted} />
-          <Text style={sidebarStyles.footerText}>Kosovo</Text>
-        </View>
-        <Text style={sidebarStyles.copyright}>© 2024 Yo-Vazaluza Dalipi</Text>
+        <Text style={sidebarStyles.copyright}>© 2024 Yo-Vazaluza</Text>
       </View>
     </View>
   );
@@ -201,7 +373,7 @@ const sidebarStyles = StyleSheet.create({
     borderRightColor: colors.ui.border,
   },
   headerContainer: {
-    height: 180,
+    height: 140,
     overflow: 'hidden',
   },
   headerImage: {
@@ -211,43 +383,41 @@ const sidebarStyles = StyleSheet.create({
   headerOverlay: {
     ...StyleSheet.absoluteFillObject,
     justifyContent: 'flex-end',
-    padding: spacing.lg,
+    padding: spacing.md,
   },
   logoContainer: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     backgroundColor: 'rgba(0,0,0,0.5)',
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: spacing.sm,
+    marginBottom: spacing.xs,
     borderWidth: 2,
     borderColor: colors.accent.gold,
   },
   brandName: {
-    fontSize: typography.fontSizes.xxl,
+    fontSize: typography.fontSizes.lg,
     fontWeight: typography.fontWeights.bold,
     color: colors.text.light,
-    letterSpacing: 1,
   },
   brandTagline: {
-    fontSize: typography.fontSizes.sm,
+    fontSize: typography.fontSizes.xs,
     color: colors.accent.gold,
-    letterSpacing: 4,
-    marginTop: 2,
+    letterSpacing: 3,
   },
   menuContainer: {
     flex: 1,
-    paddingTop: spacing.lg,
+    paddingTop: spacing.md,
   },
   menuItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: spacing.md,
-    paddingHorizontal: spacing.lg,
-    marginHorizontal: spacing.sm,
-    marginVertical: spacing.xs,
-    borderRadius: borderRadius.lg,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+    marginHorizontal: spacing.xs,
+    marginVertical: 2,
+    borderRadius: borderRadius.md,
     position: 'relative',
     overflow: 'hidden',
   },
@@ -258,13 +428,13 @@ const sidebarStyles = StyleSheet.create({
     ...StyleSheet.absoluteFillObject,
   },
   menuIconContainer: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
+    width: 36,
+    height: 36,
+    borderRadius: 10,
     backgroundColor: colors.background.card,
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: spacing.md,
+    marginRight: spacing.sm,
   },
   menuIconContainerActive: {
     backgroundColor: colors.accent.gold + '20',
@@ -273,7 +443,7 @@ const sidebarStyles = StyleSheet.create({
     backgroundColor: colors.accent.gold + '15',
   },
   menuText: {
-    fontSize: typography.fontSizes.md,
+    fontSize: typography.fontSizes.sm,
     fontWeight: typography.fontWeights.medium,
     color: colors.text.secondary,
     flex: 1,
@@ -286,8 +456,8 @@ const sidebarStyles = StyleSheet.create({
     color: colors.accent.gold,
   },
   activeIndicator: {
-    width: 4,
-    height: 24,
+    width: 3,
+    height: 20,
     backgroundColor: colors.accent.gold,
     borderRadius: 2,
     position: 'absolute',
@@ -296,89 +466,92 @@ const sidebarStyles = StyleSheet.create({
   divider: {
     height: 1,
     backgroundColor: colors.text.muted + '20',
-    marginHorizontal: spacing.lg,
-    marginVertical: spacing.md,
+    marginHorizontal: spacing.md,
+    marginVertical: spacing.sm,
   },
   footer: {
-    padding: spacing.lg,
-    paddingBottom: spacing.xl,
-  },
-  footerDivider: {
-    height: 1,
-    backgroundColor: colors.text.muted + '20',
-    marginBottom: spacing.md,
-  },
-  footerContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.xs,
-  },
-  footerText: {
-    fontSize: typography.fontSizes.sm,
-    color: colors.text.muted,
+    padding: spacing.md,
+    borderTopWidth: 1,
+    borderTopColor: colors.ui.border,
   },
   copyright: {
     fontSize: typography.fontSizes.xs,
     color: colors.text.muted,
-    marginTop: spacing.sm,
+    textAlign: 'center',
   },
 });
 
-// Web Layout with Sidebar
-const WebLayout: React.FC<{ children: React.ReactNode; navigation: any; currentRoute: string }> = ({
+// ============================================
+// LAYOUT WRAPPERS
+// ============================================
+
+// Desktop Layout with Top Nav
+const DesktopLayout: React.FC<{ children: React.ReactNode; navigation: any; currentRoute: string }> = ({
   children,
   navigation,
   currentRoute
 }) => {
   return (
-    <View style={webLayoutStyles.container}>
-      <View style={webLayoutStyles.sidebar}>
-        <WebSidebar navigation={navigation} currentRoute={currentRoute} />
-      </View>
-      <View style={webLayoutStyles.content}>
+    <View style={{ flex: 1 }}>
+      <TopNavBar navigation={navigation} currentRoute={currentRoute} />
+      <View style={{ flex: 1 }}>
         {children}
       </View>
     </View>
   );
 };
 
-const webLayoutStyles = StyleSheet.create({
-  container: {
-    flex: 1,
-    flexDirection: 'row',
-  },
-  sidebar: {
-    width: 280,
-  },
-  content: {
-    flex: 1,
-  },
-});
+// Tablet Layout with Sidebar
+const TabletLayout: React.FC<{ children: React.ReactNode; navigation: any; currentRoute: string }> = ({
+  children,
+  navigation,
+  currentRoute
+}) => {
+  return (
+    <View style={{ flex: 1, flexDirection: 'row' }}>
+      <View style={{ width: 220 }}>
+        <TabletSidebar navigation={navigation} currentRoute={currentRoute} />
+      </View>
+      <View style={{ flex: 1 }}>
+        {children}
+      </View>
+    </View>
+  );
+};
 
-// Screen wrapper for web that adds sidebar
-const withWebLayout = (ScreenComponent: React.FC<any>, screenName: string) => {
+// Screen wrapper that applies the correct layout
+const withResponsiveLayout = (ScreenComponent: React.FC<any>, screenName: string) => {
   return (props: any) => {
     const screenWidth = useScreenWidth();
-    const isWeb = screenWidth > 768;
+    const layoutType = getLayoutType(screenWidth);
 
-    if (isWeb) {
+    if (layoutType === 'desktop') {
       return (
-        <WebLayout navigation={props.navigation} currentRoute={screenName}>
+        <DesktopLayout navigation={props.navigation} currentRoute={screenName}>
           <ScreenComponent {...props} />
-        </WebLayout>
+        </DesktopLayout>
       );
     }
 
+    if (layoutType === 'tablet') {
+      return (
+        <TabletLayout navigation={props.navigation} currentRoute={screenName}>
+          <ScreenComponent {...props} />
+        </TabletLayout>
+      );
+    }
+
+    // Mobile - no wrapper, uses bottom tabs
     return <ScreenComponent {...props} />;
   };
 };
 
+// ============================================
+// NAVIGATORS
+// ============================================
+
 // Bottom Tab Navigator for Mobile
 const MobileTabNavigator: React.FC = () => {
-  const { isAdmin } = useApp();
-  const [adminTapCount, setAdminTapCount] = useState(0);
-  const tapTimeout = useRef<NodeJS.Timeout | null>(null);
-
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
@@ -398,7 +571,7 @@ const MobileTabNavigator: React.FC = () => {
           fontWeight: '600',
           marginTop: 2,
         },
-        tabBarIcon: ({ focused, color, size }) => {
+        tabBarIcon: ({ focused, color }) => {
           const item = menuItems.find(m => m.name === route.name);
           if (!item) return null;
           return (
@@ -420,8 +593,8 @@ const MobileTabNavigator: React.FC = () => {
   );
 };
 
-// Web Tab Navigator (uses same screens but wrapped with sidebar)
-const WebTabNavigator: React.FC = () => {
+// Tab Navigator for Tablet/Desktop (tabs hidden, layout wrapper handles nav)
+const ResponsiveTabNavigator: React.FC = () => {
   return (
     <Tab.Navigator
       screenOptions={{
@@ -429,21 +602,27 @@ const WebTabNavigator: React.FC = () => {
         tabBarStyle: { display: 'none' },
       }}
     >
-      <Tab.Screen name="Home" component={withWebLayout(HomeScreen, 'Home')} />
-      <Tab.Screen name="Flavors" component={withWebLayout(FlavorsScreen, 'Flavors')} />
-      <Tab.Screen name="Toppings" component={withWebLayout(ToppingsScreen, 'Toppings')} />
-      <Tab.Screen name="Gallery" component={withWebLayout(GalleryScreen, 'Gallery')} />
-      <Tab.Screen name="About" component={withWebLayout(AboutScreen, 'About')} />
+      <Tab.Screen name="Home" component={withResponsiveLayout(HomeScreen, 'Home')} />
+      <Tab.Screen name="Flavors" component={withResponsiveLayout(FlavorsScreen, 'Flavors')} />
+      <Tab.Screen name="Toppings" component={withResponsiveLayout(ToppingsScreen, 'Toppings')} />
+      <Tab.Screen name="Gallery" component={withResponsiveLayout(GalleryScreen, 'Gallery')} />
+      <Tab.Screen name="About" component={withResponsiveLayout(AboutScreen, 'About')} />
     </Tab.Navigator>
   );
 };
 
-// Responsive Main Navigator
+// Main Navigator that switches based on screen size
 const MainNavigator: React.FC = () => {
   const screenWidth = useScreenWidth();
-  const isWeb = screenWidth > 768;
+  const layoutType = getLayoutType(screenWidth);
 
-  return isWeb ? <WebTabNavigator /> : <MobileTabNavigator />;
+  // Mobile uses bottom tabs
+  if (layoutType === 'mobile') {
+    return <MobileTabNavigator />;
+  }
+
+  // Tablet and Desktop use responsive layout
+  return <ResponsiveTabNavigator />;
 };
 
 // Web URL linking configuration
