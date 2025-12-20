@@ -62,13 +62,34 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     }
   }, [flavors, toppings, gallery, storeInfo, promotions]);
 
+  // Merge stored topping with default values to ensure all fields exist
+  const mergeTopping = (stored: Topping): Topping => {
+    // Find matching default topping by id or name
+    const defaultTopping = defaultToppings.find(
+      d => d.id === stored.id || d.name === stored.name
+    );
+
+    return {
+      ...stored,
+      // Use stored values if they exist, otherwise fall back to default or sensible defaults
+      emoji: stored.emoji || defaultTopping?.emoji || '🍬',
+      color: stored.color || defaultTopping?.color || '#FF9800',
+      pricePerGram: stored.pricePerGram ?? defaultTopping?.pricePerGram ?? 0.05,
+      maxGrams: stored.maxGrams ?? defaultTopping?.maxGrams ?? 30,
+    };
+  };
+
   const loadData = async () => {
     try {
       const storedData = await AsyncStorage.getItem(STORAGE_KEY);
       if (storedData) {
         const data: AppData = JSON.parse(storedData);
         setFlavors(data.flavors || defaultFlavors);
-        setToppings(data.toppings || defaultToppings);
+        // Merge stored toppings with defaults to ensure all fields exist
+        const mergedToppings = data.toppings
+          ? data.toppings.map(mergeTopping)
+          : defaultToppings;
+        setToppings(mergedToppings);
         setGallery(data.gallery || defaultGallery);
         setStoreInfo(data.storeInfo || defaultStoreInfo);
         setPromotions(data.promotions || defaultPromotions);
