@@ -70,22 +70,52 @@ export const defaultFlavors: Flavor[] = [
 ];
 
 export const defaultToppings: Topping[] = [
-  { id: '1', name: 'Fresh Strawberries', category: 'fruits', imageUrl: 'strawberry' },
-  { id: '2', name: 'Blueberries', category: 'fruits', imageUrl: 'blueberry' },
-  { id: '3', name: 'Mango Chunks', category: 'fruits', imageUrl: 'mango' },
-  { id: '4', name: 'Banana Slices', category: 'fruits', imageUrl: 'banana' },
-  { id: '5', name: 'M&Ms', category: 'candy', imageUrl: 'mms' },
-  { id: '6', name: 'Gummy Bears', category: 'candy', imageUrl: 'gummy' },
-  { id: '7', name: 'Sprinkles', category: 'candy', imageUrl: 'sprinkles' },
-  { id: '8', name: 'Cookie Crumbs', category: 'candy', imageUrl: 'cookie_crumbs' },
-  { id: '9', name: 'Almonds', category: 'nuts', imageUrl: 'almonds' },
-  { id: '10', name: 'Walnuts', category: 'nuts', imageUrl: 'walnuts' },
-  { id: '11', name: 'Peanuts', category: 'nuts', imageUrl: 'peanuts' },
-  { id: '12', name: 'Chocolate Sauce', category: 'sauces', imageUrl: 'chocolate_sauce' },
-  { id: '13', name: 'Caramel Drizzle', category: 'sauces', imageUrl: 'caramel_sauce' },
-  { id: '14', name: 'Strawberry Sauce', category: 'sauces', imageUrl: 'strawberry_sauce' },
-  { id: '15', name: 'Fruity Pebbles', category: 'cereals', imageUrl: 'fruity_pebbles' },
-  { id: '16', name: 'Granola', category: 'cereals', imageUrl: 'granola' },
+  // Fruits
+  { id: '1', name: 'Fresh Strawberries', category: 'fruits', imageUrl: 'strawberry', emoji: '🍓', color: '#E53935', pricePerGram: 0.08, maxGrams: 30 },
+  { id: '2', name: 'Blueberries', category: 'fruits', imageUrl: 'blueberry', emoji: '🫐', color: '#3949AB', pricePerGram: 0.10, maxGrams: 25 },
+  { id: '3', name: 'Mango Chunks', category: 'fruits', imageUrl: 'mango', emoji: '🥭', color: '#FF9800', pricePerGram: 0.08, maxGrams: 30 },
+  { id: '4', name: 'Banana Slices', category: 'fruits', imageUrl: 'banana', emoji: '🍌', color: '#FDD835', pricePerGram: 0.06, maxGrams: 35 },
+  { id: '17', name: 'Kiwi', category: 'fruits', imageUrl: 'kiwi', emoji: '🥝', color: '#8BC34A', pricePerGram: 0.09, maxGrams: 25 },
+  { id: '18', name: 'Raspberries', category: 'fruits', imageUrl: 'raspberries', emoji: '🍒', color: '#E91E63', pricePerGram: 0.12, maxGrams: 25 },
+  { id: '19', name: 'Pineapple', category: 'fruits', imageUrl: 'pineapple', emoji: '🍍', color: '#FFCA28', pricePerGram: 0.07, maxGrams: 30 },
+  { id: '20', name: 'Cherries', category: 'fruits', imageUrl: 'cherries', emoji: '🍒', color: '#C62828', pricePerGram: 0.10, maxGrams: 20 },
+  { id: '21', name: 'Coconut Flakes', category: 'fruits', imageUrl: 'coconut', emoji: '🥥', color: '#FAFAFA', pricePerGram: 0.06, maxGrams: 25 },
+  { id: '22', name: 'Grapes', category: 'fruits', imageUrl: 'grapes', emoji: '🍇', color: '#7B1FA2', pricePerGram: 0.08, maxGrams: 30 },
+
+  // Candy & Sweets
+  { id: '5', name: 'M&Ms', category: 'candy', imageUrl: 'mms', emoji: '🍬', color: '#E91E63', pricePerGram: 0.08, maxGrams: 25 },
+  { id: '6', name: 'Gummy Bears', category: 'candy', imageUrl: 'gummy', emoji: '🐻', color: '#FF5722', pricePerGram: 0.07, maxGrams: 30 },
+  { id: '7', name: 'Sprinkles', category: 'candy', imageUrl: 'sprinkles', emoji: '✨', color: '#9C27B0', pricePerGram: 0.05, maxGrams: 20 },
+  { id: '8', name: 'Cookie Crumbs', category: 'candy', imageUrl: 'cookie_crumbs', emoji: '🍪', color: '#795548', pricePerGram: 0.06, maxGrams: 30 },
+  { id: '23', name: 'Oreo Pieces', category: 'candy', imageUrl: 'oreo', emoji: '🍪', color: '#424242', pricePerGram: 0.07, maxGrams: 25 },
+  { id: '24', name: 'Chocolate Chips', category: 'candy', imageUrl: 'choco_chips', emoji: '🍫', color: '#5D4037', pricePerGram: 0.07, maxGrams: 25 },
+  { id: '25', name: 'Mini Marshmallows', category: 'candy', imageUrl: 'marshmallows', emoji: '☁️', color: '#FAFAFA', pricePerGram: 0.05, maxGrams: 30 },
+  { id: '26', name: 'Brownie Bites', category: 'candy', imageUrl: 'brownie', emoji: '🍫', color: '#4E342E', pricePerGram: 0.09, maxGrams: 25 },
+  { id: '27', name: 'Wafer Pieces', category: 'candy', imageUrl: 'wafer', emoji: '🧇', color: '#D4A574', pricePerGram: 0.06, maxGrams: 25 },
+  { id: '28', name: 'Candy Cane Bits', category: 'candy', imageUrl: 'candy_cane', emoji: '🍭', color: '#E53935', pricePerGram: 0.06, maxGrams: 20 },
+
+  // Nuts
+  { id: '9', name: 'Almonds', category: 'nuts', imageUrl: 'almonds', emoji: '🌰', color: '#A1887F', pricePerGram: 0.15, maxGrams: 20 },
+  { id: '10', name: 'Walnuts', category: 'nuts', imageUrl: 'walnuts', emoji: '🥜', color: '#8D6E63', pricePerGram: 0.15, maxGrams: 20 },
+  { id: '11', name: 'Peanuts', category: 'nuts', imageUrl: 'peanuts', emoji: '🥜', color: '#D4A574', pricePerGram: 0.12, maxGrams: 25 },
+  { id: '29', name: 'Cashews', category: 'nuts', imageUrl: 'cashews', emoji: '🥜', color: '#FFCC80', pricePerGram: 0.18, maxGrams: 20 },
+  { id: '30', name: 'Pecans', category: 'nuts', imageUrl: 'pecans', emoji: '🌰', color: '#6D4C41', pricePerGram: 0.16, maxGrams: 20 },
+  { id: '31', name: 'Hazelnuts', category: 'nuts', imageUrl: 'hazelnuts', emoji: '🌰', color: '#795548', pricePerGram: 0.14, maxGrams: 20 },
+
+  // Sauces
+  { id: '12', name: 'Chocolate Sauce', category: 'sauces', imageUrl: 'chocolate_sauce', emoji: '🍫', color: '#5C4033', pricePerGram: 0.04, maxGrams: 40 },
+  { id: '13', name: 'Caramel Drizzle', category: 'sauces', imageUrl: 'caramel_sauce', emoji: '🍯', color: '#D4A574', pricePerGram: 0.04, maxGrams: 40 },
+  { id: '14', name: 'Strawberry Sauce', category: 'sauces', imageUrl: 'strawberry_sauce', emoji: '🍓', color: '#E53935', pricePerGram: 0.04, maxGrams: 40 },
+  { id: '32', name: 'Peanut Butter', category: 'sauces', imageUrl: 'peanut_butter', emoji: '🥜', color: '#C19A6B', pricePerGram: 0.05, maxGrams: 35 },
+  { id: '33', name: 'Maple Syrup', category: 'sauces', imageUrl: 'maple_syrup', emoji: '🍁', color: '#D4A574', pricePerGram: 0.05, maxGrams: 35 },
+  { id: '34', name: 'Honey', category: 'sauces', imageUrl: 'honey', emoji: '🍯', color: '#FFB300', pricePerGram: 0.05, maxGrams: 35 },
+
+  // Cereals
+  { id: '15', name: 'Fruity Pebbles', category: 'cereals', imageUrl: 'fruity_pebbles', emoji: '🌈', color: '#9C27B0', pricePerGram: 0.04, maxGrams: 35 },
+  { id: '16', name: 'Granola', category: 'cereals', imageUrl: 'granola', emoji: '🥣', color: '#C9B896', pricePerGram: 0.05, maxGrams: 35 },
+  { id: '35', name: 'Corn Flakes', category: 'cereals', imageUrl: 'corn_flakes', emoji: '🌽', color: '#FFC107', pricePerGram: 0.03, maxGrams: 35 },
+  { id: '36', name: 'Rice Krispies', category: 'cereals', imageUrl: 'rice_krispies', emoji: '🍚', color: '#FFF8E1', pricePerGram: 0.03, maxGrams: 35 },
+  { id: '37', name: 'Cinnamon Cereal', category: 'cereals', imageUrl: 'cinnamon', emoji: '🔥', color: '#BF360C', pricePerGram: 0.04, maxGrams: 30 },
 ];
 
 export const defaultGallery: GalleryImage[] = [
