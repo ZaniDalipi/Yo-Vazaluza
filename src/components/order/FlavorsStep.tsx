@@ -1,4 +1,4 @@
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, useMemo } from 'react';
 import {
   View,
   Text,
@@ -17,7 +17,127 @@ import { colors, spacing, typography, borderRadius, shadows } from '../../theme'
 import { Flavor } from '../../types';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
+const CUP_WIDTH = Math.min(SCREEN_WIDTH * 0.4, 160);
+const CUP_HEIGHT = CUP_WIDTH * 1.2;
 const CARD_WIDTH = (SCREEN_WIDTH - spacing.lg * 2 - spacing.md) / 2;
+
+// Live cup preview with flavor colors
+const CupPreview: React.FC = () => {
+  const { order } = useOrder();
+  const wobbleAnim = useRef(new Animated.Value(0)).current;
+  const colorAnim = useRef(new Animated.Value(0)).current;
+
+  // Calculate fill level based on selected size
+  const fillLevel = useMemo(() => {
+    if (!order.cupSize) return 0.75;
+    switch (order.cupSize.size) {
+      case 'small': return 0.5;
+      case 'medium': return 0.75;
+      case 'large': return 1;
+      default: return 0.75;
+    }
+  }, [order.cupSize]);
+
+  // Get flavor colors - spread equally
+  const flavorColors = useMemo(() => {
+    if (order.flavors.length === 0) return ['#FFFFFF', '#F5F5F5'];
+    if (order.flavors.length === 1) return [order.flavors[0].color, order.flavors[0].color];
+    return order.flavors.map(f => f.color);
+  }, [order.flavors]);
+
+  useEffect(() => {
+    // Wobble animation
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(wobbleAnim, { toValue: 1, duration: 2000, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+        Animated.timing(wobbleAnim, { toValue: 0, duration: 2000, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+      ])
+    ).start();
+  }, []);
+
+  useEffect(() => {
+    // Color change animation
+    Animated.timing(colorAnim, {
+      toValue: 1,
+      duration: 300,
+      useNativeDriver: false,
+    }).start(() => colorAnim.setValue(0));
+  }, [order.flavors.length]);
+
+  const swirlHeight = CUP_WIDTH * 0.55;
+
+  return (
+    <Animated.View
+      style={[
+        styles.cupPreviewContainer,
+        {
+          transform: [
+            {
+              rotate: wobbleAnim.interpolate({
+                inputRange: [0, 1],
+                outputRange: ['-2deg', '2deg'],
+              }),
+            },
+          ],
+        },
+      ]}
+    >
+      {/* Soft-serve swirl with flavor colors */}
+      <View style={[styles.swirlContainer, { height: swirlHeight, marginBottom: -swirlHeight * 0.15 }]}>
+        <View style={[styles.swirlLayer, styles.swirlLayer1, { backgroundColor: flavorColors[0], width: CUP_WIDTH * 0.6 }]} />
+        <View style={[styles.swirlLayer, styles.swirlLayer2, { backgroundColor: flavorColors[flavorColors.length > 1 ? 1 : 0], width: CUP_WIDTH * 0.5 }]} />
+        <View style={[styles.swirlLayer, styles.swirlLayer3, { backgroundColor: flavorColors[0], width: CUP_WIDTH * 0.4 }]} />
+        <View style={[styles.swirlLayer, styles.swirlLayer4, { backgroundColor: flavorColors[flavorColors.length > 2 ? 2 : flavorColors.length > 1 ? 1 : 0], width: CUP_WIDTH * 0.32 }]} />
+        <View style={[styles.swirlTip, { backgroundColor: flavorColors[0] }]} />
+        <View style={styles.swirlHighlight1} />
+        <View style={styles.swirlHighlight2} />
+      </View>
+
+      {/* Cup */}
+      <View style={[styles.cup, { width: CUP_WIDTH, height: CUP_HEIGHT }]}>
+        <LinearGradient
+          colors={['#FFFFFF', '#F5F5F5', '#EEEEEE'] as const}
+          style={[styles.cupGradient, { borderBottomLeftRadius: CUP_WIDTH * 0.35, borderBottomRightRadius: CUP_WIDTH * 0.35 }]}
+        >
+          {/* Cup rim */}
+          <View style={[styles.cupRim, { width: CUP_WIDTH + 10 }]} />
+
+          {/* Yogurt fill with flavor colors */}
+          <View style={[styles.yogurtFill, { height: CUP_HEIGHT * fillLevel * 0.65 }]}>
+            <LinearGradient
+              colors={flavorColors.length > 1 ? flavorColors as [string, string, ...string[]] : [flavorColors[0], flavorColors[0]] as [string, string]}
+              locations={flavorColors.map((_, i) => i / (flavorColors.length - 1 || 1))}
+              style={styles.yogurtGradient}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 0, y: 1 }}
+            />
+          </View>
+
+          {/* Cup stripes */}
+          {[0, 1, 2, 3].map(i => (
+            <View key={i} style={[styles.cupStripe, { top: 25 + i * (CUP_HEIGHT / 5) }]} />
+          ))}
+
+          {/* Brand */}
+          <View style={styles.cupBrand}>
+            <Text style={styles.cupBrandText}>Yo-V</Text>
+          </View>
+
+          {/* Shine */}
+          <View style={styles.cupShine} />
+        </LinearGradient>
+      </View>
+
+      {/* Shadow */}
+      <View style={[styles.cupShadow, { width: CUP_WIDTH * 0.5 }]} />
+
+      {/* Flavor count badge */}
+      <View style={styles.flavorCountBadge}>
+        <Text style={styles.flavorCountText}>{order.flavors.length}/3 flavors</Text>
+      </View>
+    </Animated.View>
+  );
+};
 
 // Flavor selection indicator (shows up to 3 slots)
 const FlavorSlots: React.FC = () => {
@@ -26,7 +146,6 @@ const FlavorSlots: React.FC = () => {
 
   return (
     <View style={styles.slotsContainer}>
-      <Text style={styles.slotsTitle}>Your Flavors (max 3)</Text>
       <View style={styles.slots}>
         {slots.map((index) => {
           const flavor = order.flavors[index];
@@ -35,7 +154,7 @@ const FlavorSlots: React.FC = () => {
           return (
             <TouchableOpacity
               key={index}
-              style={[styles.slot, isActive && { backgroundColor: flavor?.color + '30' }]}
+              style={[styles.slot, isActive && { backgroundColor: flavor?.color + '30', borderColor: flavor?.color }]}
               onPress={() => flavor && removeFlavor(flavor.id)}
               disabled={!flavor}
             >
@@ -50,7 +169,7 @@ const FlavorSlots: React.FC = () => {
               ) : (
                 <>
                   <View style={styles.slotEmpty}>
-                    <Ionicons name="add" size={20} color={colors.text.muted} />
+                    <Ionicons name="add" size={18} color={colors.text.muted} />
                   </View>
                   <Text style={styles.slotEmptyText}>Empty</Text>
                 </>
@@ -153,11 +272,11 @@ const FlavorCard: React.FC<{
         )}
 
         {/* Yogurt swirl illustration */}
-        <View style={styles.swirlContainer}>
-          <View style={[styles.swirlBase, { backgroundColor: flavor.color }]}>
-            <View style={[styles.swirlLayer1, { backgroundColor: flavor.color + 'CC' }]} />
-            <View style={[styles.swirlLayer2, { backgroundColor: flavor.color + '99' }]} />
-            <View style={styles.swirlHighlight} />
+        <View style={styles.flavorSwirlContainer}>
+          <View style={[styles.flavorSwirlBase, { backgroundColor: flavor.color }]}>
+            <View style={[styles.flavorSwirlLayer1, { backgroundColor: flavor.color + 'CC' }]} />
+            <View style={[styles.flavorSwirlLayer2, { backgroundColor: flavor.color + '99' }]} />
+            <View style={styles.flavorSwirlHighlight} />
           </View>
 
           {/* Sparkles when selected */}
@@ -247,41 +366,48 @@ const FlavorsStep: React.FC = () => {
   const isMaxSelected = order.flavors.length >= 3;
 
   return (
-    <ScrollView
-      style={styles.container}
-      contentContainerStyle={styles.content}
-      showsVerticalScrollIndicator={false}
-    >
-      {/* Selected flavors slots */}
-      <FlavorSlots />
-
-      {/* Hint */}
-      <View style={styles.hintContainer}>
-        <Ionicons name="bulb" size={18} color={colors.accent.gold} />
-        <Text style={styles.hintText}>
-          {isMaxSelected
-            ? 'Maximum flavors selected! Tap to swap'
-            : `Pick ${3 - order.flavors.length} more flavor${3 - order.flavors.length !== 1 ? 's' : ''}`}
-        </Text>
+    <View style={styles.container}>
+      {/* Cup preview at top */}
+      <View style={styles.previewSection}>
+        <CupPreview />
       </View>
 
-      {/* Flavor grid */}
-      <View style={styles.grid}>
-        {flavors.map((flavor, index) => {
-          const isSelected = !!order.flavors.find(f => f.id === flavor.id);
-          return (
-            <FlavorCard
-              key={flavor.id}
-              flavor={flavor}
-              isSelected={isSelected}
-              onSelect={() => handleFlavorPress(flavor)}
-              index={index}
-              disabled={isMaxSelected}
-            />
-          );
-        })}
-      </View>
-    </ScrollView>
+      <ScrollView
+        style={styles.scrollView}
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Selected flavors slots */}
+        <FlavorSlots />
+
+        {/* Hint */}
+        <View style={styles.hintContainer}>
+          <Ionicons name="color-palette-outline" size={18} color={colors.accent.gold} />
+          <Text style={styles.hintText}>
+            {isMaxSelected
+              ? 'Maximum flavors selected! Tap to swap'
+              : `Pick ${3 - order.flavors.length} more flavor${3 - order.flavors.length !== 1 ? 's' : ''}`}
+          </Text>
+        </View>
+
+        {/* Flavor grid */}
+        <View style={styles.grid}>
+          {flavors.map((flavor, index) => {
+            const isSelected = !!order.flavors.find(f => f.id === flavor.id);
+            return (
+              <FlavorCard
+                key={flavor.id}
+                flavor={flavor}
+                isSelected={isSelected}
+                onSelect={() => handleFlavorPress(flavor)}
+                index={index}
+                disabled={isMaxSelected}
+              />
+            );
+          })}
+        </View>
+      </ScrollView>
+    </View>
   );
 };
 
@@ -289,18 +415,160 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
+  previewSection: {
+    alignItems: 'center',
+    paddingVertical: spacing.md,
+    backgroundColor: colors.background.main,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.ui.border,
+  },
+  cupPreviewContainer: {
+    alignItems: 'center',
+  },
+  swirlContainer: {
+    position: 'relative',
+    width: '100%',
+    alignItems: 'center',
+    zIndex: 10,
+  },
+  swirlLayer: {
+    position: 'absolute',
+    height: 20,
+    borderRadius: 50,
+  },
+  swirlLayer1: {
+    bottom: 0,
+  },
+  swirlLayer2: {
+    bottom: 12,
+    transform: [{ rotate: '-5deg' }],
+  },
+  swirlLayer3: {
+    bottom: 22,
+    transform: [{ rotate: '8deg' }],
+  },
+  swirlLayer4: {
+    bottom: 32,
+    transform: [{ rotate: '-3deg' }],
+  },
+  swirlTip: {
+    position: 'absolute',
+    width: 14,
+    height: 22,
+    bottom: 42,
+    borderTopLeftRadius: 10,
+    borderTopRightRadius: 10,
+    borderBottomLeftRadius: 3,
+    borderBottomRightRadius: 3,
+    transform: [{ rotate: '12deg' }],
+  },
+  swirlHighlight1: {
+    position: 'absolute',
+    width: 10,
+    height: 6,
+    backgroundColor: 'rgba(255,255,255,0.4)',
+    borderRadius: 10,
+    bottom: 38,
+    left: '25%',
+  },
+  swirlHighlight2: {
+    position: 'absolute',
+    width: 6,
+    height: 4,
+    backgroundColor: 'rgba(255,255,255,0.3)',
+    borderRadius: 10,
+    bottom: 15,
+    right: '25%',
+  },
+  cup: {
+    overflow: 'hidden',
+  },
+  cupGradient: {
+    flex: 1,
+    borderTopLeftRadius: 8,
+    borderTopRightRadius: 8,
+    position: 'relative',
+    ...shadows.medium,
+  },
+  cupRim: {
+    position: 'absolute',
+    top: -3,
+    left: -5,
+    height: 12,
+    backgroundColor: '#E0E0E0',
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: '#BDBDBD',
+  },
+  yogurtFill: {
+    position: 'absolute',
+    left: 8,
+    right: 8,
+    bottom: 12,
+    borderRadius: 8,
+    overflow: 'hidden',
+  },
+  yogurtGradient: {
+    flex: 1,
+  },
+  cupStripe: {
+    position: 'absolute',
+    left: 10,
+    right: 10,
+    height: 1,
+    backgroundColor: '#E8E8E8',
+  },
+  cupBrand: {
+    position: 'absolute',
+    bottom: '28%',
+    alignSelf: 'center',
+    backgroundColor: 'rgba(201, 169, 98, 0.15)',
+    paddingHorizontal: 10,
+    paddingVertical: 3,
+    borderRadius: 5,
+  },
+  cupBrandText: {
+    fontSize: 12,
+    fontWeight: '700' as const,
+    color: colors.accent.gold,
+    letterSpacing: 0.5,
+  },
+  cupShine: {
+    position: 'absolute',
+    top: 18,
+    left: 12,
+    width: 6,
+    height: CUP_HEIGHT * 0.4,
+    backgroundColor: 'rgba(255,255,255,0.5)',
+    borderRadius: 3,
+  },
+  cupShadow: {
+    height: 10,
+    backgroundColor: 'rgba(0,0,0,0.1)',
+    borderRadius: 50,
+    marginTop: spacing.xs,
+  },
+  flavorCountBadge: {
+    marginTop: spacing.sm,
+    backgroundColor: colors.accent.gold + '20',
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs,
+    borderRadius: borderRadius.round,
+  },
+  flavorCountText: {
+    fontSize: typography.fontSizes.xs,
+    fontWeight: '600' as const,
+    color: colors.accent.gold,
+  },
+  scrollView: {
+    flex: 1,
+  },
   content: {
     paddingHorizontal: spacing.lg,
     paddingBottom: spacing.xl,
   },
   slotsContainer: {
-    marginBottom: spacing.lg,
-  },
-  slotsTitle: {
-    fontSize: typography.fontSizes.sm,
-    fontWeight: typography.fontWeights.semibold,
-    color: colors.text.secondary,
-    marginBottom: spacing.sm,
+    marginVertical: spacing.md,
   },
   slots: {
     flexDirection: 'row',
@@ -319,14 +587,14 @@ const styles = StyleSheet.create({
     gap: spacing.xs,
   },
   slotColor: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
+    width: 22,
+    height: 22,
+    borderRadius: 11,
   },
   slotName: {
     flex: 1,
     fontSize: typography.fontSizes.xs,
-    fontWeight: typography.fontWeights.medium,
+    fontWeight: '500' as const,
     color: colors.text.primary,
   },
   slotRemove: {
@@ -338,9 +606,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   slotEmpty: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
+    width: 22,
+    height: 22,
+    borderRadius: 11,
     backgroundColor: colors.ui.border,
     alignItems: 'center',
     justifyContent: 'center',
@@ -354,15 +622,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: spacing.sm,
-    paddingVertical: spacing.md,
+    paddingVertical: spacing.sm,
     backgroundColor: colors.accent.gold + '10',
     borderRadius: borderRadius.lg,
-    marginBottom: spacing.lg,
+    marginBottom: spacing.md,
   },
   hintText: {
     fontSize: typography.fontSizes.sm,
     color: colors.text.secondary,
-    fontWeight: typography.fontWeights.medium,
+    fontWeight: '500' as const,
   },
   grid: {
     flexDirection: 'row',
@@ -412,40 +680,40 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     ...shadows.small,
   },
-  swirlContainer: {
-    width: 70,
-    height: 70,
+  flavorSwirlContainer: {
+    width: 65,
+    height: 65,
     marginBottom: spacing.sm,
     position: 'relative',
   },
-  swirlBase: {
-    width: 70,
-    height: 70,
-    borderRadius: 35,
+  flavorSwirlBase: {
+    width: 65,
+    height: 65,
+    borderRadius: 32,
     alignItems: 'center',
     justifyContent: 'center',
     overflow: 'hidden',
   },
-  swirlLayer1: {
+  flavorSwirlLayer1: {
     position: 'absolute',
-    width: 50,
-    height: 50,
-    borderRadius: 25,
+    width: 45,
+    height: 45,
+    borderRadius: 22,
     top: 5,
     left: 15,
   },
-  swirlLayer2: {
+  flavorSwirlLayer2: {
     position: 'absolute',
-    width: 30,
-    height: 30,
-    borderRadius: 15,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
     bottom: 10,
     right: 10,
   },
-  swirlHighlight: {
+  flavorSwirlHighlight: {
     position: 'absolute',
-    width: 15,
-    height: 15,
+    width: 14,
+    height: 14,
     borderRadius: 10,
     backgroundColor: 'rgba(255,255,255,0.5)',
     top: 10,
@@ -456,7 +724,7 @@ const styles = StyleSheet.create({
   },
   flavorName: {
     fontSize: typography.fontSizes.md,
-    fontWeight: typography.fontWeights.bold,
+    fontWeight: '700' as const,
     color: colors.text.primary,
     textAlign: 'center',
     marginBottom: spacing.xs,
@@ -481,7 +749,7 @@ const styles = StyleSheet.create({
   },
   badgeText: {
     fontSize: 9,
-    fontWeight: typography.fontWeights.bold,
+    fontWeight: '700' as const,
     color: colors.ui.success,
   },
   newBadge: {
