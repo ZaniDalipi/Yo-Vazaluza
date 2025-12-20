@@ -554,7 +554,7 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   chipEmoji: {
-    fontSize: 14,
+    fontSize: 16,
   },
   chipText: {
     fontSize: 11,
@@ -633,11 +633,11 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   cardEmoji: {
-    fontSize: 40,
+    fontSize: 48,
   },
   miniEmoji: {
     position: 'absolute',
-    fontSize: 16,
+    fontSize: 18,
     opacity: 0.6,
   },
   miniEmoji1: {

@@ -754,23 +754,37 @@ const AdminScreen: React.FC = () => {
   // Render emoji picker modal with scrollable grid
   const renderEmojiPicker = () => (
     <Modal visible={showEmojiPicker} transparent animationType="fade" onRequestClose={() => setShowEmojiPicker(false)}>
-      <TouchableOpacity style={styles.pickerOverlay} activeOpacity={1} onPress={() => setShowEmojiPicker(false)}>
-        <View style={styles.emojiPickerContent}>
-          <Text style={styles.pickerTitle}>Select Emoji</Text>
-          <ScrollView style={styles.emojiScrollView} showsVerticalScrollIndicator={true}>
+      <View style={styles.emojiPickerOverlay}>
+        <View style={styles.emojiPickerBackdrop}>
+          <TouchableOpacity style={{ flex: 1 }} activeOpacity={1} onPress={() => setShowEmojiPicker(false)} />
+        </View>
+        <View style={styles.emojiPickerContent} pointerEvents="auto">
+          <View style={styles.emojiPickerHeader}>
+            <Text style={styles.pickerTitle}>Select Emoji</Text>
+            <TouchableOpacity onPress={() => setShowEmojiPicker(false)}>
+              <Ionicons name="close" size={24} color={colors.text.primary} />
+            </TouchableOpacity>
+          </View>
+          <ScrollView
+            style={styles.emojiScrollView}
+            showsVerticalScrollIndicator={true}
+            nestedScrollEnabled={true}
+            contentContainerStyle={styles.emojiScrollContent}
+          >
             <View style={styles.emojiGrid}>
               {EMOJI_PALETTE.map((emoji, i) => (
-                <TouchableOpacity key={i} style={[styles.emojiGridItem, formData.emoji === emoji && styles.emojiGridItemSelected]} onPress={() => { setFormData({ ...formData, emoji }); setShowEmojiPicker(false); }}>
+                <TouchableOpacity
+                  key={i}
+                  style={[styles.emojiGridItem, formData.emoji === emoji && styles.emojiGridItemSelected]}
+                  onPress={() => { setFormData({ ...formData, emoji }); setShowEmojiPicker(false); }}
+                >
                   <Text style={styles.emojiGridText}>{emoji}</Text>
                 </TouchableOpacity>
               ))}
             </View>
           </ScrollView>
-          <TouchableOpacity style={styles.emojiCloseBtn} onPress={() => setShowEmojiPicker(false)}>
-            <Text style={styles.emojiCloseBtnText}>Close</Text>
-          </TouchableOpacity>
         </View>
-      </TouchableOpacity>
+      </View>
     </Modal>
   );
 
@@ -1050,7 +1064,7 @@ const styles = StyleSheet.create({
     position: 'relative',
   },
   toppingListEmojiText: {
-    fontSize: 26,
+    fontSize: 30,
   },
   toppingListColorDot: {
     position: 'absolute',
@@ -1476,29 +1490,6 @@ const styles = StyleSheet.create({
     borderColor: colors.ui.border,
     textAlign: 'center',
   },
-  emojiGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: spacing.sm,
-    justifyContent: 'center',
-  },
-  emojiGridItem: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: colors.background.main,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 2,
-    borderColor: 'transparent',
-  },
-  emojiGridItemSelected: {
-    borderColor: colors.accent.gold,
-    backgroundColor: colors.accent.gold + '20',
-  },
-  emojiGridText: {
-    fontSize: 24,
-  },
   // New styles for enhanced features
   priceHint: {
     fontSize: 12,
@@ -1526,7 +1517,7 @@ const styles = StyleSheet.create({
     marginRight: spacing.md,
   },
   toppingPreviewEmojiText: {
-    fontSize: 36,
+    fontSize: 42,
   },
   toppingPreviewInfo: {
     flex: 1,
@@ -1579,7 +1570,7 @@ const styles = StyleSheet.create({
     marginBottom: spacing.xs,
   },
   toppingEmojiLarge: {
-    fontSize: 36,
+    fontSize: 42,
   },
   toppingEmojiHint: {
     fontSize: 12,
@@ -1606,28 +1597,63 @@ const styles = StyleSheet.create({
     color: colors.text.muted,
     fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
   },
+  emojiPickerOverlay: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: spacing.md,
+  },
+  emojiPickerBackdrop: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+  },
   emojiPickerContent: {
     backgroundColor: colors.background.card,
-    borderRadius: 16,
+    borderRadius: 20,
     padding: spacing.lg,
-    width: '95%',
-    maxWidth: 400,
-    maxHeight: '80%',
+    width: '100%',
+    maxWidth: 380,
+    maxHeight: '85%',
+    zIndex: 10,
+    elevation: 10,
+  },
+  emojiPickerHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: spacing.md,
+    paddingBottom: spacing.sm,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.ui.divider,
   },
   emojiScrollView: {
-    maxHeight: 450,
+    flex: 1,
   },
-  emojiCloseBtn: {
-    marginTop: spacing.md,
-    paddingVertical: spacing.sm,
-    alignItems: 'center',
+  emojiScrollContent: {
+    paddingBottom: spacing.lg,
+  },
+  emojiGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+    gap: spacing.xs,
+  },
+  emojiGridItem: {
+    width: 52,
+    height: 52,
+    borderRadius: 12,
     backgroundColor: colors.background.main,
-    borderRadius: borderRadius.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: 'transparent',
   },
-  emojiCloseBtnText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.text.secondary,
+  emojiGridItemSelected: {
+    borderColor: colors.accent.gold,
+    backgroundColor: colors.accent.gold + '20',
+  },
+  emojiGridText: {
+    fontSize: 28,
   },
   urlModalOverlay: {
     flex: 1,
