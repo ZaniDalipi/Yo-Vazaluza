@@ -239,7 +239,7 @@ const ToppingCard: React.FC<{
           <Text style={[styles.cardName, isSelected && { color: data.color }]} numberOfLines={1}>
             {topping.name}
           </Text>
-          <Text style={styles.cardPrice}>${data.pricePerGram.toFixed(2)}/g</Text>
+          <Text style={styles.cardPrice}>${data.pricePerGram.toFixed(3)}/g</Text>
         </View>
 
         {/* Selection indicator */}

@@ -35,11 +35,25 @@ const COLOR_PALETTE = [
   '#F4511E', '#6D4C41', '#757575', '#546E7A', '#FF9800',
 ];
 
-// Emoji palette for toppings
+// Extended emoji palette for toppings - organized by category
 const EMOJI_PALETTE = [
+  // Fruits
   '🍓', '🫐', '🥭', '🍌', '🍒', '🍇', '🥝', '🍍', '🍑', '🍊',
-  '🍬', '🍫', '🍪', '🥜', '🌰', '🥥', '🍯', '🎊', '🐻', '🌈',
-  '🥣', '🍩', '🧁', '🍰', '🍦', '⭐', '💎', '🔥', '✨', '🌟',
+  '🍋', '🍎', '🍏', '🍐', '🥑', '🍈', '🍉', '🫒', '🥥', '🍅',
+  // Candy & Sweets
+  '🍬', '🍭', '🍫', '🍩', '🍪', '🧁', '🍰', '🎂', '🥧', '🍮',
+  '🍡', '🍧', '🍨', '🍦', '🥮', '🍿', '🧇', '🥞', '🧈', '🍯',
+  // Nuts & Seeds
+  '🥜', '🌰', '🫘', '🌻', '🥠', '🥡',
+  // Chocolate & Spreads
+  '🍫', '☕', '🧋', '🥛', '🍼',
+  // Decorations & Special
+  '⭐', '🌟', '✨', '💎', '🔥', '❄️', '🌈', '🦄', '🎀', '🎊',
+  '🎉', '💖', '💜', '💙', '💚', '💛', '🧡', '❤️', '🤍', '🖤',
+  // Animals & Fun
+  '🐻', '🐰', '🐼', '🦊', '🐸', '🐷', '🐮', '🦁', '🐯', '🐨',
+  // Nature
+  '🌸', '🌺', '🌻', '🌹', '🌷', '🍀', '🌿', '🍃', '🍂', '🍁',
 ];
 
 // Navigation items
@@ -140,12 +154,24 @@ const AdminScreen: React.FC = () => {
     }
   };
 
+  const [showUrlInput, setShowUrlInput] = useState(false);
+  const [tempImageUrl, setTempImageUrl] = useState('');
+
   const showImageOptions = () => {
     Alert.alert('Add Image', 'Choose an option', [
       { text: 'Take Photo', onPress: takePhoto },
       { text: 'Choose from Library', onPress: pickImage },
+      { text: 'Enter URL', onPress: () => { setTempImageUrl(formData.imageUrl || ''); setShowUrlInput(true); } },
       { text: 'Cancel', style: 'cancel' },
     ]);
+  };
+
+  const handleUrlSubmit = () => {
+    if (tempImageUrl.trim()) {
+      setFormData({ ...formData, imageUrl: tempImageUrl.trim() });
+    }
+    setShowUrlInput(false);
+    setTempImageUrl('');
   };
 
   const openEditModal = (item: any, type: 'flavor' | 'topping' | 'promotion' | 'gallery' | 'store') => {
@@ -253,7 +279,7 @@ const AdminScreen: React.FC = () => {
           return {
             preview: <View style={styles.emojiPreview}><Text style={styles.emojiText}>{item.emoji || '🍬'}</Text></View>,
             title: item.name,
-            subtitle: `${item.category} • $${(item.pricePerGram || 0).toFixed(2)}/g`,
+            subtitle: `${item.category} • $${(item.pricePerGram || 0).toFixed(3)}/g`,
             badges: null,
           };
         case 'promotion':
@@ -530,7 +556,8 @@ const AdminScreen: React.FC = () => {
                 </View>
 
                 <Text style={styles.inputLabel}>Price per Gram ($)</Text>
-                <TextInput style={styles.input} value={formData.pricePerGram?.toString()} onChangeText={t => setFormData({ ...formData, pricePerGram: parseFloat(t) || 0 })} placeholder="0.08" placeholderTextColor={colors.text.muted} keyboardType="decimal-pad" />
+                <TextInput style={styles.input} value={formData.pricePerGram?.toString()} onChangeText={t => setFormData({ ...formData, pricePerGram: parseFloat(t) || 0 })} placeholder="0.015" placeholderTextColor={colors.text.muted} keyboardType="decimal-pad" />
+                <Text style={styles.priceHint}>Supports up to 3 decimal places (e.g., 0.015)</Text>
 
                 <Text style={styles.inputLabel}>Max Grams</Text>
                 <TextInput style={styles.input} value={formData.maxGrams?.toString()} onChangeText={t => setFormData({ ...formData, maxGrams: parseInt(t) || 30 })} placeholder="30" placeholderTextColor={colors.text.muted} keyboardType="numeric" />
@@ -632,18 +659,52 @@ const AdminScreen: React.FC = () => {
     </Modal>
   );
 
-  // Render emoji picker modal
+  // Render emoji picker modal with scrollable grid
   const renderEmojiPicker = () => (
     <Modal visible={showEmojiPicker} transparent animationType="fade" onRequestClose={() => setShowEmojiPicker(false)}>
       <TouchableOpacity style={styles.pickerOverlay} activeOpacity={1} onPress={() => setShowEmojiPicker(false)}>
-        <View style={styles.pickerContent}>
+        <View style={styles.emojiPickerContent}>
           <Text style={styles.pickerTitle}>Select Emoji</Text>
-          <View style={styles.emojiGrid}>
-            {EMOJI_PALETTE.map((emoji, i) => (
-              <TouchableOpacity key={i} style={[styles.emojiGridItem, formData.emoji === emoji && styles.emojiGridItemSelected]} onPress={() => { setFormData({ ...formData, emoji }); setShowEmojiPicker(false); }}>
-                <Text style={styles.emojiGridText}>{emoji}</Text>
-              </TouchableOpacity>
-            ))}
+          <ScrollView style={styles.emojiScrollView} showsVerticalScrollIndicator={true}>
+            <View style={styles.emojiGrid}>
+              {EMOJI_PALETTE.map((emoji, i) => (
+                <TouchableOpacity key={i} style={[styles.emojiGridItem, formData.emoji === emoji && styles.emojiGridItemSelected]} onPress={() => { setFormData({ ...formData, emoji }); setShowEmojiPicker(false); }}>
+                  <Text style={styles.emojiGridText}>{emoji}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </ScrollView>
+          <TouchableOpacity style={styles.emojiCloseBtn} onPress={() => setShowEmojiPicker(false)}>
+            <Text style={styles.emojiCloseBtnText}>Close</Text>
+          </TouchableOpacity>
+        </View>
+      </TouchableOpacity>
+    </Modal>
+  );
+
+  // Render URL input modal
+  const renderUrlInputModal = () => (
+    <Modal visible={showUrlInput} transparent animationType="fade" onRequestClose={() => setShowUrlInput(false)}>
+      <TouchableOpacity style={styles.pickerOverlay} activeOpacity={1} onPress={() => setShowUrlInput(false)}>
+        <View style={styles.urlInputContent}>
+          <Text style={styles.pickerTitle}>Enter Image URL</Text>
+          <TextInput
+            style={styles.urlInput}
+            value={tempImageUrl}
+            onChangeText={setTempImageUrl}
+            placeholder="https://example.com/image.jpg"
+            placeholderTextColor={colors.text.muted}
+            autoCapitalize="none"
+            autoCorrect={false}
+            keyboardType="url"
+          />
+          <View style={styles.urlInputButtons}>
+            <TouchableOpacity style={styles.urlCancelBtn} onPress={() => setShowUrlInput(false)}>
+              <Text style={styles.urlCancelBtnText}>Cancel</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.urlSubmitBtn} onPress={handleUrlSubmit}>
+              <Text style={styles.urlSubmitBtnText}>Add Image</Text>
+            </TouchableOpacity>
           </View>
         </View>
       </TouchableOpacity>
@@ -704,6 +765,7 @@ const AdminScreen: React.FC = () => {
       {renderEditModal()}
       {renderColorPicker()}
       {renderEmojiPicker()}
+      {renderUrlInputModal()}
     </SafeAreaView>
   );
 };
@@ -1276,6 +1338,82 @@ const styles = StyleSheet.create({
   },
   emojiGridText: {
     fontSize: 24,
+  },
+  // New styles for enhanced features
+  priceHint: {
+    fontSize: 12,
+    color: colors.text.muted,
+    marginTop: spacing.xs,
+    fontStyle: 'italic',
+  },
+  emojiPickerContent: {
+    backgroundColor: colors.background.card,
+    borderRadius: 16,
+    padding: spacing.lg,
+    width: '100%',
+    maxWidth: 360,
+    maxHeight: '70%',
+  },
+  emojiScrollView: {
+    maxHeight: 300,
+  },
+  emojiCloseBtn: {
+    marginTop: spacing.md,
+    paddingVertical: spacing.sm,
+    alignItems: 'center',
+    backgroundColor: colors.background.main,
+    borderRadius: borderRadius.md,
+  },
+  emojiCloseBtnText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.text.secondary,
+  },
+  urlInputContent: {
+    backgroundColor: colors.background.card,
+    borderRadius: 16,
+    padding: spacing.lg,
+    width: '100%',
+    maxWidth: 400,
+  },
+  urlInput: {
+    backgroundColor: colors.background.main,
+    borderRadius: borderRadius.md,
+    padding: spacing.md,
+    fontSize: 14,
+    color: colors.text.primary,
+    borderWidth: 1,
+    borderColor: colors.ui.border,
+    marginTop: spacing.sm,
+  },
+  urlInputButtons: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    gap: spacing.md,
+    marginTop: spacing.lg,
+  },
+  urlCancelBtn: {
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.lg,
+    borderRadius: borderRadius.md,
+    borderWidth: 1,
+    borderColor: colors.ui.border,
+  },
+  urlCancelBtnText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.text.secondary,
+  },
+  urlSubmitBtn: {
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.lg,
+    borderRadius: borderRadius.md,
+    backgroundColor: colors.accent.gold,
+  },
+  urlSubmitBtnText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#FFF',
   },
 });
 
