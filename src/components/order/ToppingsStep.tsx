@@ -157,10 +157,10 @@ const FroYoCup: React.FC = () => {
     size: number;
   }>>([]);
 
-  // Get flavor colors
+  // Get flavor colors - default to white/cream when no flavors selected
   const flavorColors = order.flavors.length > 0
     ? order.flavors.map(f => f.color)
-    : [colors.flavors.vanilla, colors.flavors.strawberry];
+    : ['#FFFFFF', '#F5F5F5'];
 
   const primaryColor = flavorColors[0];
   const secondaryColor = flavorColors[1] || flavorColors[0];
