@@ -281,7 +281,12 @@ const AdminScreen: React.FC = () => {
           };
         case 'topping':
           return {
-            preview: <View style={styles.emojiPreview}><Text style={styles.emojiText}>{item.emoji || '🍬'}</Text></View>,
+            preview: (
+              <View style={[styles.toppingListEmoji, { backgroundColor: (item.color || '#E53935') + '25' }]}>
+                <Text style={styles.toppingListEmojiText}>{item.emoji || '🍬'}</Text>
+                <View style={[styles.toppingListColorDot, { backgroundColor: item.color || '#E53935' }]} />
+              </View>
+            ),
             title: item.name,
             subtitle: `${item.category} • $${(item.pricePerGram || 0).toFixed(3)}/g`,
             badges: null,
@@ -545,20 +550,46 @@ const AdminScreen: React.FC = () => {
             {/* Topping form */}
             {editType === 'topping' && (
               <>
+                {/* Live Preview Card */}
+                <View style={styles.toppingPreviewCard}>
+                  <View style={[styles.toppingPreviewEmoji, { backgroundColor: (formData.color || '#E53935') + '20' }]}>
+                    <Text style={styles.toppingPreviewEmojiText}>{formData.emoji || '🍓'}</Text>
+                  </View>
+                  <View style={styles.toppingPreviewInfo}>
+                    <Text style={styles.toppingPreviewName}>{formData.name || 'Topping Name'}</Text>
+                    <Text style={styles.toppingPreviewCategory}>{formData.category || 'fruits'}</Text>
+                    <View style={[styles.toppingPreviewPrice, { backgroundColor: formData.color || '#E53935' }]}>
+                      <Text style={styles.toppingPreviewPriceText}>
+                        ${(formData.pricePerGram || 0).toFixed(3)}/g
+                      </Text>
+                    </View>
+                  </View>
+                </View>
+
                 <Text style={styles.inputLabel}>Name *</Text>
                 <TextInput style={styles.input} value={formData.name} onChangeText={t => setFormData({ ...formData, name: t })} placeholder="Topping name" placeholderTextColor={colors.text.muted} />
 
-                <Text style={styles.inputLabel}>Emoji</Text>
-                <TouchableOpacity style={styles.emojiSelector} onPress={() => setShowEmojiPicker(true)}>
-                  <Text style={styles.emojiSelectorText}>{formData.emoji || '🍓'}</Text>
-                  <Text style={styles.emojiSelectorHint}>Tap to change</Text>
-                </TouchableOpacity>
-
-                <Text style={styles.inputLabel}>Color</Text>
-                <TouchableOpacity style={styles.colorSelector} onPress={() => { setColorPickerField('color'); setShowColorPicker(true); }}>
-                  <View style={[styles.colorDot, { backgroundColor: formData.color || '#E53935' }]} />
-                  <Text style={styles.colorValue}>{formData.color || '#E53935'}</Text>
-                </TouchableOpacity>
+                {/* Emoji & Color Row */}
+                <View style={styles.emojiColorRow}>
+                  <View style={styles.emojiColorItem}>
+                    <Text style={styles.inputLabel}>Emoji</Text>
+                    <TouchableOpacity style={styles.toppingEmojiBtn} onPress={() => setShowEmojiPicker(true)}>
+                      <View style={[styles.toppingEmojiBg, { backgroundColor: (formData.color || '#E53935') + '30' }]}>
+                        <Text style={styles.toppingEmojiLarge}>{formData.emoji || '🍓'}</Text>
+                      </View>
+                      <Text style={styles.toppingEmojiHint}>Tap to change</Text>
+                    </TouchableOpacity>
+                  </View>
+                  <View style={styles.emojiColorItem}>
+                    <Text style={styles.inputLabel}>Color</Text>
+                    <TouchableOpacity style={styles.toppingColorBtn} onPress={() => { setColorPickerField('color'); setShowColorPicker(true); }}>
+                      <View style={[styles.toppingColorPreview, { backgroundColor: formData.color || '#E53935' }]}>
+                        <Ionicons name="color-palette" size={24} color="#FFF" />
+                      </View>
+                      <Text style={styles.toppingColorHex}>{formData.color || '#E53935'}</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
 
                 <Text style={styles.inputLabel}>Category</Text>
                 <View style={styles.categoryPicker}>
@@ -972,6 +1003,28 @@ const styles = StyleSheet.create({
   },
   emojiText: {
     fontSize: 24,
+  },
+  toppingListEmoji: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: spacing.md,
+    position: 'relative',
+  },
+  toppingListEmojiText: {
+    fontSize: 26,
+  },
+  toppingListColorDot: {
+    position: 'absolute',
+    bottom: 0,
+    right: 0,
+    width: 14,
+    height: 14,
+    borderRadius: 7,
+    borderWidth: 2,
+    borderColor: colors.background.card,
   },
   iconPreview: {
     width: 48,
@@ -1416,6 +1469,106 @@ const styles = StyleSheet.create({
     color: colors.text.muted,
     marginTop: spacing.xs,
     fontStyle: 'italic',
+  },
+  // Topping preview styles
+  toppingPreviewCard: {
+    flexDirection: 'row',
+    backgroundColor: colors.background.main,
+    borderRadius: borderRadius.lg,
+    padding: spacing.md,
+    marginBottom: spacing.md,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: colors.ui.border,
+  },
+  toppingPreviewEmoji: {
+    width: 70,
+    height: 70,
+    borderRadius: 35,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: spacing.md,
+  },
+  toppingPreviewEmojiText: {
+    fontSize: 36,
+  },
+  toppingPreviewInfo: {
+    flex: 1,
+  },
+  toppingPreviewName: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: colors.text.primary,
+    marginBottom: 2,
+  },
+  toppingPreviewCategory: {
+    fontSize: 13,
+    color: colors.text.secondary,
+    textTransform: 'capitalize',
+    marginBottom: spacing.xs,
+  },
+  toppingPreviewPrice: {
+    alignSelf: 'flex-start',
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 4,
+    borderRadius: borderRadius.round,
+  },
+  toppingPreviewPriceText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#FFF',
+  },
+  emojiColorRow: {
+    flexDirection: 'row',
+    gap: spacing.md,
+    marginTop: spacing.sm,
+  },
+  emojiColorItem: {
+    flex: 1,
+  },
+  toppingEmojiBtn: {
+    backgroundColor: colors.background.main,
+    borderRadius: borderRadius.lg,
+    padding: spacing.md,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: colors.ui.border,
+  },
+  toppingEmojiBg: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: spacing.xs,
+  },
+  toppingEmojiLarge: {
+    fontSize: 36,
+  },
+  toppingEmojiHint: {
+    fontSize: 12,
+    color: colors.text.muted,
+  },
+  toppingColorBtn: {
+    backgroundColor: colors.background.main,
+    borderRadius: borderRadius.lg,
+    padding: spacing.md,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: colors.ui.border,
+  },
+  toppingColorPreview: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: spacing.xs,
+  },
+  toppingColorHex: {
+    fontSize: 12,
+    color: colors.text.muted,
+    fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
   },
   emojiPickerContent: {
     backgroundColor: colors.background.card,
