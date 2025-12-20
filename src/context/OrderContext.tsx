@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useCallback, ReactNode } from 'react';
-import { CupSize, Flavor, Topping, OrderState, OrderStep } from '../types';
+import { CupSize, Flavor, Topping, ToppingSelection, OrderState, OrderStep } from '../types';
 
 // Cup sizes available
 export const CUP_SIZES: CupSize[] = [
@@ -54,7 +54,8 @@ interface OrderContextType {
   setCupSize: (size: CupSize) => void;
   addFlavor: (flavor: Flavor) => void;
   removeFlavor: (flavorId: string) => void;
-  addTopping: (topping: Topping) => void;
+  addTopping: (topping: Topping, grams?: number) => void;
+  updateToppingGrams: (toppingId: string, grams: number) => void;
   removeTopping: (toppingId: string) => void;
   addSauce: (sauce: Topping) => void;
   removeSauce: (sauceId: string) => void;
@@ -111,18 +112,28 @@ export const OrderProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     }));
   }, []);
 
-  // Toppings
-  const addTopping = useCallback((topping: Topping) => {
+  // Toppings with weight tracking
+  const addTopping = useCallback((topping: Topping, grams: number = 10) => {
     setOrder(prev => {
-      if (prev.toppings.find(t => t.id === topping.id)) return prev;
-      return { ...prev, toppings: [...prev.toppings, topping] };
+      if (prev.toppings.find(t => t.topping.id === topping.id)) return prev;
+      const selection: ToppingSelection = { topping, grams };
+      return { ...prev, toppings: [...prev.toppings, selection] };
     });
+  }, []);
+
+  const updateToppingGrams = useCallback((toppingId: string, grams: number) => {
+    setOrder(prev => ({
+      ...prev,
+      toppings: prev.toppings.map(t =>
+        t.topping.id === toppingId ? { ...t, grams } : t
+      ),
+    }));
   }, []);
 
   const removeTopping = useCallback((toppingId: string) => {
     setOrder(prev => ({
       ...prev,
-      toppings: prev.toppings.filter(t => t.id !== toppingId),
+      toppings: prev.toppings.filter(t => t.topping.id !== toppingId),
     }));
   }, []);
 
@@ -195,9 +206,10 @@ export const OrderProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   // Total price
   const getTotalPrice = useCallback(() => {
     let total = order.cupSize?.price || 0;
-    // Add topping prices if they have any
-    order.toppings.forEach(t => {
-      if (t.price) total += t.price;
+    // Add topping prices based on grams
+    order.toppings.forEach(selection => {
+      const pricePerGram = selection.topping.pricePerGram || 0.05; // Default $0.05/gram
+      total += pricePerGram * selection.grams;
     });
     order.sauces.forEach(s => {
       if (s.price) total += s.price;
@@ -221,6 +233,7 @@ export const OrderProvider: React.FC<{ children: ReactNode }> = ({ children }) =
         addFlavor,
         removeFlavor,
         addTopping,
+        updateToppingGrams,
         removeTopping,
         addSauce,
         removeSauce,

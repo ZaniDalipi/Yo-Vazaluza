@@ -15,6 +15,15 @@ export interface Topping {
   category: 'fruits' | 'candy' | 'nuts' | 'sauces' | 'cereals';
   imageUrl: string;
   price?: number;
+  pricePerGram?: number; // Price per gram for weight-based pricing
+  maxGrams?: number; // Maximum grams allowed (default 30)
+  emoji?: string; // Emoji representation
+}
+
+// Topping with selected quantity
+export interface ToppingSelection {
+  topping: Topping;
+  grams: number;
 }
 
 export interface GalleryImage {
@@ -72,7 +81,7 @@ export interface CupSize {
 export interface OrderState {
   cupSize: CupSize | null;
   flavors: Flavor[];
-  toppings: Topping[];
+  toppings: ToppingSelection[];
   sauces: Topping[];
 }
 

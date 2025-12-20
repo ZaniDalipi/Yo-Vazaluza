@@ -212,6 +212,14 @@ const PriceBreakdown: React.FC = () => {
   const { order, getTotalPrice } = useOrder();
   const total = getTotalPrice();
 
+  // Calculate toppings total
+  const toppingsTotal = order.toppings.reduce((sum, sel) => {
+    const pricePerGram = sel.topping.pricePerGram || 0.05;
+    return sum + (pricePerGram * sel.grams);
+  }, 0);
+
+  const totalGrams = order.toppings.reduce((sum, sel) => sum + sel.grams, 0);
+
   return (
     <View style={styles.priceContainer}>
       <View style={styles.priceRow}>
@@ -222,8 +230,14 @@ const PriceBreakdown: React.FC = () => {
       </View>
 
       <View style={styles.priceRow}>
-        <Text style={styles.priceLabel}>Toppings</Text>
-        <Text style={styles.priceFree}>FREE</Text>
+        <Text style={styles.priceLabel}>
+          Toppings {totalGrams > 0 ? `(${totalGrams}g)` : ''}
+        </Text>
+        {toppingsTotal > 0 ? (
+          <Text style={styles.priceValue}>+${toppingsTotal.toFixed(2)}</Text>
+        ) : (
+          <Text style={styles.priceFree}>-</Text>
+        )}
       </View>
 
       <View style={styles.priceRow}>
@@ -281,7 +295,7 @@ const ReviewStep: React.FC = () => {
         <OrderSection
           title="Toppings"
           emoji="🍓"
-          items={order.toppings.map(t => ({ name: t.name }))}
+          items={order.toppings.map(t => ({ name: `${t.topping.name} (${t.grams}g)` }))}
           emptyText="No toppings added"
         />
 
