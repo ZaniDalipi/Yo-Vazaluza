@@ -169,7 +169,7 @@ const FroYoCup: React.FC = () => {
 };
 
 
-// Topping plate with emoji icon
+// Topping plate with emoji icons scattered
 const ToppingPlate: React.FC<{
   topping: Topping;
   selection?: ToppingSelection;
@@ -204,15 +204,15 @@ const ToppingPlate: React.FC<{
     onTap();
   };
 
-  // Generate pieces for the plate
-  const pieces = useMemo(() => {
+  // Generate emoji icon positions for the plate
+  const iconPositions = useMemo(() => {
     const arr = [];
-    for (let i = 0; i < 10; i++) {
+    for (let i = 0; i < 8; i++) {
       arr.push({
-        x: 10 + Math.random() * (PLATE_WIDTH - 70),
-        y: 10 + Math.random() * 35,
-        size: 8 + Math.random() * 8,
-        rotation: Math.random() * 45 - 22,
+        x: 15 + Math.random() * (PLATE_WIDTH - 80),
+        y: 8 + Math.random() * 30,
+        size: 14 + Math.random() * 6,
+        rotation: Math.random() * 30 - 15,
       });
     }
     return arr;
@@ -241,30 +241,29 @@ const ToppingPlate: React.FC<{
         onPress={handleTap}
         activeOpacity={0.8}
       >
-        {/* Plate surface with colored pieces */}
+        {/* Plate surface with emoji icons */}
         <View style={styles.plateSurface}>
           <LinearGradient
             colors={[`${data.color}15`, `${data.color}25`] as const}
             style={styles.plateGradient}
           />
 
-          {/* Topping pieces */}
-          {pieces.map((p, i) => (
-            <View
+          {/* Topping icons scattered on plate */}
+          {iconPositions.map((p, i) => (
+            <Text
               key={i}
               style={[
-                styles.platePiece,
+                styles.plateIcon,
                 {
                   left: p.x,
                   top: p.y,
-                  width: p.size,
-                  height: p.size * 0.7,
-                  backgroundColor: i % 3 === 0 ? data.darkColor : data.color,
-                  borderRadius: p.size / 3,
+                  fontSize: p.size,
                   transform: [{ rotate: `${p.rotation}deg` }],
                 },
               ]}
-            />
+            >
+              {data.emoji}
+            </Text>
           ))}
 
           {/* Plate rim */}
@@ -614,7 +613,7 @@ const styles = StyleSheet.create({
   plateGradient: {
     ...StyleSheet.absoluteFillObject,
   },
-  platePiece: {
+  plateIcon: {
     position: 'absolute',
   },
   plateRim: {
