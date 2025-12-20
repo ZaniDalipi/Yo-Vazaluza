@@ -1,12 +1,13 @@
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, useState } from 'react';
 import {
   View,
   Text,
   StyleSheet,
-  ScrollView,
   TouchableOpacity,
   Animated,
   Easing,
+  Dimensions,
+  FlatList,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
@@ -14,239 +15,401 @@ import { useOrder, CUP_SIZES } from '../../context/OrderContext';
 import { colors, spacing, typography, borderRadius, shadows } from '../../theme';
 import { CupSize } from '../../types';
 
-// Animated cup illustration
-const CupIllustration: React.FC<{ size: CupSize; isSelected: boolean; index: number }> = ({
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
+const CARD_WIDTH = SCREEN_WIDTH * 0.75;
+const CARD_MARGIN = spacing.md;
+
+// Soft-serve swirl layers
+const SoftServeSwirl: React.FC<{ color: string; size: number; isDispensing: boolean }> = ({
+  color,
   size,
-  isSelected,
-  index,
+  isDispensing
 }) => {
-  const scaleAnim = useRef(new Animated.Value(0)).current;
-  const wiggleAnim = useRef(new Animated.Value(0)).current;
-  const fillAnim = useRef(new Animated.Value(0)).current;
+  const swirl1Anim = useRef(new Animated.Value(0)).current;
+  const swirl2Anim = useRef(new Animated.Value(0)).current;
+  const swirl3Anim = useRef(new Animated.Value(0)).current;
+  const swirl4Anim = useRef(new Animated.Value(0)).current;
+  const tipAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    // Entrance animation
+    if (isDispensing) {
+      // Sequential swirl animation like yogurt being dispensed
+      Animated.stagger(150, [
+        Animated.spring(swirl1Anim, { toValue: 1, friction: 6, tension: 80, useNativeDriver: true }),
+        Animated.spring(swirl2Anim, { toValue: 1, friction: 6, tension: 80, useNativeDriver: true }),
+        Animated.spring(swirl3Anim, { toValue: 1, friction: 6, tension: 80, useNativeDriver: true }),
+        Animated.spring(swirl4Anim, { toValue: 1, friction: 6, tension: 80, useNativeDriver: true }),
+        Animated.spring(tipAnim, { toValue: 1, friction: 4, tension: 100, useNativeDriver: true }),
+      ]).start();
+    } else {
+      swirl1Anim.setValue(0);
+      swirl2Anim.setValue(0);
+      swirl3Anim.setValue(0);
+      swirl4Anim.setValue(0);
+      tipAnim.setValue(0);
+    }
+  }, [isDispensing]);
+
+  const baseWidth = size * 0.7;
+
+  return (
+    <View style={[styles.swirlContainer, { width: size, height: size * 1.4 }]}>
+      {/* Bottom swirl layer */}
+      <Animated.View style={[
+        styles.swirlLayer,
+        {
+          width: baseWidth,
+          height: size * 0.25,
+          backgroundColor: color,
+          bottom: 0,
+          borderRadius: baseWidth / 2,
+          transform: [{ scaleY: swirl1Anim }],
+        }
+      ]}>
+        <View style={[styles.swirlHighlight, { backgroundColor: 'rgba(255,255,255,0.3)' }]} />
+      </Animated.View>
+
+      {/* Second layer */}
+      <Animated.View style={[
+        styles.swirlLayer,
+        {
+          width: baseWidth * 0.85,
+          height: size * 0.22,
+          backgroundColor: color,
+          bottom: size * 0.18,
+          left: size * 0.1,
+          borderRadius: baseWidth / 2,
+          transform: [{ scaleY: swirl2Anim }, { rotate: '-8deg' }],
+        }
+      ]}>
+        <View style={[styles.swirlHighlight, { backgroundColor: 'rgba(255,255,255,0.25)' }]} />
+      </Animated.View>
+
+      {/* Third layer */}
+      <Animated.View style={[
+        styles.swirlLayer,
+        {
+          width: baseWidth * 0.7,
+          height: size * 0.2,
+          backgroundColor: color,
+          bottom: size * 0.35,
+          left: size * 0.05,
+          borderRadius: baseWidth / 2,
+          transform: [{ scaleY: swirl3Anim }, { rotate: '10deg' }],
+        }
+      ]}>
+        <View style={[styles.swirlHighlight, { backgroundColor: 'rgba(255,255,255,0.2)' }]} />
+      </Animated.View>
+
+      {/* Fourth layer */}
+      <Animated.View style={[
+        styles.swirlLayer,
+        {
+          width: baseWidth * 0.55,
+          height: size * 0.18,
+          backgroundColor: color,
+          bottom: size * 0.5,
+          left: size * 0.15,
+          borderRadius: baseWidth / 2,
+          transform: [{ scaleY: swirl4Anim }, { rotate: '-5deg' }],
+        }
+      ]}>
+        <View style={[styles.swirlHighlight, { backgroundColor: 'rgba(255,255,255,0.15)' }]} />
+      </Animated.View>
+
+      {/* Tip/peak */}
+      <Animated.View style={[
+        styles.swirlTip,
+        {
+          width: size * 0.2,
+          height: size * 0.35,
+          backgroundColor: color,
+          bottom: size * 0.62,
+          left: size * 0.25,
+          transform: [
+            { scaleY: tipAnim },
+            { rotate: '15deg' },
+          ],
+        }
+      ]}>
+        <View style={styles.tipHighlight} />
+      </Animated.View>
+    </View>
+  );
+};
+
+// Yogurt machine nozzle
+const MachineNozzle: React.FC<{ isDispensing: boolean }> = ({ isDispensing }) => {
+  const flowAnim = useRef(new Animated.Value(0)).current;
+  const dripAnim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    if (isDispensing) {
+      // Flow animation
+      Animated.loop(
+        Animated.sequence([
+          Animated.timing(flowAnim, { toValue: 1, duration: 300, useNativeDriver: true }),
+          Animated.timing(flowAnim, { toValue: 0.7, duration: 200, useNativeDriver: true }),
+        ])
+      ).start();
+
+      // Drip animation
+      Animated.loop(
+        Animated.sequence([
+          Animated.timing(dripAnim, { toValue: 1, duration: 600, easing: Easing.in(Easing.quad), useNativeDriver: true }),
+          Animated.timing(dripAnim, { toValue: 0, duration: 0, useNativeDriver: true }),
+        ])
+      ).start();
+    } else {
+      flowAnim.setValue(0);
+      dripAnim.setValue(0);
+    }
+  }, [isDispensing]);
+
+  return (
+    <View style={styles.nozzleContainer}>
+      {/* Machine body */}
+      <LinearGradient
+        colors={['#E0E0E0', '#BDBDBD', '#9E9E9E'] as const}
+        style={styles.machineBody}
+      >
+        <View style={styles.machineLogo}>
+          <Text style={styles.machineLogoText}>YO</Text>
+        </View>
+      </LinearGradient>
+
+      {/* Nozzle */}
+      <View style={styles.nozzle}>
+        <LinearGradient
+          colors={['#9E9E9E', '#757575'] as const}
+          style={styles.nozzleInner}
+        />
+      </View>
+
+      {/* Yogurt flow */}
+      {isDispensing && (
+        <Animated.View style={[
+          styles.yogurtFlow,
+          {
+            opacity: flowAnim,
+            transform: [{
+              scaleY: flowAnim.interpolate({
+                inputRange: [0, 1],
+                outputRange: [0.5, 1],
+              })
+            }],
+          }
+        ]}>
+          <LinearGradient
+            colors={[colors.flavors.strawberry, colors.flavors.vanilla] as const}
+            style={styles.flowGradient}
+          />
+        </Animated.View>
+      )}
+
+      {/* Drip */}
+      {isDispensing && (
+        <Animated.View style={[
+          styles.drip,
+          {
+            opacity: dripAnim.interpolate({
+              inputRange: [0, 0.5, 1],
+              outputRange: [1, 0.8, 0],
+            }),
+            transform: [{
+              translateY: dripAnim.interpolate({
+                inputRange: [0, 1],
+                outputRange: [0, 30],
+              })
+            }],
+          }
+        ]} />
+      )}
+    </View>
+  );
+};
+
+// Frozen yogurt cup
+const FroYoCup: React.FC<{ size: CupSize; isSelected: boolean }> = ({ size, isSelected }) => {
+  const scaleAnim = useRef(new Animated.Value(0.8)).current;
+  const wobbleAnim = useRef(new Animated.Value(0)).current;
+
+  const cupHeight = size.size === 'small' ? 120 : size.size === 'medium' ? 150 : 180;
+  const cupTopWidth = size.size === 'small' ? 100 : size.size === 'medium' ? 120 : 140;
+  const cupBottomWidth = cupTopWidth * 0.7;
+  const swirlSize = size.size === 'small' ? 80 : size.size === 'medium' ? 100 : 120;
+
+  useEffect(() => {
     Animated.spring(scaleAnim, {
       toValue: 1,
-      delay: index * 100,
-      friction: 5,
+      friction: 6,
       tension: 80,
       useNativeDriver: true,
     }).start();
-  }, [index]);
+  }, []);
 
   useEffect(() => {
     if (isSelected) {
-      // Wiggle celebration
-      Animated.sequence([
-        Animated.timing(wiggleAnim, { toValue: 1, duration: 100, useNativeDriver: true }),
-        Animated.timing(wiggleAnim, { toValue: -1, duration: 100, useNativeDriver: true }),
-        Animated.timing(wiggleAnim, { toValue: 0.5, duration: 100, useNativeDriver: true }),
-        Animated.timing(wiggleAnim, { toValue: -0.5, duration: 100, useNativeDriver: true }),
-        Animated.timing(wiggleAnim, { toValue: 0, duration: 100, useNativeDriver: true }),
-      ]).start();
-
-      // Fill animation
-      Animated.spring(fillAnim, {
-        toValue: 1,
-        friction: 5,
-        tension: 60,
-        useNativeDriver: false,
-      }).start();
+      Animated.loop(
+        Animated.sequence([
+          Animated.timing(wobbleAnim, { toValue: 1, duration: 1500, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+          Animated.timing(wobbleAnim, { toValue: 0, duration: 1500, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+        ])
+      ).start();
     } else {
-      Animated.timing(fillAnim, {
-        toValue: 0,
-        duration: 200,
-        useNativeDriver: false,
-      }).start();
+      wobbleAnim.setValue(0);
     }
   }, [isSelected]);
 
-  const cupHeight = size.size === 'small' ? 80 : size.size === 'medium' ? 100 : 120;
-  const cupWidth = size.size === 'small' ? 60 : size.size === 'medium' ? 70 : 80;
-
-  const fillHeight = fillAnim.interpolate({
-    inputRange: [0, 1],
-    outputRange: ['0%', '75%'],
-  });
-
   return (
-    <Animated.View
-      style={[
-        styles.cupContainer,
-        {
-          transform: [
-            { scale: scaleAnim },
-            {
-              rotate: wiggleAnim.interpolate({
-                inputRange: [-1, 0, 1],
-                outputRange: ['-10deg', '0deg', '10deg'],
-              }),
-            },
-          ],
-        },
-      ]}
-    >
-      {/* Cup shape */}
-      <View
-        style={[
-          styles.cup,
+    <Animated.View style={[
+      styles.cupWrapper,
+      {
+        transform: [
+          { scale: scaleAnim },
           {
-            width: cupWidth,
-            height: cupHeight,
-            borderColor: isSelected ? colors.accent.gold : colors.ui.border,
+            rotate: wobbleAnim.interpolate({
+              inputRange: [0, 1],
+              outputRange: ['-2deg', '2deg'],
+            })
           },
-        ]}
-      >
-        {/* Yogurt fill */}
-        <Animated.View
-          style={[
-            styles.yogurtFill,
-            {
-              height: fillHeight,
-              backgroundColor: colors.flavors.strawberry,
-            },
-          ]}
-        >
-          {/* Swirl effect */}
-          <View style={[styles.swirl, { backgroundColor: colors.flavors.vanilla + '60' }]} />
-          <View style={[styles.swirl, styles.swirl2, { backgroundColor: colors.flavors.mango + '40' }]} />
-        </Animated.View>
-
-        {/* Cup shine */}
-        <View style={styles.cupShine} />
+        ],
+      }
+    ]}>
+      {/* Soft-serve swirl on top */}
+      <View style={[styles.swirlPosition, { top: -swirlSize * 0.8 }]}>
+        <SoftServeSwirl
+          color={colors.flavors.strawberry}
+          size={swirlSize}
+          isDispensing={isSelected}
+        />
       </View>
 
-      {/* Steam animation when selected */}
-      {isSelected && (
-        <View style={styles.steamContainer}>
-          <SteamParticle delay={0} />
-          <SteamParticle delay={200} />
-          <SteamParticle delay={400} />
-        </View>
-      )}
+      {/* Cup body */}
+      <View style={[styles.cupBody, { height: cupHeight }]}>
+        {/* Cup gradient */}
+        <LinearGradient
+          colors={['#FFFFFF', '#F5F5F5', '#EEEEEE'] as const}
+          style={[
+            styles.cupShape,
+            {
+              width: cupTopWidth,
+              height: cupHeight,
+              borderBottomLeftRadius: cupBottomWidth / 2,
+              borderBottomRightRadius: cupBottomWidth / 2,
+            }
+          ]}
+        >
+          {/* Cup rim */}
+          <View style={[styles.cupRim, { width: cupTopWidth + 10 }]} />
+
+          {/* Cup pattern */}
+          <View style={styles.cupPattern}>
+            {[...Array(5)].map((_, i) => (
+              <View
+                key={i}
+                style={[
+                  styles.cupStripe,
+                  { top: 30 + i * (cupHeight / 6) }
+                ]}
+              />
+            ))}
+          </View>
+
+          {/* Yogurt inside cup (partial fill) */}
+          <View style={[styles.yogurtInside, { height: cupHeight * 0.6, bottom: 10 }]}>
+            <LinearGradient
+              colors={[colors.flavors.strawberry, `${colors.flavors.strawberry}DD`] as const}
+              style={styles.yogurtInsideGradient}
+            />
+          </View>
+
+          {/* Brand logo on cup */}
+          <View style={styles.brandLogo}>
+            <Text style={styles.brandText}>Yo-V</Text>
+          </View>
+
+          {/* Shine effect */}
+          <View style={styles.cupShineStrip} />
+        </LinearGradient>
+      </View>
+
+      {/* Shadow */}
+      <View style={[styles.cupShadow, { width: cupBottomWidth + 20 }]} />
     </Animated.View>
   );
 };
 
-// Steam particle for selected cup
-const SteamParticle: React.FC<{ delay: number }> = ({ delay }) => {
-  const anim = useRef(new Animated.Value(0)).current;
-
-  useEffect(() => {
-    Animated.loop(
-      Animated.sequence([
-        Animated.delay(delay),
-        Animated.timing(anim, {
-          toValue: 1,
-          duration: 1500,
-          easing: Easing.out(Easing.ease),
-          useNativeDriver: true,
-        }),
-        Animated.timing(anim, {
-          toValue: 0,
-          duration: 0,
-          useNativeDriver: true,
-        }),
-      ])
-    ).start();
-  }, [delay]);
-
-  return (
-    <Animated.View
-      style={[
-        styles.steam,
-        {
-          opacity: anim.interpolate({
-            inputRange: [0, 0.3, 1],
-            outputRange: [0, 0.6, 0],
-          }),
-          transform: [
-            {
-              translateY: anim.interpolate({
-                inputRange: [0, 1],
-                outputRange: [0, -30],
-              }),
-            },
-            {
-              translateX: anim.interpolate({
-                inputRange: [0, 0.5, 1],
-                outputRange: [0, 5, -5],
-              }),
-            },
-            {
-              scale: anim.interpolate({
-                inputRange: [0, 1],
-                outputRange: [0.5, 1.5],
-              }),
-            },
-          ],
-        },
-      ]}
-    />
-  );
-};
-
-// Size option card
+// Size card for carousel
 const SizeCard: React.FC<{
   size: CupSize;
   isSelected: boolean;
   onSelect: () => void;
+  scrollX: Animated.Value;
   index: number;
-}> = ({ size, isSelected, onSelect, index }) => {
-  const pressAnim = useRef(new Animated.Value(1)).current;
+}> = ({ size, isSelected, onSelect, scrollX, index }) => {
+  const inputRange = [
+    (index - 1) * (CARD_WIDTH + CARD_MARGIN * 2),
+    index * (CARD_WIDTH + CARD_MARGIN * 2),
+    (index + 1) * (CARD_WIDTH + CARD_MARGIN * 2),
+  ];
 
-  const handlePressIn = () => {
-    Animated.spring(pressAnim, {
-      toValue: 0.95,
-      friction: 5,
-      useNativeDriver: true,
-    }).start();
-  };
+  const scale = scrollX.interpolate({
+    inputRange,
+    outputRange: [0.85, 1, 0.85],
+    extrapolate: 'clamp',
+  });
 
-  const handlePressOut = () => {
-    Animated.spring(pressAnim, {
-      toValue: 1,
-      friction: 3,
-      useNativeDriver: true,
-    }).start();
-  };
+  const opacity = scrollX.interpolate({
+    inputRange,
+    outputRange: [0.6, 1, 0.6],
+    extrapolate: 'clamp',
+  });
 
   return (
-    <Animated.View style={{ transform: [{ scale: pressAnim }] }}>
+    <Animated.View style={[
+      styles.cardContainer,
+      { transform: [{ scale }], opacity }
+    ]}>
       <TouchableOpacity
-        style={[styles.sizeCard, isSelected && styles.sizeCardSelected]}
+        style={[styles.card, isSelected && styles.cardSelected]}
         onPress={onSelect}
-        onPressIn={handlePressIn}
-        onPressOut={handlePressOut}
-        activeOpacity={1}
+        activeOpacity={0.9}
       >
-        {isSelected && (
-          <View style={styles.selectedBadge}>
-            <Ionicons name="checkmark" size={16} color="#FFF" />
+        {/* Best value badge */}
+        {size.size === 'large' && (
+          <View style={styles.bestBadge}>
+            <Text style={styles.bestBadgeText}>BEST VALUE</Text>
           </View>
         )}
 
-        <CupIllustration size={size} isSelected={isSelected} index={index} />
+        {/* Selected checkmark */}
+        {isSelected && (
+          <View style={styles.checkBadge}>
+            <Ionicons name="checkmark" size={20} color="#FFF" />
+          </View>
+        )}
 
-        <Text style={[styles.sizeName, isSelected && styles.sizeNameSelected]}>
-          {size.name}
-        </Text>
+        {/* Machine nozzle */}
+        <MachineNozzle isDispensing={isSelected} />
 
-        <Text style={styles.sizeOunces}>{size.ounces} oz</Text>
+        {/* Cup illustration */}
+        <FroYoCup size={size} isSelected={isSelected} />
 
-        <View style={[styles.priceTag, isSelected && styles.priceTagSelected]}>
-          <Text style={[styles.priceText, isSelected && styles.priceTextSelected]}>
+        {/* Size info */}
+        <View style={styles.sizeInfo}>
+          <Text style={[styles.sizeName, isSelected && styles.sizeNameSelected]}>
+            {size.name}
+          </Text>
+          <Text style={styles.sizeOz}>{size.ounces} oz</Text>
+        </View>
+
+        {/* Price */}
+        <View style={[styles.priceContainer, isSelected && styles.priceContainerSelected]}>
+          <Text style={[styles.price, isSelected && styles.priceSelected]}>
             ${size.price.toFixed(2)}
           </Text>
         </View>
-
-        {/* Best value badge for large */}
-        {size.size === 'large' && (
-          <View style={styles.bestValueBadge}>
-            <Text style={styles.bestValueText}>BEST VALUE</Text>
-          </View>
-        )}
       </TouchableOpacity>
     </Animated.View>
   );
@@ -254,40 +417,105 @@ const SizeCard: React.FC<{
 
 const SizeStep: React.FC = () => {
   const { order, setCupSize } = useOrder();
+  const scrollX = useRef(new Animated.Value(0)).current;
+  const flatListRef = useRef<FlatList>(null);
+  const [activeIndex, setActiveIndex] = useState(1); // Default to medium
+
+  useEffect(() => {
+    // Auto-select medium if nothing selected
+    if (!order.cupSize) {
+      setCupSize(CUP_SIZES[1]);
+    }
+  }, []);
+
+  const onViewableItemsChanged = useRef(({ viewableItems }: any) => {
+    if (viewableItems.length > 0) {
+      setActiveIndex(viewableItems[0].index);
+    }
+  }).current;
 
   return (
-    <ScrollView
-      style={styles.container}
-      contentContainerStyle={styles.content}
-      showsVerticalScrollIndicator={false}
-    >
-      {/* Hint text */}
-      <View style={styles.hintContainer}>
-        <Ionicons name="hand-left" size={20} color={colors.text.muted} />
-        <Text style={styles.hintText}>Tap to select your cup size</Text>
+    <View style={styles.container}>
+      {/* Carousel */}
+      <View style={styles.carouselContainer}>
+        <Animated.FlatList
+          ref={flatListRef}
+          data={CUP_SIZES}
+          keyExtractor={(item) => item.id}
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.listContent}
+          snapToInterval={CARD_WIDTH + CARD_MARGIN * 2}
+          decelerationRate="fast"
+          onScroll={Animated.event(
+            [{ nativeEvent: { contentOffset: { x: scrollX } } }],
+            { useNativeDriver: true }
+          )}
+          onViewableItemsChanged={onViewableItemsChanged}
+          viewabilityConfig={{ itemVisiblePercentThreshold: 50 }}
+          initialScrollIndex={1}
+          getItemLayout={(_, index) => ({
+            length: CARD_WIDTH + CARD_MARGIN * 2,
+            offset: (CARD_WIDTH + CARD_MARGIN * 2) * index,
+            index,
+          })}
+          renderItem={({ item, index }) => (
+            <SizeCard
+              size={item}
+              isSelected={order.cupSize?.id === item.id}
+              onSelect={() => setCupSize(item)}
+              scrollX={scrollX}
+              index={index}
+            />
+          )}
+        />
       </View>
 
-      {/* Size options */}
-      <View style={styles.sizesContainer}>
-        {CUP_SIZES.map((size, index) => (
-          <SizeCard
-            key={size.id}
-            size={size}
-            isSelected={order.cupSize?.id === size.id}
-            onSelect={() => setCupSize(size)}
-            index={index}
-          />
-        ))}
+      {/* Pagination dots */}
+      <View style={styles.pagination}>
+        {CUP_SIZES.map((_, index) => {
+          const inputRange = [
+            (index - 1) * (CARD_WIDTH + CARD_MARGIN * 2),
+            index * (CARD_WIDTH + CARD_MARGIN * 2),
+            (index + 1) * (CARD_WIDTH + CARD_MARGIN * 2),
+          ];
+
+          const dotWidth = scrollX.interpolate({
+            inputRange,
+            outputRange: [8, 24, 8],
+            extrapolate: 'clamp',
+          });
+
+          const dotOpacity = scrollX.interpolate({
+            inputRange,
+            outputRange: [0.4, 1, 0.4],
+            extrapolate: 'clamp',
+          });
+
+          return (
+            <Animated.View
+              key={index}
+              style={[
+                styles.dot,
+                { width: dotWidth, opacity: dotOpacity },
+              ]}
+            />
+          );
+        })}
       </View>
 
       {/* Info banner */}
       <View style={styles.infoBanner}>
-        <Ionicons name="information-circle" size={20} color={colors.accent.gold} />
-        <Text style={styles.infoText}>
-          All sizes include unlimited toppings!
-        </Text>
+        <Ionicons name="gift-outline" size={18} color={colors.accent.gold} />
+        <Text style={styles.infoText}>All sizes include unlimited toppings!</Text>
       </View>
-    </ScrollView>
+
+      {/* Swipe hint */}
+      <View style={styles.swipeHint}>
+        <Ionicons name="swap-horizontal" size={16} color={colors.text.muted} />
+        <Text style={styles.swipeText}>Swipe to see all sizes</Text>
+      </View>
+    </View>
   );
 };
 
@@ -295,171 +523,299 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  content: {
-    paddingHorizontal: spacing.lg,
-    paddingBottom: spacing.xl,
-  },
-  hintContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: spacing.sm,
-    marginBottom: spacing.lg,
-  },
-  hintText: {
-    fontSize: typography.fontSizes.md,
-    color: colors.text.muted,
-  },
-  sizesContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    gap: spacing.md,
-  },
-  sizeCard: {
+  carouselContainer: {
     flex: 1,
+    justifyContent: 'center',
+  },
+  listContent: {
+    paddingHorizontal: (SCREEN_WIDTH - CARD_WIDTH) / 2 - CARD_MARGIN,
+  },
+  cardContainer: {
+    width: CARD_WIDTH,
+    marginHorizontal: CARD_MARGIN,
+  },
+  card: {
     backgroundColor: colors.background.card,
     borderRadius: borderRadius.xl,
     padding: spacing.lg,
     alignItems: 'center',
-    borderWidth: 2,
+    borderWidth: 3,
     borderColor: 'transparent',
-    position: 'relative',
-    ...shadows.medium,
+    minHeight: 450,
+    ...shadows.large,
   },
-  sizeCardSelected: {
+  cardSelected: {
     borderColor: colors.accent.gold,
-    backgroundColor: colors.accent.gold + '10',
+    backgroundColor: '#FFFDF5',
   },
-  selectedBadge: {
+  bestBadge: {
     position: 'absolute',
-    top: -10,
-    right: -10,
-    width: 28,
-    height: 28,
-    borderRadius: 14,
+    top: spacing.md,
+    left: spacing.md,
+    backgroundColor: colors.ui.success,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 4,
+    borderRadius: borderRadius.sm,
+    zIndex: 10,
+  },
+  bestBadgeText: {
+    fontSize: 10,
+    fontWeight: typography.fontWeights.bold,
+    color: '#FFF',
+    letterSpacing: 0.5,
+  },
+  checkBadge: {
+    position: 'absolute',
+    top: -12,
+    right: -12,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     backgroundColor: colors.ui.success,
     alignItems: 'center',
     justifyContent: 'center',
-    ...shadows.small,
+    zIndex: 10,
+    ...shadows.medium,
   },
-  cupContainer: {
+  nozzleContainer: {
     alignItems: 'center',
-    marginBottom: spacing.md,
+    marginBottom: spacing.sm,
   },
-  cup: {
-    borderRadius: 8,
-    borderBottomLeftRadius: 16,
-    borderBottomRightRadius: 16,
-    borderWidth: 3,
-    backgroundColor: '#FFF',
+  machineBody: {
+    width: 80,
+    height: 40,
+    borderRadius: borderRadius.md,
+    borderBottomLeftRadius: 0,
+    borderBottomRightRadius: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  machineLogo: {
+    backgroundColor: colors.accent.gold,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  machineLogoText: {
+    fontSize: 10,
+    fontWeight: typography.fontWeights.bold,
+    color: '#FFF',
+  },
+  nozzle: {
+    width: 24,
+    height: 20,
     overflow: 'hidden',
+  },
+  nozzleInner: {
+    flex: 1,
+    borderBottomLeftRadius: 8,
+    borderBottomRightRadius: 8,
+  },
+  yogurtFlow: {
+    position: 'absolute',
+    bottom: -25,
+    width: 12,
+    height: 30,
+    borderRadius: 6,
+    overflow: 'hidden',
+  },
+  flowGradient: {
+    flex: 1,
+  },
+  drip: {
+    position: 'absolute',
+    bottom: -35,
+    width: 8,
+    height: 12,
+    backgroundColor: colors.flavors.strawberry,
+    borderRadius: 4,
+  },
+  cupWrapper: {
+    alignItems: 'center',
+    marginTop: spacing.xl,
+  },
+  swirlPosition: {
+    position: 'absolute',
+    zIndex: 10,
+  },
+  swirlContainer: {
     position: 'relative',
   },
-  yogurtFill: {
+  swirlLayer: {
     position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    borderBottomLeftRadius: 12,
-    borderBottomRightRadius: 12,
     overflow: 'hidden',
   },
-  swirl: {
+  swirlHighlight: {
     position: 'absolute',
-    width: 30,
-    height: 30,
-    borderRadius: 15,
+    top: 2,
+    left: '10%',
+    width: '30%',
+    height: '40%',
+    borderRadius: 20,
+  },
+  swirlTip: {
+    position: 'absolute',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    borderBottomLeftRadius: 5,
+    borderBottomRightRadius: 5,
+  },
+  tipHighlight: {
+    position: 'absolute',
     top: 5,
     left: 5,
+    width: 6,
+    height: 15,
+    backgroundColor: 'rgba(255,255,255,0.3)',
+    borderRadius: 3,
   },
-  swirl2: {
-    top: 15,
-    left: 20,
-    width: 20,
-    height: 20,
+  cupBody: {
+    alignItems: 'center',
   },
-  cupShine: {
+  cupShape: {
+    position: 'relative',
+    overflow: 'hidden',
+    borderTopLeftRadius: 8,
+    borderTopRightRadius: 8,
+  },
+  cupRim: {
     position: 'absolute',
-    top: 5,
-    left: 5,
-    width: 10,
-    height: 30,
-    backgroundColor: 'rgba(255,255,255,0.4)',
-    borderRadius: 5,
-    transform: [{ rotate: '15deg' }],
+    top: -3,
+    left: -5,
+    height: 12,
+    backgroundColor: '#E0E0E0',
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: '#BDBDBD',
   },
-  steamContainer: {
+  cupPattern: {
     position: 'absolute',
-    top: -15,
-    flexDirection: 'row',
-    gap: 8,
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
   },
-  steam: {
+  cupStripe: {
+    position: 'absolute',
+    left: 10,
+    right: 10,
+    height: 1,
+    backgroundColor: '#E8E8E8',
+  },
+  yogurtInside: {
+    position: 'absolute',
+    left: 8,
+    right: 8,
+    borderRadius: 8,
+    overflow: 'hidden',
+  },
+  yogurtInsideGradient: {
+    flex: 1,
+  },
+  brandLogo: {
+    position: 'absolute',
+    bottom: '35%',
+    alignSelf: 'center',
+    backgroundColor: 'rgba(201, 169, 98, 0.15)',
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: borderRadius.sm,
+  },
+  brandText: {
+    fontSize: 14,
+    fontWeight: typography.fontWeights.bold,
+    color: colors.accent.gold,
+    letterSpacing: 1,
+  },
+  cupShineStrip: {
+    position: 'absolute',
+    top: 20,
+    left: 12,
     width: 8,
-    height: 8,
+    height: '60%',
+    backgroundColor: 'rgba(255,255,255,0.5)',
     borderRadius: 4,
-    backgroundColor: colors.text.muted + '60',
+  },
+  cupShadow: {
+    height: 15,
+    backgroundColor: 'rgba(0,0,0,0.1)',
+    borderRadius: 50,
+    marginTop: spacing.xs,
+  },
+  sizeInfo: {
+    alignItems: 'center',
+    marginTop: spacing.lg,
   },
   sizeName: {
-    fontSize: typography.fontSizes.md,
+    fontSize: typography.fontSizes.xl,
     fontWeight: typography.fontWeights.bold,
     color: colors.text.primary,
-    marginBottom: spacing.xs,
   },
   sizeNameSelected: {
     color: colors.accent.gold,
   },
-  sizeOunces: {
-    fontSize: typography.fontSizes.sm,
+  sizeOz: {
+    fontSize: typography.fontSizes.md,
     color: colors.text.muted,
-    marginBottom: spacing.md,
+    marginTop: 4,
   },
-  priceTag: {
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
+  priceContainer: {
+    marginTop: spacing.md,
+    paddingHorizontal: spacing.xl,
+    paddingVertical: spacing.md,
     backgroundColor: colors.background.main,
     borderRadius: borderRadius.round,
   },
-  priceTagSelected: {
+  priceContainerSelected: {
     backgroundColor: colors.accent.gold,
   },
-  priceText: {
-    fontSize: typography.fontSizes.md,
+  price: {
+    fontSize: typography.fontSizes.xl,
     fontWeight: typography.fontWeights.bold,
     color: colors.text.primary,
   },
-  priceTextSelected: {
+  priceSelected: {
     color: '#FFF',
   },
-  bestValueBadge: {
-    position: 'absolute',
-    top: spacing.sm,
-    left: spacing.sm,
-    backgroundColor: colors.ui.success,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 2,
-    borderRadius: borderRadius.sm,
+  pagination: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: spacing.xs,
+    marginTop: spacing.lg,
   },
-  bestValueText: {
-    fontSize: 8,
-    fontWeight: typography.fontWeights.bold,
-    color: '#FFF',
-    letterSpacing: 0.5,
+  dot: {
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: colors.accent.gold,
   },
   infoBanner: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: spacing.sm,
-    marginTop: spacing.xl,
+    marginTop: spacing.lg,
+    marginHorizontal: spacing.xl,
     paddingVertical: spacing.md,
-    paddingHorizontal: spacing.lg,
     backgroundColor: colors.accent.gold + '15',
     borderRadius: borderRadius.lg,
   },
   infoText: {
     fontSize: typography.fontSizes.sm,
     color: colors.text.secondary,
+    fontWeight: typography.fontWeights.medium,
+  },
+  swipeHint: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.xs,
+    marginTop: spacing.md,
+    marginBottom: spacing.lg,
+  },
+  swipeText: {
+    fontSize: typography.fontSizes.xs,
+    color: colors.text.muted,
   },
 });
 
