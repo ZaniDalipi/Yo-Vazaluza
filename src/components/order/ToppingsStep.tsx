@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useState, useMemo } from 'react';
+import React, { useRef, useEffect, useMemo } from 'react';
 import {
   View,
   Text,
@@ -17,54 +17,52 @@ import { colors, spacing, typography, borderRadius, shadows } from '../../theme'
 import { Topping, ToppingSelection } from '../../types';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
-const CUP_WIDTH = Math.min(SCREEN_WIDTH * 0.32, 130);
-const CUP_HEIGHT = CUP_WIDTH * 1.1;
-const PLATE_WIDTH = (SCREEN_WIDTH - spacing.lg * 2 - spacing.md) / 2;
+const CUP_WIDTH = Math.min(SCREEN_WIDTH * 0.35, 140);
+const CUP_HEIGHT = CUP_WIDTH * 1.15;
+const CARD_WIDTH = (SCREEN_WIDTH - spacing.lg * 2 - spacing.md) / 2;
 
 // Topping data with proper icons and colors for each type
-const TOPPING_DATA: Record<string, { color: string; darkColor: string; emoji: string; pricePerGram: number; maxGrams: number }> = {
-  'fresh-strawberries': { color: '#E53935', darkColor: '#C62828', emoji: '🍓', pricePerGram: 0.10, maxGrams: 30 },
-  'strawberries': { color: '#E53935', darkColor: '#C62828', emoji: '🍓', pricePerGram: 0.10, maxGrams: 30 },
-  'blueberries': { color: '#3949AB', darkColor: '#283593', emoji: '🫐', pricePerGram: 0.10, maxGrams: 30 },
-  'mango-chunks': { color: '#FFB300', darkColor: '#FF8F00', emoji: '🥭', pricePerGram: 0.08, maxGrams: 30 },
-  'mango': { color: '#FFB300', darkColor: '#FF8F00', emoji: '🥭', pricePerGram: 0.08, maxGrams: 30 },
-  'banana-slices': { color: '#FFE082', darkColor: '#FFC107', emoji: '🍌', pricePerGram: 0.06, maxGrams: 35 },
-  'banana': { color: '#FFE082', darkColor: '#FFC107', emoji: '🍌', pricePerGram: 0.06, maxGrams: 35 },
-  'm&ms': { color: '#E91E63', darkColor: '#C2185B', emoji: '🟤', pricePerGram: 0.08, maxGrams: 25 },
-  'gummy-bears': { color: '#FF7043', darkColor: '#E64A19', emoji: '🧸', pricePerGram: 0.07, maxGrams: 30 },
-  'sprinkles': { color: '#EC407A', darkColor: '#D81B60', emoji: '🎊', pricePerGram: 0.05, maxGrams: 20 },
-  'cookie-crumbs': { color: '#8D6E63', darkColor: '#6D4C41', emoji: '🍪', pricePerGram: 0.06, maxGrams: 30 },
-  'cookies': { color: '#8D6E63', darkColor: '#6D4C41', emoji: '🍪', pricePerGram: 0.06, maxGrams: 30 },
-  'oreo': { color: '#3E3E3E', darkColor: '#1A1A1A', emoji: '🍪', pricePerGram: 0.06, maxGrams: 30 },
-  'walnuts': { color: '#A1887F', darkColor: '#795548', emoji: '🌰', pricePerGram: 0.15, maxGrams: 20 },
-  'almonds': { color: '#BCAAA4', darkColor: '#8D6E63', emoji: '🌰', pricePerGram: 0.15, maxGrams: 20 },
-  'peanuts': { color: '#D4A574', darkColor: '#A1887F', emoji: '🥜', pricePerGram: 0.12, maxGrams: 25 },
-  'granola': { color: '#C9B896', darkColor: '#A89068', emoji: '🥣', pricePerGram: 0.05, maxGrams: 35 },
-  'fruity-pebbles': { color: '#9C27B0', darkColor: '#7B1FA2', emoji: '🌈', pricePerGram: 0.04, maxGrams: 35 },
-  'chocolate-chips': { color: '#5D4037', darkColor: '#3E2723', emoji: '🍫', pricePerGram: 0.07, maxGrams: 25 },
-  'coconut': { color: '#F5F5F5', darkColor: '#E0E0E0', emoji: '🥥', pricePerGram: 0.06, maxGrams: 25 },
-  'kiwi': { color: '#8BC34A', darkColor: '#689F38', emoji: '🥝', pricePerGram: 0.09, maxGrams: 30 },
-  'raspberries': { color: '#D81B60', darkColor: '#AD1457', emoji: '🫐', pricePerGram: 0.12, maxGrams: 25 },
-  'cherries': { color: '#C62828', darkColor: '#B71C1C', emoji: '🍒', pricePerGram: 0.10, maxGrams: 25 },
-  'pineapple': { color: '#FFD54F', darkColor: '#FFCA28', emoji: '🍍', pricePerGram: 0.08, maxGrams: 30 },
+const TOPPING_DATA: Record<string, { color: string; lightColor: string; emoji: string; pricePerGram: number; maxGrams: number }> = {
+  'fresh-strawberries': { color: '#E53935', lightColor: '#FFCDD2', emoji: '🍓', pricePerGram: 0.10, maxGrams: 30 },
+  'strawberries': { color: '#E53935', lightColor: '#FFCDD2', emoji: '🍓', pricePerGram: 0.10, maxGrams: 30 },
+  'blueberries': { color: '#3949AB', lightColor: '#C5CAE9', emoji: '🫐', pricePerGram: 0.10, maxGrams: 30 },
+  'mango-chunks': { color: '#FF9800', lightColor: '#FFE0B2', emoji: '🥭', pricePerGram: 0.08, maxGrams: 30 },
+  'mango': { color: '#FF9800', lightColor: '#FFE0B2', emoji: '🥭', pricePerGram: 0.08, maxGrams: 30 },
+  'banana-slices': { color: '#FDD835', lightColor: '#FFF9C4', emoji: '🍌', pricePerGram: 0.06, maxGrams: 35 },
+  'banana': { color: '#FDD835', lightColor: '#FFF9C4', emoji: '🍌', pricePerGram: 0.06, maxGrams: 35 },
+  'm&ms': { color: '#E91E63', lightColor: '#F8BBD9', emoji: '🍬', pricePerGram: 0.08, maxGrams: 25 },
+  'gummy-bears': { color: '#FF5722', lightColor: '#FFCCBC', emoji: '🐻', pricePerGram: 0.07, maxGrams: 30 },
+  'sprinkles': { color: '#9C27B0', lightColor: '#E1BEE7', emoji: '🎊', pricePerGram: 0.05, maxGrams: 20 },
+  'cookie-crumbs': { color: '#795548', lightColor: '#D7CCC8', emoji: '🍪', pricePerGram: 0.06, maxGrams: 30 },
+  'cookies': { color: '#795548', lightColor: '#D7CCC8', emoji: '🍪', pricePerGram: 0.06, maxGrams: 30 },
+  'oreo': { color: '#424242', lightColor: '#E0E0E0', emoji: '🍪', pricePerGram: 0.06, maxGrams: 30 },
+  'walnuts': { color: '#8D6E63', lightColor: '#D7CCC8', emoji: '🌰', pricePerGram: 0.15, maxGrams: 20 },
+  'almonds': { color: '#A1887F', lightColor: '#D7CCC8', emoji: '🌰', pricePerGram: 0.15, maxGrams: 20 },
+  'peanuts': { color: '#D4A574', lightColor: '#FFE0B2', emoji: '🥜', pricePerGram: 0.12, maxGrams: 25 },
+  'granola': { color: '#C9B896', lightColor: '#F5F5DC', emoji: '🥣', pricePerGram: 0.05, maxGrams: 35 },
+  'fruity-pebbles': { color: '#9C27B0', lightColor: '#E1BEE7', emoji: '🌈', pricePerGram: 0.04, maxGrams: 35 },
+  'chocolate-chips': { color: '#5D4037', lightColor: '#D7CCC8', emoji: '🍫', pricePerGram: 0.07, maxGrams: 25 },
+  'coconut': { color: '#FAFAFA', lightColor: '#FFFFFF', emoji: '🥥', pricePerGram: 0.06, maxGrams: 25 },
+  'kiwi': { color: '#8BC34A', lightColor: '#DCEDC8', emoji: '🥝', pricePerGram: 0.09, maxGrams: 30 },
+  'raspberries': { color: '#E91E63', lightColor: '#F8BBD9', emoji: '🫐', pricePerGram: 0.12, maxGrams: 25 },
+  'cherries': { color: '#C62828', lightColor: '#FFCDD2', emoji: '🍒', pricePerGram: 0.10, maxGrams: 25 },
+  'pineapple': { color: '#FFCA28', lightColor: '#FFF8E1', emoji: '🍍', pricePerGram: 0.08, maxGrams: 30 },
 };
 
 const getToppingData = (id: string) => {
   const key = id.toLowerCase().replace(/\s+/g, '-');
-  // Try exact match first
   if (TOPPING_DATA[key]) return TOPPING_DATA[key];
-  // Try partial match
   for (const [k, v] of Object.entries(TOPPING_DATA)) {
     if (key.includes(k) || k.includes(key)) return v;
   }
-  return { color: '#FFB74D', darkColor: '#F57C00', emoji: '•', pricePerGram: 0.05, maxGrams: 30 };
+  return { color: '#FF9800', lightColor: '#FFE0B2', emoji: '🍬', pricePerGram: 0.05, maxGrams: 30 };
 };
 
-// Compact froyo cup with toppings on yogurt surface
-const FroYoCup: React.FC = () => {
+// Cup preview showing toppings being added
+const ToppingsCup: React.FC = () => {
   const { order } = useOrder();
+  const bounceAnim = useRef(new Animated.Value(0)).current;
 
-  // Calculate fill level based on selected size
   const fillLevel = useMemo(() => {
     if (!order.cupSize) return 0.75;
     switch (order.cupSize.size) {
@@ -75,18 +73,35 @@ const FroYoCup: React.FC = () => {
     }
   }, [order.cupSize]);
 
-  // Get flavor colors
   const flavorColors = useMemo(() => {
-    if (order.flavors.length === 0) return ['#FFFFFF', '#F8F8F8'];
+    if (order.flavors.length === 0) return ['#FFB6C1', '#FFC0CB'];
     if (order.flavors.length === 1) return [order.flavors[0].color, order.flavors[0].color];
     return order.flavors.map(f => f.color);
   }, [order.flavors]);
 
+  useEffect(() => {
+    if (order.toppings.length > 0) {
+      Animated.sequence([
+        Animated.timing(bounceAnim, { toValue: 1, duration: 150, useNativeDriver: true }),
+        Animated.timing(bounceAnim, { toValue: 0, duration: 150, useNativeDriver: true }),
+      ]).start();
+    }
+  }, [order.toppings.length]);
+
   const cupBottomWidth = CUP_WIDTH * 0.7;
 
   return (
-    <View style={styles.cupContainer}>
-      {/* Cup body */}
+    <Animated.View style={[
+      styles.cupContainer,
+      {
+        transform: [{
+          scale: bounceAnim.interpolate({
+            inputRange: [0, 1],
+            outputRange: [1, 1.05],
+          })
+        }]
+      }
+    ]}>
       <View style={[styles.cupBody, { width: CUP_WIDTH, height: CUP_HEIGHT }]}>
         <View style={[
           styles.cupOuter,
@@ -97,10 +112,8 @@ const FroYoCup: React.FC = () => {
             borderBottomRightRadius: cupBottomWidth * 0.5,
           }
         ]}>
-          {/* Rim */}
           <View style={[styles.cupRim, { width: CUP_WIDTH + 6 }]} />
 
-          {/* Cup wall */}
           <LinearGradient
             colors={['#FAFAFA', '#F0F0F0', '#E8E8E8'] as const}
             style={styles.cupWall}
@@ -110,44 +123,33 @@ const FroYoCup: React.FC = () => {
             </View>
           </LinearGradient>
 
-          {/* Inner cup with yogurt and toppings */}
           <View style={styles.cupInner}>
-            {/* Yogurt fill */}
             <View style={[styles.yogurtFill, { height: `${fillLevel * 85}%` }]}>
               <LinearGradient
                 colors={flavorColors.length > 1 ? flavorColors as [string, string, ...string[]] : [flavorColors[0], flavorColors[0]] as [string, string]}
-                locations={flavorColors.map((_, i) => i / (flavorColors.length - 1 || 1))}
+                locations={flavorColors.length > 1 ? flavorColors.map((_, i) => i / (flavorColors.length - 1)) as [number, number, ...number[]] : [0, 1] as [number, number]}
                 style={styles.yogurtGradient}
                 start={{ x: 0.2, y: 0 }}
                 end={{ x: 0.8, y: 1 }}
               />
             </View>
 
-            {/* Toppings on yogurt surface */}
+            {/* Toppings on yogurt */}
             <View style={styles.toppingsOnYogurt}>
-              {order.toppings.slice(0, 4).map((sel, i) => {
+              {order.toppings.slice(0, 5).map((sel, i) => {
                 const data = getToppingData(sel.topping.id);
                 const positions = [
-                  { left: 4, top: 2 },
-                  { left: 22, top: 6 },
-                  { left: 40, top: 3 },
-                  { left: 58, top: 5 },
+                  { left: 10, top: 4 },
+                  { left: 35, top: 2 },
+                  { left: 60, top: 5 },
+                  { left: 85, top: 3 },
+                  { left: 22, top: 12 },
                 ];
                 const pos = positions[i];
                 return (
-                  <View
-                    key={sel.topping.id}
-                    style={[
-                      styles.toppingDot,
-                      {
-                        left: pos.left,
-                        top: pos.top,
-                        backgroundColor: data.color,
-                      }
-                    ]}
-                  >
-                    <Text style={styles.toppingMiniEmoji}>{data.emoji}</Text>
-                  </View>
+                  <Text key={sel.topping.id} style={[styles.toppingMini, { left: pos.left, top: pos.top }]}>
+                    {data.emoji}
+                  </Text>
                 );
               })}
             </View>
@@ -155,22 +157,19 @@ const FroYoCup: React.FC = () => {
         </View>
       </View>
 
-      {/* Shadow */}
       <View style={[styles.cupShadow, { width: cupBottomWidth + 10 }]} />
 
-      {/* Topping count badge */}
       {order.toppings.length > 0 && (
         <View style={styles.toppingBadge}>
           <Text style={styles.toppingBadgeText}>{order.toppings.length}</Text>
         </View>
       )}
-    </View>
+    </Animated.View>
   );
 };
 
-
-// Topping card with bowl/container visual
-const ToppingPlate: React.FC<{
+// Individual topping card with large emoji and clear selection state
+const ToppingCard: React.FC<{
   topping: Topping;
   selection?: ToppingSelection;
   onTap: () => void;
@@ -183,13 +182,12 @@ const ToppingPlate: React.FC<{
   const grams = selection?.grams || 0;
 
   const scaleAnim = useRef(new Animated.Value(0)).current;
-  const shakeAnim = useRef(new Animated.Value(0)).current;
-  const bounceAnim = useRef(new Animated.Value(1)).current;
+  const pulseAnim = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
     Animated.spring(scaleAnim, {
       toValue: 1,
-      delay: index * 60,
+      delay: index * 50,
       friction: 6,
       useNativeDriver: true,
     }).start();
@@ -199,110 +197,84 @@ const ToppingPlate: React.FC<{
     if (isSelected) {
       Animated.loop(
         Animated.sequence([
-          Animated.timing(bounceAnim, { toValue: 1.03, duration: 600, useNativeDriver: true }),
-          Animated.timing(bounceAnim, { toValue: 1, duration: 600, useNativeDriver: true }),
+          Animated.timing(pulseAnim, { toValue: 1.02, duration: 800, useNativeDriver: true }),
+          Animated.timing(pulseAnim, { toValue: 1, duration: 800, useNativeDriver: true }),
         ])
       ).start();
     } else {
-      bounceAnim.setValue(1);
+      pulseAnim.setValue(1);
     }
   }, [isSelected]);
-
-  const handleTap = () => {
-    Animated.sequence([
-      Animated.timing(shakeAnim, { toValue: 1, duration: 50, useNativeDriver: true }),
-      Animated.timing(shakeAnim, { toValue: -1, duration: 50, useNativeDriver: true }),
-      Animated.timing(shakeAnim, { toValue: 0.5, duration: 50, useNativeDriver: true }),
-      Animated.timing(shakeAnim, { toValue: 0, duration: 50, useNativeDriver: true }),
-    ]).start();
-    onTap();
-  };
 
   const price = (data.pricePerGram * grams).toFixed(2);
 
   return (
     <Animated.View style={[
-      styles.plateContainer,
+      styles.cardContainer,
       {
         opacity: scaleAnim,
-        transform: [
-          { scale: Animated.multiply(scaleAnim, bounceAnim) },
-          {
-            rotate: shakeAnim.interpolate({
-              inputRange: [-1, 0, 1],
-              outputRange: ['-3deg', '0deg', '3deg'],
-            }),
-          },
-        ],
+        transform: [{ scale: Animated.multiply(scaleAnim, pulseAnim) }],
       },
     ]}>
       <TouchableOpacity
-        style={[styles.plate, isSelected && styles.plateSelected]}
-        onPress={handleTap}
+        style={[
+          styles.card,
+          isSelected && styles.cardSelected,
+          isSelected && { borderColor: data.color }
+        ]}
+        onPress={onTap}
         activeOpacity={0.8}
       >
-        {/* Bowl/container with topping */}
-        <View style={styles.bowlContainer}>
-          {/* Bowl background */}
-          <LinearGradient
-            colors={[data.color + '30', data.color + '50'] as [string, string]}
-            style={styles.bowlGradient}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 0, y: 1 }}
-          />
+        {/* Colored header with large emoji */}
+        <View style={[styles.cardHeader, { backgroundColor: data.lightColor }]}>
+          <Text style={styles.cardEmoji}>{data.emoji}</Text>
 
-          {/* Bowl shape */}
-          <View style={[styles.bowl, { borderColor: data.color + '60' }]}>
-            {/* Bowl inner with topping fill */}
-            <View style={[styles.bowlInner, { backgroundColor: data.color + '20' }]}>
-              {/* Main large emoji */}
-              <Text style={styles.mainEmoji}>{data.emoji}</Text>
-            </View>
-
-            {/* Bowl rim highlight */}
-            <View style={[styles.bowlRim, { backgroundColor: data.color + '40' }]} />
-          </View>
-
-          {/* Floating small emojis around */}
-          <Text style={[styles.floatEmoji, styles.floatEmoji1]}>{data.emoji}</Text>
-          <Text style={[styles.floatEmoji, styles.floatEmoji2]}>{data.emoji}</Text>
-          <Text style={[styles.floatEmoji, styles.floatEmoji3]}>{data.emoji}</Text>
+          {/* Decorative mini emojis */}
+          <Text style={[styles.miniEmoji, styles.miniEmoji1]}>{data.emoji}</Text>
+          <Text style={[styles.miniEmoji, styles.miniEmoji2]}>{data.emoji}</Text>
         </View>
 
         {/* Info section */}
-        <View style={styles.plateInfo}>
-          <Text style={[styles.plateName, isSelected && { color: data.color }]} numberOfLines={1}>
+        <View style={styles.cardInfo}>
+          <Text style={[styles.cardName, isSelected && { color: data.color }]} numberOfLines={1}>
             {topping.name}
           </Text>
-          <Text style={styles.platePrice}>${data.pricePerGram.toFixed(2)}/g</Text>
+          <Text style={styles.cardPrice}>${data.pricePerGram.toFixed(2)}/g</Text>
         </View>
 
-        {/* Selected badge */}
-        {isSelected && (
-          <View style={[styles.selectedBadge, { backgroundColor: data.color }]}>
-            <Ionicons name="checkmark" size={12} color="#FFF" />
+        {/* Selection indicator */}
+        {isSelected ? (
+          <View style={[styles.selectedIndicator, { backgroundColor: data.color }]}>
+            <Ionicons name="checkmark" size={16} color="#FFF" />
+            <Text style={styles.selectedGrams}>{grams}g</Text>
+          </View>
+        ) : (
+          <View style={styles.addIndicator}>
+            <Ionicons name="add-circle-outline" size={24} color={colors.text.muted} />
           </View>
         )}
       </TouchableOpacity>
 
-      {/* Controls when selected */}
+      {/* Quantity controls */}
       {isSelected && (
         <View style={styles.controls}>
           <TouchableOpacity
             style={[styles.controlBtn, { borderColor: data.color }]}
             onPress={onRemove}
           >
-            <Ionicons name="remove" size={18} color={data.color} />
+            <Ionicons name="remove" size={20} color={data.color} />
           </TouchableOpacity>
-          <View style={styles.controlInfo}>
+
+          <View style={styles.controlCenter}>
             <Text style={[styles.controlGrams, { color: data.color }]}>{grams}g</Text>
             <Text style={styles.controlPrice}>${price}</Text>
           </View>
+
           <TouchableOpacity
-            style={[styles.controlBtn, { backgroundColor: data.color, borderColor: data.color }]}
+            style={[styles.controlBtn, styles.controlBtnFilled, { backgroundColor: data.color, borderColor: data.color }]}
             onPress={onAdd}
           >
-            <Ionicons name="add" size={18} color="#FFF" />
+            <Ionicons name="add" size={20} color="#FFF" />
           </TouchableOpacity>
         </View>
       )}
@@ -310,8 +282,8 @@ const ToppingPlate: React.FC<{
   );
 };
 
-// Summary bar
-const Summary: React.FC = () => {
+// Summary bar showing total
+const SummaryBar: React.FC = () => {
   const { order } = useOrder();
 
   const { total, totalGrams } = useMemo(() => {
@@ -328,12 +300,43 @@ const Summary: React.FC = () => {
   if (order.toppings.length === 0) return null;
 
   return (
-    <View style={styles.summary}>
-      <View>
+    <View style={styles.summaryBar}>
+      <View style={styles.summaryLeft}>
         <Text style={styles.summaryTitle}>{order.toppings.length} topping{order.toppings.length > 1 ? 's' : ''}</Text>
-        <Text style={styles.summaryGrams}>{totalGrams}g total weight</Text>
+        <Text style={styles.summaryGrams}>{totalGrams}g total</Text>
       </View>
-      <Text style={styles.summaryPrice}>+${total.toFixed(2)}</Text>
+      <View style={styles.summaryRight}>
+        <Text style={styles.summaryPrice}>+${total.toFixed(2)}</Text>
+      </View>
+    </View>
+  );
+};
+
+// Selected toppings chips
+const SelectedToppings: React.FC = () => {
+  const { order, removeTopping } = useOrder();
+
+  if (order.toppings.length === 0) return null;
+
+  return (
+    <View style={styles.selectedSection}>
+      <Text style={styles.selectedLabel}>Added:</Text>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.selectedScroll}>
+        {order.toppings.map((sel) => {
+          const data = getToppingData(sel.topping.id);
+          return (
+            <TouchableOpacity
+              key={sel.topping.id}
+              style={[styles.selectedChip, { backgroundColor: data.lightColor, borderColor: data.color }]}
+              onPress={() => removeTopping(sel.topping.id)}
+            >
+              <Text style={styles.chipEmoji}>{data.emoji}</Text>
+              <Text style={[styles.chipText, { color: data.color }]}>{sel.grams}g</Text>
+              <Ionicons name="close-circle" size={16} color={data.color} />
+            </TouchableOpacity>
+          );
+        })}
+      </ScrollView>
     </View>
   );
 };
@@ -343,13 +346,7 @@ const ToppingsStep: React.FC = () => {
   const { toppings: allToppings } = useApp();
 
   const sortedToppings = useMemo(() => {
-    return allToppings
-      .filter(t => t.category !== 'sauces')
-      .sort((a, b) => {
-        const dataA = getToppingData(a.id);
-        const dataB = getToppingData(b.id);
-        return dataB.pricePerGram - dataA.pricePerGram;
-      });
+    return allToppings.filter(t => t.category !== 'sauces');
   }, [allToppings]);
 
   const getSelection = (id: string) => order.toppings.find(t => t.topping.id === id);
@@ -384,13 +381,14 @@ const ToppingsStep: React.FC = () => {
 
   return (
     <View style={styles.container}>
-      {/* Frozen yogurt cup */}
+      {/* Cup preview */}
       <View style={styles.cupSection}>
-        <FroYoCup />
+        <ToppingsCup />
+        <SelectedToppings />
       </View>
 
       {/* Summary */}
-      <Summary />
+      <SummaryBar />
 
       {/* Hint */}
       <View style={styles.hint}>
@@ -398,12 +396,15 @@ const ToppingsStep: React.FC = () => {
         <Text style={styles.hintText}>Tap to add toppings to your cup!</Text>
       </View>
 
-      {/* Topping plates */}
-      <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-        <Text style={styles.sectionTitle}>Choose Your Toppings</Text>
-        <View style={styles.platesGrid}>
+      {/* Topping cards */}
+      <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
+        <View style={styles.grid}>
           {sortedToppings.map((topping, index) => (
-            <ToppingPlate
+            <ToppingCard
               key={topping.id}
               topping={topping}
               selection={getSelection(topping.id)}
@@ -426,7 +427,8 @@ const styles = StyleSheet.create({
   },
   cupSection: {
     alignItems: 'center',
-    paddingVertical: spacing.sm,
+    paddingTop: spacing.md,
+    paddingBottom: spacing.sm,
     backgroundColor: colors.background.main,
     borderBottomWidth: 1,
     borderBottomColor: colors.ui.border,
@@ -443,7 +445,7 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 6,
     borderTopRightRadius: 6,
     overflow: 'hidden',
-    ...shadows.small,
+    ...shadows.medium,
   },
   cupRim: {
     position: 'absolute',
@@ -478,9 +480,9 @@ const styles = StyleSheet.create({
   cupInner: {
     position: 'absolute',
     top: 8,
-    left: 4,
-    right: 4,
-    bottom: 5,
+    left: 5,
+    right: 5,
+    bottom: 6,
     backgroundColor: '#F5F5F5',
     borderRadius: 3,
     overflow: 'hidden',
@@ -497,21 +499,14 @@ const styles = StyleSheet.create({
   },
   toppingsOnYogurt: {
     position: 'absolute',
-    top: 1,
+    top: 2,
     left: 0,
     right: 0,
-    height: 20,
+    height: 22,
   },
-  toppingDot: {
+  toppingMini: {
     position: 'absolute',
-    width: 16,
-    height: 16,
-    borderRadius: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  toppingMiniEmoji: {
-    fontSize: 10,
+    fontSize: 12,
   },
   cupShadow: {
     height: 6,
@@ -522,29 +517,62 @@ const styles = StyleSheet.create({
   toppingBadge: {
     position: 'absolute',
     top: -4,
-    right: -4,
+    right: -8,
     backgroundColor: colors.accent.gold,
-    width: 18,
-    height: 18,
-    borderRadius: 9,
+    width: 22,
+    height: 22,
+    borderRadius: 11,
     alignItems: 'center',
     justifyContent: 'center',
+    ...shadows.small,
   },
   toppingBadgeText: {
-    fontSize: 10,
+    fontSize: 11,
     fontWeight: '700' as const,
     color: '#FFF',
   },
-  summary: {
+  selectedSection: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: spacing.sm,
+    paddingHorizontal: spacing.md,
+  },
+  selectedLabel: {
+    fontSize: typography.fontSizes.xs,
+    color: colors.text.muted,
+    marginRight: spacing.xs,
+  },
+  selectedScroll: {
+    flex: 1,
+  },
+  selectedChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+    borderRadius: 20,
+    borderWidth: 1,
+    marginRight: spacing.xs,
+    gap: 4,
+  },
+  chipEmoji: {
+    fontSize: 14,
+  },
+  chipText: {
+    fontSize: 11,
+    fontWeight: '600' as const,
+  },
+  summaryBar: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md,
+    paddingVertical: spacing.sm,
     backgroundColor: colors.accent.gold + '15',
     borderBottomWidth: 1,
     borderBottomColor: colors.ui.border,
   },
+  summaryLeft: {},
   summaryTitle: {
     fontSize: typography.fontSizes.md,
     fontWeight: '700' as const,
@@ -553,8 +581,8 @@ const styles = StyleSheet.create({
   summaryGrams: {
     fontSize: typography.fontSizes.xs,
     color: colors.text.muted,
-    marginTop: 2,
   },
+  summaryRight: {},
   summaryPrice: {
     fontSize: typography.fontSizes.xl,
     fontWeight: '700' as const,
@@ -579,144 +607,106 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
     paddingTop: spacing.md,
   },
-  sectionTitle: {
-    fontSize: typography.fontSizes.lg,
-    fontWeight: '700' as const,
-    color: colors.text.primary,
-    marginBottom: spacing.md,
-    textAlign: 'center',
-  },
-  platesGrid: {
+  grid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: spacing.md,
   },
-  plateContainer: {
-    width: PLATE_WIDTH,
+  cardContainer: {
+    width: CARD_WIDTH,
+    marginBottom: spacing.sm,
   },
-  plate: {
-    backgroundColor: colors.background.card,
+  card: {
+    backgroundColor: '#FFF',
     borderRadius: borderRadius.xl,
     overflow: 'hidden',
     borderWidth: 2,
-    borderColor: 'transparent',
+    borderColor: '#F0F0F0',
     ...shadows.medium,
   },
-  plateSelected: {
-    borderColor: colors.accent.gold,
+  cardSelected: {
+    borderWidth: 2,
   },
-  bowlContainer: {
-    height: 90,
+  cardHeader: {
+    height: 80,
+    alignItems: 'center',
+    justifyContent: 'center',
     position: 'relative',
-    alignItems: 'center',
-    justifyContent: 'center',
     overflow: 'hidden',
   },
-  bowlGradient: {
-    ...StyleSheet.absoluteFillObject,
-    borderTopLeftRadius: borderRadius.xl - 2,
-    borderTopRightRadius: borderRadius.xl - 2,
+  cardEmoji: {
+    fontSize: 40,
   },
-  bowl: {
-    width: 70,
-    height: 55,
-    borderRadius: 35,
-    borderBottomLeftRadius: 30,
-    borderBottomRightRadius: 30,
-    borderWidth: 3,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#FFF',
-    overflow: 'hidden',
-    ...shadows.small,
-  },
-  bowlInner: {
-    width: '100%',
-    height: '100%',
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: 30,
-  },
-  bowlRim: {
+  miniEmoji: {
     position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    height: 8,
-    borderTopLeftRadius: 35,
-    borderTopRightRadius: 35,
+    fontSize: 16,
+    opacity: 0.6,
   },
-  mainEmoji: {
-    fontSize: 32,
-  },
-  floatEmoji: {
-    position: 'absolute',
-    fontSize: 14,
-  },
-  floatEmoji1: {
-    top: 10,
-    left: 15,
+  miniEmoji1: {
+    top: 8,
+    left: 12,
     transform: [{ rotate: '-15deg' }],
   },
-  floatEmoji2: {
-    top: 8,
-    right: 18,
+  miniEmoji2: {
+    bottom: 10,
+    right: 15,
     transform: [{ rotate: '20deg' }],
   },
-  floatEmoji3: {
-    bottom: 8,
-    right: 25,
-    fontSize: 12,
-    transform: [{ rotate: '-10deg' }],
-  },
-  plateInfo: {
+  cardInfo: {
     padding: spacing.sm,
     alignItems: 'center',
-    backgroundColor: '#FFF',
+    borderTopWidth: 1,
+    borderTopColor: '#F5F5F5',
   },
-  plateName: {
+  cardName: {
     fontSize: typography.fontSizes.sm,
     fontWeight: '600' as const,
     color: colors.text.primary,
     textAlign: 'center',
   },
-  platePrice: {
+  cardPrice: {
     fontSize: typography.fontSizes.xs,
     color: colors.text.muted,
     marginTop: 2,
   },
-  selectedBadge: {
-    position: 'absolute',
-    top: -6,
-    right: -6,
-    width: 24,
-    height: 24,
-    borderRadius: 12,
+  selectedIndicator: {
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    ...shadows.small,
+    gap: 4,
+    paddingVertical: spacing.xs,
+  },
+  selectedGrams: {
+    fontSize: typography.fontSizes.sm,
+    fontWeight: '700' as const,
+    color: '#FFF',
+  },
+  addIndicator: {
+    alignItems: 'center',
+    paddingVertical: spacing.xs,
   },
   controls: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: spacing.sm,
-    gap: spacing.sm,
+    gap: spacing.md,
   },
   controlBtn: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     borderWidth: 2,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: '#FFF',
   },
-  controlInfo: {
+  controlBtnFilled: {},
+  controlCenter: {
     alignItems: 'center',
   },
   controlGrams: {
-    fontSize: typography.fontSizes.md,
+    fontSize: typography.fontSizes.lg,
     fontWeight: '700' as const,
   },
   controlPrice: {
