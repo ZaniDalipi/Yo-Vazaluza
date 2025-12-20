@@ -57,11 +57,12 @@ const getSauceData = (name: string): { color: string; emoji: string } => {
   return { color: '#5C4033', emoji: '🍫' };
 };
 
-// Elegant final cup preview - compact design
+// Elegant final cup preview - shows the complete froyo creation
 const FinalCup: React.FC = () => {
   const { order } = useOrder();
   const floatAnim = useRef(new Animated.Value(0)).current;
   const sparkleAnim = useRef(new Animated.Value(0)).current;
+  const glowAnim = useRef(new Animated.Value(0)).current;
 
   // Calculate fill level based on selected size
   const fillLevel = useMemo(() => {
@@ -74,19 +75,25 @@ const FinalCup: React.FC = () => {
     }
   }, [order.cupSize]);
 
-  // Get flavor colors
+  // Get flavor colors - ensure we have valid colors
   const flavorColors = useMemo(() => {
-    if (order.flavors.length === 0) return ['#FFFFFF', '#F8F8F8'];
-    if (order.flavors.length === 1) return [order.flavors[0].color, order.flavors[0].color];
+    if (order.flavors.length === 0) return ['#FFB6C1', '#FFC0CB']; // Default pink if no flavors
+    if (order.flavors.length === 1) {
+      const c = order.flavors[0].color;
+      return [c, c];
+    }
     return order.flavors.map(f => f.color);
   }, [order.flavors]);
+
+  // Primary color for accents
+  const primaryColor = flavorColors[0] || '#FFB6C1';
 
   useEffect(() => {
     // Float animation
     Animated.loop(
       Animated.sequence([
-        Animated.timing(floatAnim, { toValue: 1, duration: 1800, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
-        Animated.timing(floatAnim, { toValue: 0, duration: 1800, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+        Animated.timing(floatAnim, { toValue: 1, duration: 2000, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+        Animated.timing(floatAnim, { toValue: 0, duration: 2000, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
       ])
     ).start();
 
@@ -95,6 +102,14 @@ const FinalCup: React.FC = () => {
       Animated.sequence([
         Animated.timing(sparkleAnim, { toValue: 1, duration: 1200, useNativeDriver: true }),
         Animated.timing(sparkleAnim, { toValue: 0.4, duration: 1200, useNativeDriver: true }),
+      ])
+    ).start();
+
+    // Glow animation
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(glowAnim, { toValue: 1, duration: 1500, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+        Animated.timing(glowAnim, { toValue: 0.5, duration: 1500, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
       ])
     ).start();
   }, []);
@@ -110,19 +125,36 @@ const FinalCup: React.FC = () => {
             {
               translateY: floatAnim.interpolate({
                 inputRange: [0, 1],
-                outputRange: [0, -6],
+                outputRange: [0, -8],
               }),
             },
           ],
         },
       ]}
     >
+      {/* Glow effect behind cup */}
+      <Animated.View
+        style={[
+          styles.cupGlow,
+          {
+            backgroundColor: primaryColor,
+            opacity: glowAnim.interpolate({
+              inputRange: [0.5, 1],
+              outputRange: [0.1, 0.2],
+            }),
+          },
+        ]}
+      />
+
       {/* Sparkles around cup */}
       <Animated.View style={[styles.sparkle, styles.sparkle1, { opacity: sparkleAnim }]}>
-        <Ionicons name="sparkles" size={18} color={colors.accent.gold} />
+        <Ionicons name="sparkles" size={20} color={colors.accent.gold} />
       </Animated.View>
       <Animated.View style={[styles.sparkle, styles.sparkle2, { opacity: sparkleAnim.interpolate({ inputRange: [0, 1], outputRange: [1, 0.4] }) }]}>
-        <Ionicons name="sparkles" size={14} color={flavorColors[0]} />
+        <Ionicons name="sparkles" size={16} color={primaryColor} />
+      </Animated.View>
+      <Animated.View style={[styles.sparkle, styles.sparkle3, { opacity: sparkleAnim }]}>
+        <Ionicons name="star" size={12} color={colors.accent.gold} />
       </Animated.View>
 
       {/* Cup body */}
@@ -153,31 +185,45 @@ const FinalCup: React.FC = () => {
             <View style={[styles.cupShine, { height: CUP_HEIGHT * 0.5 }]} />
           </LinearGradient>
 
-          {/* Inner cup with everything */}
+          {/* Inner cup showing the full creation */}
           <View style={styles.cupInner}>
-            {/* Yogurt fill */}
-            <View style={[styles.yogurtFill, { height: `${fillLevel * 85}%` }]}>
+            {/* Yogurt fill with gradient of all flavors */}
+            <View style={[styles.yogurtFill, { height: `${fillLevel * 90}%` }]}>
               <LinearGradient
-                colors={flavorColors.length > 1 ? flavorColors as [string, string, ...string[]] : [flavorColors[0], flavorColors[0]] as [string, string]}
-                locations={flavorColors.map((_, i) => i / (flavorColors.length - 1 || 1))}
+                colors={flavorColors.length > 1
+                  ? flavorColors as [string, string, ...string[]]
+                  : [flavorColors[0], flavorColors[0]] as [string, string]
+                }
+                locations={flavorColors.length > 1
+                  ? flavorColors.map((_, i) => i / (flavorColors.length - 1)) as [number, number, ...number[]]
+                  : [0, 1] as [number, number]
+                }
                 style={styles.yogurtGradient}
-                start={{ x: 0.2, y: 0 }}
-                end={{ x: 0.8, y: 1 }}
-              />
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+              >
+                {/* Yogurt texture/swirls */}
+                <View style={styles.yogurtTexture}>
+                  <View style={[styles.yogurtSwirl, { left: '15%', top: 5 }]} />
+                  <View style={[styles.yogurtSwirl, { left: '45%', top: 10 }]} />
+                  <View style={[styles.yogurtSwirl, { left: '70%', top: 6 }]} />
+                </View>
+              </LinearGradient>
             </View>
 
-            {/* Toppings on surface */}
+            {/* Toppings scattered on top of yogurt */}
             <View style={styles.toppingsOnYogurt}>
-              {order.toppings.slice(0, 5).map((sel, i) => {
+              {order.toppings.slice(0, 6).map((sel, i) => {
                 const icon = getToppingIcon(sel.topping.id);
                 const positions = [
-                  { left: 6, top: 3 },
-                  { left: 22, top: 6 },
-                  { left: 38, top: 2 },
-                  { left: 54, top: 5 },
-                  { left: 70, top: 4 },
+                  { left: 8, top: 2 },
+                  { left: 28, top: 6 },
+                  { left: 48, top: 3 },
+                  { left: 68, top: 5 },
+                  { left: 88, top: 4 },
+                  { left: 18, top: 14 },
                 ];
-                const pos = positions[i];
+                const pos = positions[i] || { left: 8 + i * 12, top: 5 };
                 return (
                   <Text key={sel.topping.id} style={[styles.toppingEmoji, { left: pos.left, top: pos.top }]}>
                     {icon}
@@ -186,16 +232,16 @@ const FinalCup: React.FC = () => {
               })}
             </View>
 
-            {/* Sauce drizzles */}
+            {/* Sauce drizzles on top */}
             <View style={styles.sauceDrizzles}>
               {order.sauces.slice(0, 3).map((sauce, i) => {
                 const data = getSauceData(sauce.name);
-                const positions = [
-                  { left: 8, width: 35 },
-                  { left: 28, width: 30 },
-                  { left: 48, width: 32 },
+                const drizzleStyles = [
+                  { left: 10, width: 40, rotation: '-5deg' },
+                  { left: 35, width: 35, rotation: '3deg' },
+                  { left: 60, width: 38, rotation: '-2deg' },
                 ];
-                const pos = positions[i];
+                const style = drizzleStyles[i];
                 return (
                   <View
                     key={sauce.id}
@@ -203,8 +249,9 @@ const FinalCup: React.FC = () => {
                       styles.drizzle,
                       {
                         backgroundColor: data.color,
-                        left: pos.left,
-                        width: pos.width,
+                        left: style.left,
+                        width: style.width,
+                        transform: [{ rotate: style.rotation }],
                       }
                     ]}
                   />
@@ -216,7 +263,14 @@ const FinalCup: React.FC = () => {
       </View>
 
       {/* Shadow */}
-      <View style={[styles.cupShadow, { width: cupBottomWidth + 15 }]} />
+      <View style={[styles.cupShadow, { width: cupBottomWidth + 20 }]} />
+
+      {/* Order summary badge */}
+      <View style={styles.summaryBadge}>
+        <Text style={styles.summaryText}>
+          {order.flavors.length} flavor{order.flavors.length !== 1 ? 's' : ''} • {order.toppings.length} topping{order.toppings.length !== 1 ? 's' : ''}
+        </Text>
+      </View>
     </Animated.View>
   );
 };
@@ -433,17 +487,29 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     position: 'relative',
   },
+  cupGlow: {
+    position: 'absolute',
+    top: 20,
+    width: CUP_WIDTH + 40,
+    height: CUP_HEIGHT + 20,
+    borderRadius: 100,
+    zIndex: -1,
+  },
   sparkle: {
     position: 'absolute',
     zIndex: 20,
   },
   sparkle1: {
-    top: -8,
-    left: -15,
+    top: -10,
+    left: -20,
   },
   sparkle2: {
-    top: 25,
-    right: -18,
+    top: 30,
+    right: -22,
+  },
+  sparkle3: {
+    bottom: 40,
+    left: -15,
   },
   cupBody: {
     alignItems: 'center',
@@ -521,6 +587,20 @@ const styles = StyleSheet.create({
   yogurtGradient: {
     flex: 1,
   },
+  yogurtTexture: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 20,
+  },
+  yogurtSwirl: {
+    position: 'absolute',
+    width: 15,
+    height: 5,
+    backgroundColor: 'rgba(255,255,255,0.4)',
+    borderRadius: 3,
+  },
   toppingsOnYogurt: {
     position: 'absolute',
     top: 2,
@@ -550,6 +630,18 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0,0,0,0.08)',
     borderRadius: 50,
     marginTop: spacing.xs,
+  },
+  summaryBadge: {
+    marginTop: spacing.md,
+    backgroundColor: colors.accent.gold + '15',
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs,
+    borderRadius: borderRadius.round,
+  },
+  summaryText: {
+    fontSize: typography.fontSizes.xs,
+    fontWeight: '600' as const,
+    color: colors.accent.gold,
   },
   readyMessage: {
     flexDirection: 'row',

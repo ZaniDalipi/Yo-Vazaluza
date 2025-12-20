@@ -184,7 +184,7 @@ const FroYoCup: React.FC = () => {
 };
 
 
-// Sauce nozzle/bottle card
+// Sauce dispensing nozzle card - like yogurt machine style
 const SauceNozzle: React.FC<{
   sauce: Topping;
   isSelected: boolean;
@@ -192,8 +192,9 @@ const SauceNozzle: React.FC<{
   index: number;
 }> = ({ sauce, isSelected, onSelect, index }) => {
   const scaleAnim = useRef(new Animated.Value(0)).current;
-  const tiltAnim = useRef(new Animated.Value(0)).current;
+  const streamAnim = useRef(new Animated.Value(0)).current;
   const dripAnim = useRef(new Animated.Value(0)).current;
+  const pulseAnim = useRef(new Animated.Value(1)).current;
 
   const data = getSauceData(sauce.name);
 
@@ -209,27 +210,33 @@ const SauceNozzle: React.FC<{
 
   useEffect(() => {
     if (isSelected) {
-      // Tilt and drip animation
+      // Continuous stream animation - sauce flowing
       Animated.loop(
         Animated.sequence([
-          Animated.timing(tiltAnim, { toValue: 1, duration: 300, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
-          Animated.delay(400),
-          Animated.timing(tiltAnim, { toValue: 0, duration: 300, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
-          Animated.delay(1500),
+          Animated.timing(streamAnim, { toValue: 1, duration: 500, easing: Easing.linear, useNativeDriver: true }),
+          Animated.timing(streamAnim, { toValue: 0, duration: 0, useNativeDriver: true }),
         ])
       ).start();
 
+      // Drip animation
       Animated.loop(
         Animated.sequence([
-          Animated.delay(300),
           Animated.timing(dripAnim, { toValue: 1, duration: 700, easing: Easing.in(Easing.quad), useNativeDriver: true }),
           Animated.timing(dripAnim, { toValue: 0, duration: 0, useNativeDriver: true }),
-          Animated.delay(1800),
+        ])
+      ).start();
+
+      // Pulse animation on the machine
+      Animated.loop(
+        Animated.sequence([
+          Animated.timing(pulseAnim, { toValue: 1.02, duration: 800, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+          Animated.timing(pulseAnim, { toValue: 1, duration: 800, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
         ])
       ).start();
     } else {
-      tiltAnim.setValue(0);
+      streamAnim.setValue(0);
       dripAnim.setValue(0);
+      pulseAnim.setValue(1);
     }
   }, [isSelected]);
 
@@ -263,64 +270,88 @@ const SauceNozzle: React.FC<{
           </View>
         )}
 
-        {/* Nozzle/bottle illustration */}
+        {/* Sauce dispenser machine */}
         <Animated.View
           style={[
-            styles.bottleIllustration,
-            {
-              transform: [
-                {
-                  rotate: tiltAnim.interpolate({
-                    inputRange: [0, 1],
-                    outputRange: ['0deg', '-25deg'],
-                  }),
-                },
-              ],
-            },
+            styles.dispenserContainer,
+            { transform: [{ scale: pulseAnim }] }
           ]}
         >
-          {/* Bottle cap */}
-          <View style={[styles.bottleCap, { backgroundColor: data.color }]} />
-
-          {/* Bottle neck/nozzle */}
-          <View style={[styles.bottleNeck, { backgroundColor: data.color + 'DD' }]} />
-
-          {/* Bottle body */}
-          <View style={[styles.bottleBody, { backgroundColor: data.color }]}>
-            <View style={styles.bottleShine} />
-            <View style={styles.bottleLabel}>
-              <Text style={styles.bottleLabelText}>{data.emoji}</Text>
-            </View>
+          {/* Machine body */}
+          <View style={styles.machineBody}>
+            <LinearGradient
+              colors={[data.color, data.darkColor] as [string, string]}
+              style={styles.machineGradient}
+            >
+              {/* Window showing sauce inside */}
+              <View style={styles.machineWindow}>
+                <View style={[styles.sauceLevel, { backgroundColor: data.color + 'AA' }]} />
+              </View>
+              {/* Brand label */}
+              <View style={styles.machineLabelBg}>
+                <Text style={styles.machineLabelText}>{data.emoji}</Text>
+              </View>
+              {/* Shine effect */}
+              <View style={styles.machineShine} />
+            </LinearGradient>
           </View>
 
-          {/* Drip */}
+          {/* Dispenser nozzle tip */}
+          <View style={[styles.nozzleTip, { backgroundColor: data.darkColor }]}>
+            <View style={styles.nozzleOpening} />
+          </View>
+
+          {/* Sauce stream when dispensing */}
           {isSelected && (
             <Animated.View
               style={[
-                styles.drip,
+                styles.sauceStream,
                 {
                   backgroundColor: data.color,
-                  opacity: dripAnim.interpolate({
-                    inputRange: [0, 0.5, 1],
-                    outputRange: [0, 1, 0],
+                  opacity: streamAnim.interpolate({
+                    inputRange: [0, 0.3, 0.7, 1],
+                    outputRange: [0.6, 1, 1, 0.6],
                   }),
+                },
+              ]}
+            />
+          )}
+
+          {/* Drip at nozzle */}
+          {isSelected && (
+            <Animated.View
+              style={[
+                styles.sauceDrip,
+                {
+                  backgroundColor: data.color,
                   transform: [
                     {
                       translateY: dripAnim.interpolate({
                         inputRange: [0, 1],
-                        outputRange: [0, 35],
+                        outputRange: [0, 20],
                       }),
                     },
                     {
                       scale: dripAnim.interpolate({
                         inputRange: [0, 0.5, 1],
-                        outputRange: [0.5, 1, 0.3],
+                        outputRange: [0.7, 1.1, 0.4],
                       }),
                     },
                   ],
+                  opacity: dripAnim.interpolate({
+                    inputRange: [0, 0.8, 1],
+                    outputRange: [1, 0.7, 0],
+                  }),
                 },
               ]}
             />
+          )}
+
+          {/* Dispensing indicator */}
+          {isSelected && (
+            <View style={[styles.dispensingBadge, { backgroundColor: data.color }]}>
+              <Text style={styles.dispensingText}>ON</Text>
+            </View>
           )}
         </Animated.View>
 
@@ -684,62 +715,105 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     ...shadows.small,
   },
-  bottleIllustration: {
+  dispenserContainer: {
     alignItems: 'center',
     marginBottom: spacing.md,
   },
-  bottleCap: {
-    width: 22,
-    height: 10,
-    borderTopLeftRadius: 6,
-    borderTopRightRadius: 6,
-  },
-  bottleNeck: {
-    width: 18,
-    height: 16,
-    borderBottomLeftRadius: 4,
-    borderBottomRightRadius: 4,
-  },
-  bottleBody: {
-    width: 55,
-    height: 65,
+  machineBody: {
+    width: 65,
+    height: 70,
     borderRadius: 10,
-    borderTopLeftRadius: 14,
-    borderTopRightRadius: 14,
+    overflow: 'hidden',
+    ...shadows.medium,
+  },
+  machineGradient: {
+    flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
     position: 'relative',
-    overflow: 'hidden',
   },
-  bottleShine: {
+  machineWindow: {
     position: 'absolute',
     top: 8,
-    left: 10,
-    width: 8,
-    height: 35,
+    width: 45,
+    height: 25,
     backgroundColor: 'rgba(255,255,255,0.3)',
     borderRadius: 4,
-    transform: [{ rotate: '10deg' }],
+    overflow: 'hidden',
   },
-  bottleLabel: {
-    width: 35,
-    height: 28,
-    backgroundColor: '#FFF',
+  sauceLevel: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: '70%',
+    borderRadius: 2,
+  },
+  machineLabelBg: {
+    position: 'absolute',
+    bottom: 10,
+    width: 32,
+    height: 26,
+    backgroundColor: 'rgba(255,255,255,0.9)',
     borderRadius: 5,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  bottleLabelText: {
-    fontSize: 18,
+  machineLabelText: {
+    fontSize: 16,
   },
-  drip: {
+  machineShine: {
     position: 'absolute',
-    bottom: -12,
-    width: 10,
+    top: 6,
+    left: 8,
+    width: 5,
+    height: 40,
+    backgroundColor: 'rgba(255,255,255,0.25)',
+    borderRadius: 3,
+  },
+  nozzleTip: {
+    width: 22,
     height: 14,
+    borderBottomLeftRadius: 8,
+    borderBottomRightRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+    paddingBottom: 2,
+  },
+  nozzleOpening: {
+    width: 10,
+    height: 4,
+    backgroundColor: 'rgba(0,0,0,0.3)',
+    borderRadius: 2,
+  },
+  sauceStream: {
+    position: 'absolute',
+    top: 83,
+    width: 6,
+    height: 30,
+    borderRadius: 3,
+  },
+  sauceDrip: {
+    position: 'absolute',
+    top: 82,
+    width: 10,
+    height: 10,
     borderRadius: 5,
-    borderBottomLeftRadius: 7,
-    borderBottomRightRadius: 7,
+    ...shadows.small,
+  },
+  dispensingBadge: {
+    position: 'absolute',
+    top: -6,
+    right: -10,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 8,
+  },
+  dispensingText: {
+    fontSize: 8,
+    fontWeight: '700' as const,
+    color: '#FFF',
+    letterSpacing: 0.5,
   },
   sauceName: {
     fontSize: typography.fontSizes.md,

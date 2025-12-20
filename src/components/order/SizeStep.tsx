@@ -19,7 +19,190 @@ const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const CARD_WIDTH = SCREEN_WIDTH * 0.75;
 const CARD_MARGIN = spacing.md;
 
-// No machine nozzle needed - we show realistic froyo cups
+// Yogurt Machine Nozzle Component
+const YogurtNozzle: React.FC<{ isDispensing: boolean; fillLevel: number }> = ({ isDispensing, fillLevel }) => {
+  const dripAnim = useRef(new Animated.Value(0)).current;
+  const streamAnim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    if (isDispensing) {
+      // Stream animation - yogurt flowing
+      Animated.loop(
+        Animated.sequence([
+          Animated.timing(streamAnim, { toValue: 1, duration: 400, easing: Easing.linear, useNativeDriver: true }),
+          Animated.timing(streamAnim, { toValue: 0, duration: 0, useNativeDriver: true }),
+        ])
+      ).start();
+
+      // Drip animation at the tip
+      Animated.loop(
+        Animated.sequence([
+          Animated.timing(dripAnim, { toValue: 1, duration: 600, easing: Easing.in(Easing.quad), useNativeDriver: true }),
+          Animated.timing(dripAnim, { toValue: 0, duration: 0, useNativeDriver: true }),
+        ])
+      ).start();
+    } else {
+      streamAnim.setValue(0);
+      dripAnim.setValue(0);
+    }
+  }, [isDispensing]);
+
+  return (
+    <View style={nozzleStyles.nozzleContainer}>
+      {/* Machine body - simplified */}
+      <View style={nozzleStyles.machineBody}>
+        <LinearGradient
+          colors={['#E8E8E8', '#D0D0D0', '#C0C0C0'] as const}
+          style={nozzleStyles.machineGradient}
+        >
+          <View style={nozzleStyles.machineBrand}>
+            <Text style={nozzleStyles.machineBrandText}>Yo-V</Text>
+          </View>
+        </LinearGradient>
+      </View>
+
+      {/* Nozzle tip */}
+      <View style={nozzleStyles.nozzleTip}>
+        <LinearGradient
+          colors={['#B8B8B8', '#A0A0A0', '#888'] as const}
+          style={nozzleStyles.nozzleTipGradient}
+        />
+      </View>
+
+      {/* Yogurt stream when dispensing */}
+      {isDispensing && (
+        <Animated.View
+          style={[
+            nozzleStyles.yogurtStream,
+            {
+              opacity: streamAnim.interpolate({
+                inputRange: [0, 0.3, 0.7, 1],
+                outputRange: [0.7, 1, 1, 0.7],
+              }),
+            },
+          ]}
+        >
+          <LinearGradient
+            colors={['#FFFFFF', '#FAFAFA', '#F5F5F5'] as const}
+            style={nozzleStyles.streamGradient}
+          />
+        </Animated.View>
+      )}
+
+      {/* Drip at nozzle tip */}
+      {isDispensing && (
+        <Animated.View
+          style={[
+            nozzleStyles.drip,
+            {
+              transform: [
+                {
+                  translateY: dripAnim.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [0, 15],
+                  }),
+                },
+                {
+                  scale: dripAnim.interpolate({
+                    inputRange: [0, 0.5, 1],
+                    outputRange: [0.8, 1.2, 0.6],
+                  }),
+                },
+              ],
+              opacity: dripAnim.interpolate({
+                inputRange: [0, 0.8, 1],
+                outputRange: [1, 0.8, 0],
+              }),
+            },
+          ]}
+        />
+      )}
+
+      {/* Fill level indicator */}
+      {isDispensing && (
+        <View style={nozzleStyles.fillIndicator}>
+          <Text style={nozzleStyles.fillText}>{Math.round(fillLevel * 100)}%</Text>
+        </View>
+      )}
+    </View>
+  );
+};
+
+const nozzleStyles = StyleSheet.create({
+  nozzleContainer: {
+    alignItems: 'center',
+    marginBottom: -10,
+    zIndex: 10,
+  },
+  machineBody: {
+    width: 80,
+    height: 35,
+    borderRadius: 6,
+    overflow: 'hidden',
+    ...shadows.small,
+  },
+  machineGradient: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  machineBrand: {
+    backgroundColor: 'rgba(201, 169, 98, 0.15)',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  machineBrandText: {
+    fontSize: 10,
+    fontWeight: '700' as const,
+    color: colors.accent.gold,
+    letterSpacing: 0.5,
+  },
+  nozzleTip: {
+    width: 20,
+    height: 18,
+    borderBottomLeftRadius: 6,
+    borderBottomRightRadius: 6,
+    overflow: 'hidden',
+  },
+  nozzleTipGradient: {
+    flex: 1,
+  },
+  yogurtStream: {
+    position: 'absolute',
+    top: 52,
+    width: 8,
+    height: 40,
+    borderRadius: 4,
+    overflow: 'hidden',
+  },
+  streamGradient: {
+    flex: 1,
+  },
+  drip: {
+    position: 'absolute',
+    top: 50,
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    backgroundColor: '#FFF',
+    ...shadows.small,
+  },
+  fillIndicator: {
+    position: 'absolute',
+    top: 8,
+    right: -35,
+    backgroundColor: colors.accent.gold + '20',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 10,
+  },
+  fillText: {
+    fontSize: 10,
+    fontWeight: '600' as const,
+    color: colors.accent.gold,
+  },
+});
 
 // Realistic frozen yogurt cup that fills based on size
 const FroYoCup: React.FC<{ size: CupSize; isSelected: boolean }> = ({ size, isSelected }) => {
@@ -58,21 +241,25 @@ const FroYoCup: React.FC<{ size: CupSize; isSelected: boolean }> = ({ size, isSe
   }, [isSelected, fillLevel]);
 
   return (
-    <Animated.View style={[
-      styles.cupWrapper,
-      isSelected && {
-        transform: [
-          {
-            rotate: wobbleAnim.interpolate({
-              inputRange: [0, 1],
-              outputRange: ['-1deg', '1deg'],
-            })
-          },
-        ],
-      }
-    ]}>
-      {/* Cup body - tapered shape */}
-      <View style={[styles.cupBody, { height: cupHeight, width: cupTopWidth }]}>
+    <View style={styles.cupWrapper}>
+      {/* Yogurt machine nozzle */}
+      <YogurtNozzle isDispensing={isSelected} fillLevel={fillLevel} />
+
+      <Animated.View style={[
+        styles.cupAnimated,
+        isSelected && {
+          transform: [
+            {
+              rotate: wobbleAnim.interpolate({
+                inputRange: [0, 1],
+                outputRange: ['-1deg', '1deg'],
+              })
+            },
+          ],
+        }
+      ]}>
+        {/* Cup body - tapered shape */}
+        <View style={[styles.cupBody, { height: cupHeight, width: cupTopWidth }]}>
         {/* Cup outer shell */}
         <View style={[
           styles.cupOuter,
@@ -152,16 +339,10 @@ const FroYoCup: React.FC<{ size: CupSize; isSelected: boolean }> = ({ size, isSe
         </View>
       </View>
 
-      {/* Shadow */}
-      <View style={[styles.cupShadow, { width: cupBottomWidth + 20 }]} />
-
-      {/* Fill percentage label */}
-      {isSelected && (
-        <View style={styles.fillLabel}>
-          <Text style={styles.fillLabelText}>{Math.round(fillLevel * 100)}% fill</Text>
-        </View>
-      )}
-    </Animated.View>
+        {/* Shadow */}
+        <View style={[styles.cupShadow, { width: cupBottomWidth + 20 }]} />
+      </Animated.View>
+    </View>
   );
 };
 
@@ -401,6 +582,10 @@ const styles = StyleSheet.create({
   },
   cupWrapper: {
     alignItems: 'center',
+    marginTop: spacing.sm,
+  },
+  cupAnimated: {
+    alignItems: 'center',
     marginTop: spacing.md,
   },
   cupBody: {
@@ -517,18 +702,6 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0,0,0,0.08)',
     borderRadius: 50,
     marginTop: spacing.xs,
-  },
-  fillLabel: {
-    marginTop: spacing.sm,
-    backgroundColor: colors.accent.gold + '20',
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.xs,
-    borderRadius: borderRadius.round,
-  },
-  fillLabelText: {
-    fontSize: typography.fontSizes.xs,
-    fontWeight: '600' as const,
-    color: colors.accent.gold,
   },
   sizeInfo: {
     alignItems: 'center',
