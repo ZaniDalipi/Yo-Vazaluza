@@ -22,7 +22,9 @@ import {
   AboutScreen,
   AdminLoginScreen,
   AdminScreen,
+  BuildCupScreen,
 } from '../screens';
+import { OrderProvider } from '../context/OrderContext';
 import { useApp } from '../context/AppContext';
 import { colors, spacing, typography, borderRadius, shadows } from '../theme';
 
@@ -678,6 +680,31 @@ const AppNavigator: React.FC = () => {
           }}
         />
         <Stack.Screen name="AdminPanel" component={AdminScreen} />
+        <Stack.Screen
+          name="BuildCup"
+          options={{
+            presentation: 'modal',
+            cardStyleInterpolator: ({ current }) => ({
+              cardStyle: {
+                opacity: current.progress,
+                transform: [
+                  {
+                    translateY: current.progress.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [600, 0],
+                    }),
+                  },
+                ],
+              },
+            }),
+          }}
+        >
+          {(props) => (
+            <OrderProvider>
+              <BuildCupScreen {...props} />
+            </OrderProvider>
+          )}
+        </Stack.Screen>
       </Stack.Navigator>
     </NavigationContainer>
   );

@@ -58,3 +58,22 @@ export interface Promotion {
   validUntil?: string;
   isActive: boolean;
 }
+
+// Order Flow Types
+export interface CupSize {
+  id: string;
+  name: string;
+  size: 'small' | 'medium' | 'large';
+  price: number;
+  ounces: number;
+  emoji: string;
+}
+
+export interface OrderState {
+  cupSize: CupSize | null;
+  flavors: Flavor[];
+  toppings: Topping[];
+  sauces: Topping[];
+}
+
+export type OrderStep = 'size' | 'flavors' | 'toppings' | 'sauces' | 'review';

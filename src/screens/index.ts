@@ -5,3 +5,4 @@ export { default as ToppingsScreen } from './ToppingsScreen';
 export { default as AboutScreen } from './AboutScreen';
 export { default as AdminLoginScreen } from './AdminLoginScreen';
 export { default as AdminScreen } from './AdminScreen';
+export { default as BuildCupScreen } from './BuildCupScreen';

@@ -33,7 +33,7 @@ const fallbackImage = { uri: 'https://images.unsplash.com/photo-1488900128323-21
 // Use only image.png for the banner
 const heroBannerImage = mainBannerImage || fallbackImage;
 
-const HomeScreen: React.FC = () => {
+const HomeScreen: React.FC<{ navigation?: any }> = ({ navigation }) => {
   const { storeInfo, flavors, promotions } = useApp();
 
   // Animations
@@ -276,25 +276,58 @@ const HomeScreen: React.FC = () => {
             {storeInfo.tagline}
           </Animated.Text>
 
-          {/* Quick Actions with Pulse */}
+          {/* Build Your Cup CTA */}
           <Animated.View
             style={[
-              styles.quickActions,
+              styles.buildCupContainer,
               {
                 opacity: fadeAnim,
                 transform: [{ translateY: slideAnim }, { scale: pulseAnim }],
               },
             ]}
           >
+            <TouchableOpacity
+              style={styles.buildCupButton}
+              onPress={() => navigation?.navigate('BuildCup')}
+              activeOpacity={0.9}
+            >
+              <LinearGradient
+                colors={['#FF6B6B', '#FFE66D', '#4ECDC4']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={styles.buildCupGradient}
+              >
+                <View style={styles.buildCupContent}>
+                  <Text style={styles.buildCupEmoji}>🍦</Text>
+                  <View>
+                    <Text style={styles.buildCupTitle}>Build Your Cup</Text>
+                    <Text style={styles.buildCupSubtitle}>Create your perfect froyo!</Text>
+                  </View>
+                  <Ionicons name="arrow-forward-circle" size={32} color="#FFF" />
+                </View>
+              </LinearGradient>
+            </TouchableOpacity>
+          </Animated.View>
+
+          {/* Quick Actions */}
+          <Animated.View
+            style={[
+              styles.quickActions,
+              {
+                opacity: fadeAnim,
+                transform: [{ translateY: slideAnim }],
+              },
+            ]}
+          >
             <AnimatedButton
               title="View Flavors"
-              onPress={() => navigation.navigate('Flavors')}
+              onPress={() => navigation?.navigate('Flavors')}
               variant="golden"
               size="medium"
             />
             <AnimatedButton
               title="Our Story"
-              onPress={() => navigation.navigate('About')}
+              onPress={() => navigation?.navigate('About')}
               variant="outline"
               size="medium"
             />
@@ -324,7 +357,7 @@ const HomeScreen: React.FC = () => {
             <TouchableOpacity
               key={index}
               style={styles.galleryThumb}
-              onPress={() => navigation.navigate('Gallery')}
+              onPress={() => navigation?.navigate('Gallery')}
               activeOpacity={0.9}
             >
               <Animated.View style={[styles.galleryImageContainer, { opacity: fadeAnim }]}>
@@ -529,10 +562,42 @@ const styles = StyleSheet.create({
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 3,
   },
+  buildCupContainer: {
+    marginTop: spacing.xl,
+    width: '100%',
+    paddingHorizontal: spacing.lg,
+  },
+  buildCupButton: {
+    borderRadius: borderRadius.xl,
+    overflow: 'hidden',
+    ...shadows.large,
+  },
+  buildCupGradient: {
+    paddingVertical: spacing.lg,
+    paddingHorizontal: spacing.lg,
+  },
+  buildCupContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+  },
+  buildCupEmoji: {
+    fontSize: 40,
+  },
+  buildCupTitle: {
+    fontSize: typography.fontSizes.xl,
+    fontWeight: typography.fontWeights.bold,
+    color: '#FFF',
+  },
+  buildCupSubtitle: {
+    fontSize: typography.fontSizes.sm,
+    color: 'rgba(255,255,255,0.9)',
+    marginTop: 2,
+  },
   quickActions: {
     flexDirection: 'row',
     gap: spacing.md,
-    marginTop: spacing.xl,
+    marginTop: spacing.lg,
   },
   bottomFade: {
     position: 'absolute',
