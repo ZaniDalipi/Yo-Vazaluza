@@ -134,18 +134,40 @@ const ToppingsCup: React.FC = () => {
 
             {/* Toppings on yogurt */}
             <View style={styles.toppingsOnYogurt}>
-              {order.toppings.slice(0, 5).map((sel, i) => {
+              {order.toppings.map((sel, i) => {
                 const data = getToppingDisplayData(sel.topping);
+                // Generate dynamic positions for unlimited toppings
                 const positions = [
-                  { left: 10, top: 4 },
-                  { left: 35, top: 2 },
-                  { left: 60, top: 5 },
-                  { left: 85, top: 3 },
-                  { left: 22, top: 12 },
+                  { left: '10%', top: 2 },
+                  { left: '35%', top: 0 },
+                  { left: '60%', top: 3 },
+                  { left: '85%', top: 1 },
+                  { left: '22%', top: 10 },
+                  { left: '48%', top: 8 },
+                  { left: '72%', top: 11 },
+                  { left: '5%', top: 18 },
+                  { left: '30%', top: 16 },
+                  { left: '55%', top: 19 },
+                  { left: '80%', top: 17 },
+                  { left: '18%', top: 24 },
+                  { left: '42%', top: 22 },
+                  { left: '68%', top: 25 },
                 ];
-                const pos = positions[i];
+                const pos = positions[i % positions.length];
+                const row = Math.floor(i / positions.length);
                 return (
-                  <Text key={sel.topping.id} style={[styles.toppingMini, { left: pos.left, top: pos.top }]}>
+                  <Text
+                    key={sel.topping.id}
+                    style={[
+                      styles.toppingMini,
+                      {
+                        left: pos.left,
+                        top: pos.top + (row * 28),
+                        fontSize: 10 - (row * 2),
+                        opacity: 1 - (row * 0.2),
+                      }
+                    ]}
+                  >
                     {data.emoji}
                   </Text>
                 );
@@ -497,10 +519,11 @@ const styles = StyleSheet.create({
   },
   toppingsOnYogurt: {
     position: 'absolute',
-    top: 2,
+    top: 0,
     left: 0,
     right: 0,
-    height: 22,
+    bottom: 0,
+    overflow: 'hidden',
   },
   toppingMini: {
     position: 'absolute',
