@@ -514,7 +514,8 @@ const AdminScreen: React.FC = () => {
   const renderEditModal = () => (
     <Modal visible={editModalVisible} animationType="slide" transparent onRequestClose={() => setEditModalVisible(false)}>
       <View style={styles.modalOverlay}>
-        <View style={styles.modalContent}>
+        <TouchableOpacity style={styles.modalBackdrop} activeOpacity={1} onPress={() => setEditModalVisible(false)} />
+        <View style={styles.modalContent} pointerEvents="auto">
           <View style={styles.modalHeader}>
             <Text style={styles.modalTitle}>{editingItem ? 'Edit' : 'Add'} {editType}</Text>
             <TouchableOpacity onPress={() => setEditModalVisible(false)}>
@@ -1266,14 +1267,18 @@ const styles = StyleSheet.create({
   // Modal styles
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
     justifyContent: 'flex-end',
+  },
+  modalBackdrop: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.5)',
   },
   modalContent: {
     backgroundColor: colors.background.card,
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     maxHeight: '85%',
+    zIndex: 10,
   },
   modalHeader: {
     flexDirection: 'row',
