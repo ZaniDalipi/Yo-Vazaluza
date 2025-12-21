@@ -134,6 +134,7 @@ const AdminScreen: React.FC = () => {
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [colorPickerField, setColorPickerField] = useState<string>('color');
   const [formData, setFormData] = useState<any>({});
+  const [deleteConfirm, setDeleteConfirm] = useState<{ id: string; type: 'flavor' | 'topping' | 'promotion' | 'gallery'; name: string } | null>(null);
 
   const handleLogout = () => {
     Alert.alert(
@@ -255,23 +256,21 @@ const AdminScreen: React.FC = () => {
     setFormData({});
   };
 
-  const handleDelete = (id: string, type: 'flavor' | 'topping' | 'promotion' | 'gallery') => {
-    Alert.alert('Delete Item', 'Are you sure?', [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Delete',
-        style: 'destructive',
-        onPress: () => {
-          const actions: Record<string, () => void> = {
-            flavor: () => deleteFlavor(id),
-            topping: () => deleteTopping(id),
-            promotion: () => deletePromotion(id),
-            gallery: () => deleteGalleryImage(id),
-          };
-          actions[type]?.();
-        },
-      },
-    ]);
+  const handleDelete = (id: string, type: 'flavor' | 'topping' | 'promotion' | 'gallery', name: string) => {
+    setDeleteConfirm({ id, type, name });
+  };
+
+  const confirmDelete = () => {
+    if (!deleteConfirm) return;
+    const { id, type } = deleteConfirm;
+    const actions: Record<string, () => void> = {
+      flavor: () => deleteFlavor(id),
+      topping: () => deleteTopping(id),
+      promotion: () => deletePromotion(id),
+      gallery: () => deleteGalleryImage(id),
+    };
+    actions[type]?.();
+    setDeleteConfirm(null);
   };
 
   // Render navigation tab
@@ -373,7 +372,7 @@ const AdminScreen: React.FC = () => {
         <TouchableOpacity style={styles.actionBtn} onPress={() => openEditModal(item, type)}>
           <Ionicons name="pencil" size={18} color={colors.accent.gold} />
         </TouchableOpacity>
-        <TouchableOpacity style={styles.actionBtn} onPress={() => handleDelete(item.id, type)}>
+        <TouchableOpacity style={styles.actionBtn} onPress={() => handleDelete(item.id, type, item.name || item.title || 'this item')}>
           <Ionicons name="trash" size={18} color={colors.ui.error} />
         </TouchableOpacity>
       </View>
@@ -841,6 +840,34 @@ const AdminScreen: React.FC = () => {
     </Modal>
   );
 
+  // Render delete confirmation modal
+  const renderDeleteConfirmModal = () => (
+    <Modal visible={deleteConfirm !== null} transparent animationType="fade" onRequestClose={() => setDeleteConfirm(null)}>
+      <View style={styles.deleteModalOverlay}>
+        <View style={styles.deleteModalBackdrop}>
+          <TouchableOpacity style={{ flex: 1 }} activeOpacity={1} onPress={() => setDeleteConfirm(null)} />
+        </View>
+        <View style={styles.deleteModalContent} pointerEvents="auto">
+          <View style={styles.deleteModalIcon}>
+            <Ionicons name="trash" size={32} color={colors.ui.error} />
+          </View>
+          <Text style={styles.deleteModalTitle}>Delete {deleteConfirm?.type}?</Text>
+          <Text style={styles.deleteModalMessage}>
+            Are you sure you want to delete "{deleteConfirm?.name}"? This action cannot be undone.
+          </Text>
+          <View style={styles.deleteModalButtons}>
+            <TouchableOpacity style={styles.deleteModalCancelBtn} onPress={() => setDeleteConfirm(null)}>
+              <Text style={styles.deleteModalCancelText}>Cancel</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.deleteModalConfirmBtn} onPress={confirmDelete}>
+              <Text style={styles.deleteModalConfirmText}>Delete</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </View>
+    </Modal>
+  );
+
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <StatusBar barStyle="light-content" />
@@ -902,6 +929,7 @@ const AdminScreen: React.FC = () => {
       {renderColorPicker()}
       {renderEmojiPicker()}
       {renderUrlInputModal()}
+      {renderDeleteConfirmModal()}
     </SafeAreaView>
   );
 };
@@ -1754,6 +1782,80 @@ const styles = StyleSheet.create({
     borderRadius: borderRadius.md,
     backgroundColor: colors.background.main,
     resizeMode: 'cover',
+  },
+  // Delete confirmation modal styles
+  deleteModalOverlay: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: spacing.lg,
+  },
+  deleteModalBackdrop: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+  },
+  deleteModalContent: {
+    backgroundColor: colors.background.card,
+    borderRadius: 20,
+    padding: spacing.xl,
+    width: '100%',
+    maxWidth: 340,
+    alignItems: 'center',
+    zIndex: 10,
+    elevation: 10,
+  },
+  deleteModalIcon: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: colors.ui.error + '20',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: spacing.md,
+  },
+  deleteModalTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: colors.text.primary,
+    marginBottom: spacing.sm,
+    textTransform: 'capitalize',
+  },
+  deleteModalMessage: {
+    fontSize: 15,
+    color: colors.text.secondary,
+    textAlign: 'center',
+    marginBottom: spacing.lg,
+    lineHeight: 22,
+  },
+  deleteModalButtons: {
+    flexDirection: 'row',
+    gap: spacing.md,
+    width: '100%',
+  },
+  deleteModalCancelBtn: {
+    flex: 1,
+    paddingVertical: spacing.md,
+    borderRadius: borderRadius.md,
+    borderWidth: 1,
+    borderColor: colors.ui.border,
+    alignItems: 'center',
+  },
+  deleteModalCancelText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: colors.text.secondary,
+  },
+  deleteModalConfirmBtn: {
+    flex: 1,
+    paddingVertical: spacing.md,
+    borderRadius: borderRadius.md,
+    backgroundColor: colors.ui.error,
+    alignItems: 'center',
+  },
+  deleteModalConfirmText: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#FFF',
   },
 });
 
