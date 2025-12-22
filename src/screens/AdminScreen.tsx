@@ -381,11 +381,11 @@ const AdminScreen: React.FC = () => {
           </View>
           <Text style={[styles.listItemSubtitle, { fontSize: isTablet ? 15 : 13 }]} numberOfLines={1}>{display.subtitle}</Text>
         </View>
-        <TouchableOpacity style={[styles.actionBtn, isTablet && { width: 44, height: 44 }]} onPress={() => openEditModal(item, type)}>
-          <Ionicons name="pencil" size={isTablet ? 22 : 18} color={colors.accent.gold} />
+        <TouchableOpacity style={[styles.actionBtn, isTablet && { width: 48, height: 48 }]} onPress={() => openEditModal(item, type)}>
+          <Ionicons name="pencil" size={isTablet ? 22 : 20} color={colors.accent.gold} />
         </TouchableOpacity>
-        <TouchableOpacity style={[styles.actionBtn, isTablet && { width: 44, height: 44 }]} onPress={() => handleDelete(item.id, type, item.name || item.title || 'this item')}>
-          <Ionicons name="trash" size={isTablet ? 22 : 18} color={colors.ui.error} />
+        <TouchableOpacity style={[styles.actionBtn, isTablet && { width: 48, height: 48 }]} onPress={() => handleDelete(item.id, type, item.name || item.title || 'this item')}>
+          <Ionicons name="trash" size={isTablet ? 22 : 20} color={colors.ui.error} />
         </TouchableOpacity>
       </View>
     );
@@ -906,7 +906,13 @@ const AdminScreen: React.FC = () => {
 
       {/* Navigation Tabs */}
       <View style={styles.navBar}>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={[styles.navBarContent, { paddingHorizontal: horizontalPadding }]}>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={[styles.navBarContent, { paddingHorizontal: horizontalPadding }]}
+          decelerationRate="fast"
+          snapToAlignment="start"
+        >
           {NAV_ITEMS.map(renderNavTab)}
         </ScrollView>
       </View>
@@ -995,15 +1001,17 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
     flexDirection: 'row',
-    gap: spacing.xs,
+    gap: spacing.sm,
   },
   navTab: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: spacing.sm,
-    paddingHorizontal: spacing.md,
+    justifyContent: 'center',
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.lg,
     borderRadius: borderRadius.round,
     backgroundColor: 'transparent',
+    minWidth: 100,
   },
   navTabActive: {
     backgroundColor: colors.accent.gold + '20',
@@ -1082,8 +1090,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: colors.background.card,
     padding: spacing.md,
+    paddingVertical: spacing.md + 4,
     borderRadius: borderRadius.lg,
-    marginBottom: spacing.sm,
+    marginBottom: spacing.md,
     ...shadows.small,
   },
   itemImage: {
@@ -1111,24 +1120,24 @@ const styles = StyleSheet.create({
     fontSize: 24,
   },
   toppingListEmoji: {
-    width: 52,
-    height: 52,
-    borderRadius: 26,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: spacing.md,
     position: 'relative',
   },
   toppingListEmojiText: {
-    fontSize: 30,
+    fontSize: 26,
   },
   toppingListColorDot: {
     position: 'absolute',
-    bottom: 0,
-    right: 0,
-    width: 14,
-    height: 14,
-    borderRadius: 7,
+    bottom: -2,
+    right: -2,
+    width: 16,
+    height: 16,
+    borderRadius: 8,
     borderWidth: 2,
     borderColor: colors.background.card,
   },
@@ -1188,13 +1197,13 @@ const styles = StyleSheet.create({
     color: '#FFF',
   },
   actionBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 8,
+    width: 40,
+    height: 40,
+    borderRadius: 10,
     backgroundColor: colors.background.main,
     alignItems: 'center',
     justifyContent: 'center',
-    marginLeft: spacing.xs,
+    marginLeft: spacing.sm,
   },
   storeCard: {
     backgroundColor: colors.background.card,
