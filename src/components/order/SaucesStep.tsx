@@ -330,30 +330,28 @@ const SauceStation: React.FC<{
                 })}
               </View>
 
-              {/* Sauce drizzles on top */}
+              {/* Sauce drizzles on top - emoji style */}
               <View style={styles.sauceDrizzles}>
                 {selectedSauces.slice(0, 3).map((sauce, i) => {
                   const data = getSauceData(sauce.name);
-                  const drizzleStyles = [
-                    { left: 15, width: 50, rotation: '-5deg' },
-                    { left: 45, width: 45, rotation: '3deg' },
-                    { left: 75, width: 48, rotation: '-2deg' },
+                  // Multiple positions for each sauce to create a drizzle pattern
+                  const drizzlePositions = [
+                    [{ left: 8, top: 2 }, { left: 35, top: 6 }, { left: 62, top: 3 }, { left: 90, top: 5 }],
+                    [{ left: 20, top: 8 }, { left: 48, top: 4 }, { left: 75, top: 7 }, { left: 100, top: 3 }],
+                    [{ left: 5, top: 10 }, { left: 30, top: 12 }, { left: 55, top: 9 }, { left: 82, top: 11 }],
                   ];
-                  const style = drizzleStyles[i];
-                  return (
-                    <View
-                      key={sauce.id}
+                  const positions = drizzlePositions[i] || drizzlePositions[0];
+                  return positions.map((pos, j) => (
+                    <Text
+                      key={`${sauce.id}-${j}`}
                       style={[
-                        styles.drizzleLine,
-                        {
-                          backgroundColor: data.color,
-                          left: style.left,
-                          width: style.width,
-                          transform: [{ rotate: style.rotation }],
-                        }
+                        styles.sauceEmoji,
+                        { left: pos.left, top: pos.top },
                       ]}
-                    />
-                  );
+                    >
+                      {data.emoji}
+                    </Text>
+                  ));
                 })}
               </View>
             </View>
@@ -647,13 +645,11 @@ const styles = StyleSheet.create({
     top: 0,
     left: 0,
     right: 0,
-    height: 15,
+    height: 30,
   },
-  drizzleLine: {
+  sauceEmoji: {
     position: 'absolute',
-    top: 3,
-    height: 5,
-    borderRadius: 2,
+    fontSize: 10,
   },
   cupShadow: {
     height: 10,

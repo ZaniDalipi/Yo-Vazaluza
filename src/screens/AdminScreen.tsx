@@ -943,9 +943,10 @@ const AdminScreen: React.FC = () => {
       {/* Content */}
       <View style={styles.content}>
         <ScrollView
-          style={{ flex: 1 }}
+          style={styles.scrollViewStyle}
           contentContainerStyle={[styles.contentContainer, { padding: horizontalPadding, maxWidth: contentMaxWidth, alignSelf: 'center', width: '100%' }]}
           showsVerticalScrollIndicator={true}
+          nestedScrollEnabled={true}
         >
           {renderSectionContent()}
           <View style={{ height: 100 }} />
@@ -1055,6 +1056,10 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
     backgroundColor: colors.background.main,
+    overflow: 'hidden',
+  },
+  scrollViewStyle: {
+    flex: 1,
   },
   contentContainer: {
     padding: spacing.lg,
