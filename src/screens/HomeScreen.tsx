@@ -17,6 +17,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { AnimatedLogo, MagicalParticles, AnimatedButton, FlavorSlider } from '../components';
 import { useApp } from '../context/AppContext';
 import { colors, spacing, typography, borderRadius, shadows } from '../theme';
+import { useResponsive } from '../hooks/useResponsive';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -35,6 +36,17 @@ const heroBannerImage = mainBannerImage || fallbackImage;
 
 const HomeScreen: React.FC<{ navigation?: any }> = ({ navigation }) => {
   const { storeInfo, flavors, promotions } = useApp();
+  const { isTablet, width: screenWidth } = useResponsive();
+
+  // Responsive values
+  const heroHeight = isTablet ? Math.min(screenWidth * 0.6, 600) : SCREEN_HEIGHT * 0.75;
+  const logoSize = isTablet ? 140 : 100;
+  const brandFontSize = isTablet ? 56 : 42;
+  const promoCardWidth = isTablet ? 320 : SCREEN_WIDTH * 0.75;
+  const featureCardWidth = isTablet ? '23%' : '48%';
+  const galleryHeight = isTablet ? 200 : 140;
+  const contentMaxWidth = isTablet ? 1000 : screenWidth;
+  const horizontalPadding = isTablet ? 40 : spacing.lg;
 
   // Animations
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -151,6 +163,7 @@ const HomeScreen: React.FC<{ navigation?: any }> = ({ navigation }) => {
       style={[
         styles.promoCard,
         {
+          width: promoCardWidth,
           opacity: fadeAnim,
           transform: [{ translateX: Animated.multiply(slideAnim, -1) }],
         },
@@ -162,10 +175,10 @@ const HomeScreen: React.FC<{ navigation?: any }> = ({ navigation }) => {
         end={{ x: 1, y: 1 }}
         style={styles.promoGradient}
       >
-        <Ionicons name="gift" size={24} color={colors.text.light} />
+        <Ionicons name="gift" size={isTablet ? 32 : 24} color={colors.text.light} />
         <View style={styles.promoContent}>
-          <Text style={styles.promoTitle}>{promo.title}</Text>
-          <Text style={styles.promoDescription}>{promo.description}</Text>
+          <Text style={[styles.promoTitle, { fontSize: isTablet ? 20 : typography.fontSizes.lg }]}>{promo.title}</Text>
+          <Text style={[styles.promoDescription, { fontSize: isTablet ? 16 : typography.fontSizes.sm }]}>{promo.description}</Text>
         </View>
       </LinearGradient>
     </Animated.View>
@@ -173,7 +186,7 @@ const HomeScreen: React.FC<{ navigation?: any }> = ({ navigation }) => {
 
   const renderHeroBanner = () => {
     return (
-      <View style={styles.heroBanner}>
+      <View style={[styles.heroBanner, { height: heroHeight }]}>
         {/* Background Image - Single image.png centered and full width */}
         <Animated.View
           style={[
@@ -232,7 +245,7 @@ const HomeScreen: React.FC<{ navigation?: any }> = ({ navigation }) => {
             ]}
           >
             <View style={styles.logoShadow}>
-              <AnimatedLogo size={100} color={colors.accent.gold} animated />
+              <AnimatedLogo size={logoSize} color={colors.accent.gold} animated />
             </View>
           </Animated.View>
 
@@ -241,6 +254,7 @@ const HomeScreen: React.FC<{ navigation?: any }> = ({ navigation }) => {
             style={[
               styles.brandName,
               {
+                fontSize: brandFontSize,
                 opacity: titleAnim,
                 transform: [
                   {
@@ -281,6 +295,7 @@ const HomeScreen: React.FC<{ navigation?: any }> = ({ navigation }) => {
             style={[
               styles.buildCupContainer,
               {
+                maxWidth: isTablet ? 500 : '100%',
                 opacity: fadeAnim,
                 transform: [{ translateY: slideAnim }, { scale: pulseAnim }],
               },
@@ -344,19 +359,26 @@ const HomeScreen: React.FC<{ navigation?: any }> = ({ navigation }) => {
   };
 
   const renderGalleryPreview = () => {
-    const galleryItems = [
-      { image: heroBannerImage, icon: 'ice-cream', label: 'Our Yogurt' },
-      { image: heroBannerImage, icon: 'storefront', label: 'Our Store' },
-    ];
+    const galleryItems = isTablet
+      ? [
+          { image: heroBannerImage, icon: 'ice-cream', label: 'Our Yogurt' },
+          { image: heroBannerImage, icon: 'storefront', label: 'Our Store' },
+          { image: heroBannerImage, icon: 'people', label: 'Our Team' },
+          { image: heroBannerImage, icon: 'sparkles', label: 'Specials' },
+        ]
+      : [
+          { image: heroBannerImage, icon: 'ice-cream', label: 'Our Yogurt' },
+          { image: heroBannerImage, icon: 'storefront', label: 'Our Store' },
+        ];
 
     return (
-      <View style={styles.galleryPreview}>
-        <Text style={styles.gallerySectionTitle}>Our Creations</Text>
+      <View style={[styles.galleryPreview, { paddingHorizontal: horizontalPadding, maxWidth: contentMaxWidth, alignSelf: 'center', width: '100%' }]}>
+        <Text style={[styles.gallerySectionTitle, { fontSize: isTablet ? 24 : typography.fontSizes.lg }]}>Our Creations</Text>
         <View style={styles.galleryRow}>
           {galleryItems.map((item, index) => (
             <TouchableOpacity
               key={index}
-              style={styles.galleryThumb}
+              style={[styles.galleryThumb, { height: galleryHeight }]}
               onPress={() => navigation?.navigate('Gallery')}
               activeOpacity={0.9}
             >
@@ -371,8 +393,8 @@ const HomeScreen: React.FC<{ navigation?: any }> = ({ navigation }) => {
                   style={styles.galleryOverlay}
                 >
                   <View style={styles.galleryLabelContainer}>
-                    <Ionicons name={item.icon as any} size={16} color={colors.text.light} />
-                    <Text style={styles.galleryLabel}>{item.label}</Text>
+                    <Ionicons name={item.icon as any} size={isTablet ? 20 : 16} color={colors.text.light} />
+                    <Text style={[styles.galleryLabel, { fontSize: isTablet ? 18 : typography.fontSizes.md }]}>{item.label}</Text>
                   </View>
                 </LinearGradient>
               </Animated.View>
@@ -431,8 +453,8 @@ const HomeScreen: React.FC<{ navigation?: any }> = ({ navigation }) => {
         </View>
 
         {/* Features Section */}
-        <View style={styles.featuresSection}>
-          <Text style={styles.sectionTitle}>Why Yo-Vazaluza?</Text>
+        <View style={[styles.featuresSection, { paddingHorizontal: horizontalPadding, maxWidth: contentMaxWidth, alignSelf: 'center', width: '100%' }]}>
+          <Text style={[styles.sectionTitle, { fontSize: isTablet ? 28 : typography.fontSizes.xl, paddingHorizontal: 0 }]}>Why Yo-Vazaluza?</Text>
           <View style={styles.featuresGrid}>
             {[
               { icon: 'leaf', title: 'Fresh', desc: 'Premium ingredients' },
@@ -442,13 +464,13 @@ const HomeScreen: React.FC<{ navigation?: any }> = ({ navigation }) => {
             ].map((feature, index) => (
               <Animated.View
                 key={feature.title}
-                style={[styles.featureCard, { opacity: fadeAnim }]}
+                style={[styles.featureCard, { width: featureCardWidth, opacity: fadeAnim }]}
               >
-                <View style={styles.featureIcon}>
-                  <Ionicons name={feature.icon as any} size={24} color={colors.accent.gold} />
+                <View style={[styles.featureIcon, { width: isTablet ? 64 : 50, height: isTablet ? 64 : 50, borderRadius: isTablet ? 32 : 25 }]}>
+                  <Ionicons name={feature.icon as any} size={isTablet ? 32 : 24} color={colors.accent.gold} />
                 </View>
-                <Text style={styles.featureTitle}>{feature.title}</Text>
-                <Text style={styles.featureDesc}>{feature.desc}</Text>
+                <Text style={[styles.featureTitle, { fontSize: isTablet ? 18 : typography.fontSizes.md }]}>{feature.title}</Text>
+                <Text style={[styles.featureDesc, { fontSize: isTablet ? 15 : typography.fontSizes.sm }]}>{feature.desc}</Text>
               </Animated.View>
             ))}
           </View>
@@ -459,11 +481,11 @@ const HomeScreen: React.FC<{ navigation?: any }> = ({ navigation }) => {
           colors={colors.gradients.golden}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
-          style={styles.ctaSection}
+          style={[styles.ctaSection, { marginHorizontal: horizontalPadding, maxWidth: isTablet ? 600 : undefined, alignSelf: 'center' }]}
         >
-          <Ionicons name="location" size={32} color={colors.text.light} />
-          <Text style={styles.ctaTitle}>Visit Us Today!</Text>
-          <Text style={styles.ctaText}>{storeInfo.address}</Text>
+          <Ionicons name="location" size={isTablet ? 48 : 32} color={colors.text.light} />
+          <Text style={[styles.ctaTitle, { fontSize: isTablet ? 32 : typography.fontSizes.xxl }]}>Visit Us Today!</Text>
+          <Text style={[styles.ctaText, { fontSize: isTablet ? 18 : typography.fontSizes.md }]}>{storeInfo.address}</Text>
           <AnimatedButton
             title="Get Directions"
             onPress={() => navigation.navigate('About')}
@@ -487,7 +509,6 @@ const styles = StyleSheet.create({
     paddingBottom: spacing.xxl + 80,
   },
   heroBanner: {
-    height: SCREEN_HEIGHT * 0.75,
     justifyContent: 'flex-end',
     overflow: 'hidden',
   },
@@ -622,7 +643,6 @@ const styles = StyleSheet.create({
   },
   galleryThumb: {
     flex: 1,
-    height: 140,
     borderRadius: borderRadius.xl,
     overflow: 'hidden',
   },
@@ -687,7 +707,6 @@ const styles = StyleSheet.create({
     gap: spacing.md,
   },
   promoCard: {
-    width: SCREEN_WIDTH * 0.75,
     marginRight: spacing.md,
   },
   promoGradient: {
@@ -723,7 +742,6 @@ const styles = StyleSheet.create({
     marginTop: spacing.md,
   },
   featureCard: {
-    width: '48%',
     backgroundColor: colors.background.card,
     borderRadius: borderRadius.lg,
     padding: spacing.md,

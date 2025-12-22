@@ -15,11 +15,9 @@ import { useOrder } from '../../context/OrderContext';
 import { useApp } from '../../context/AppContext';
 import { colors, spacing, typography, borderRadius, shadows } from '../../theme';
 import { Topping, ToppingSelection } from '../../types';
+import { useResponsive } from '../../hooks/useResponsive';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
-const CUP_WIDTH = Math.min(SCREEN_WIDTH * 0.35, 140);
-const CUP_HEIGHT = CUP_WIDTH * 1.15;
-const CARD_WIDTH = (SCREEN_WIDTH - spacing.lg * 2 - spacing.md) / 2;
 
 // Helper function to generate a lighter version of a color for backgrounds
 const getLightColor = (hexColor: string): string => {
@@ -196,7 +194,8 @@ const ToppingCard: React.FC<{
   onAdd: () => void;
   onRemove: () => void;
   index: number;
-}> = ({ topping, selection, onTap, onAdd, onRemove, index }) => {
+  cardWidth?: number;
+}> = ({ topping, selection, onTap, onAdd, onRemove, index, cardWidth }) => {
   const data = getToppingDisplayData(topping);
   const isSelected = !!selection;
   const grams = selection?.grams || 0;
@@ -232,6 +231,7 @@ const ToppingCard: React.FC<{
     <Animated.View style={[
       styles.cardContainer,
       {
+        width: cardWidth,
         opacity: scaleAnim,
         transform: [{ scale: Animated.multiply(scaleAnim, pulseAnim) }],
       },
@@ -364,6 +364,13 @@ const SelectedToppings: React.FC = () => {
 const ToppingsStep: React.FC = () => {
   const { order, addTopping, updateToppingGrams, removeTopping } = useOrder();
   const { toppings: allToppings } = useApp();
+  const { isTablet, width: screenWidth } = useResponsive();
+
+  // Responsive values
+  const columns = isTablet ? 4 : 2;
+  const horizontalPadding = isTablet ? 32 : spacing.lg;
+  const gap = isTablet ? 16 : spacing.md;
+  const cardWidth = (screenWidth - horizontalPadding * 2 - gap * (columns - 1)) / columns;
 
   const sortedToppings = useMemo(() => {
     return allToppings.filter(t => t.category !== 'sauces');
@@ -412,17 +419,17 @@ const ToppingsStep: React.FC = () => {
 
       {/* Hint */}
       <View style={styles.hint}>
-        <Ionicons name="hand-left-outline" size={14} color={colors.accent.gold} />
-        <Text style={styles.hintText}>Tap to add toppings to your cup!</Text>
+        <Ionicons name="hand-left-outline" size={isTablet ? 18 : 14} color={colors.accent.gold} />
+        <Text style={[styles.hintText, { fontSize: isTablet ? 16 : typography.fontSizes.xs }]}>Tap to add toppings to your cup!</Text>
       </View>
 
       {/* Topping cards */}
       <ScrollView
         style={styles.scroll}
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[styles.scrollContent, { paddingHorizontal: horizontalPadding }]}
         showsVerticalScrollIndicator={false}
       >
-        <View style={styles.grid}>
+        <View style={[styles.grid, { gap }]}>
           {sortedToppings.map((topping, index) => (
             <ToppingCard
               key={topping.id}
@@ -432,6 +439,7 @@ const ToppingsStep: React.FC = () => {
               onAdd={() => handleAdd(topping)}
               onRemove={() => handleRemove(topping)}
               index={index}
+              cardWidth={cardWidth}
             />
           ))}
         </View>
@@ -625,16 +633,13 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    paddingHorizontal: spacing.lg,
     paddingTop: spacing.md,
   },
   grid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: spacing.md,
   },
   cardContainer: {
-    width: CARD_WIDTH,
     marginBottom: spacing.sm,
   },
   card: {

@@ -22,6 +22,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { useApp } from '../context/AppContext';
 import { colors, spacing, typography, borderRadius, shadows } from '../theme';
 import { Flavor, Topping, Promotion, GalleryImage } from '../types';
+import { useResponsive } from '../hooks/useResponsive';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -125,6 +126,16 @@ const AdminScreen: React.FC = () => {
     updateStoreInfo,
     resetToDefaults,
   } = useApp();
+
+  const { isTablet, width: screenWidth } = useResponsive();
+
+  // Responsive values
+  const contentMaxWidth = isTablet ? 900 : screenWidth;
+  const horizontalPadding = isTablet ? 32 : spacing.lg;
+  const listItemColumns = isTablet ? 2 : 1;
+  const modalMaxWidth = isTablet ? 600 : screenWidth;
+  const headerFontSize = isTablet ? 28 : 22;
+  const statFontSize = isTablet ? 28 : 20;
 
   const [activeSection, setActiveSection] = useState<AdminSection>('flavors');
   const [editModalVisible, setEditModalVisible] = useState(false);
@@ -358,22 +369,23 @@ const AdminScreen: React.FC = () => {
     };
 
     const display = getItemDisplay();
+    const itemWidth = isTablet ? (contentMaxWidth - horizontalPadding * 2 - 16) / 2 : '100%';
 
     return (
-      <View key={item.id} style={styles.listItem}>
+      <View key={item.id} style={[styles.listItem, { width: itemWidth }]}>
         {display.preview}
         <View style={styles.listItemContent}>
           <View style={styles.listItemHeader}>
-            <Text style={styles.listItemTitle} numberOfLines={1}>{display.title}</Text>
+            <Text style={[styles.listItemTitle, { fontSize: isTablet ? 18 : 16 }]} numberOfLines={1}>{display.title}</Text>
             {display.badges}
           </View>
-          <Text style={styles.listItemSubtitle} numberOfLines={1}>{display.subtitle}</Text>
+          <Text style={[styles.listItemSubtitle, { fontSize: isTablet ? 15 : 13 }]} numberOfLines={1}>{display.subtitle}</Text>
         </View>
-        <TouchableOpacity style={styles.actionBtn} onPress={() => openEditModal(item, type)}>
-          <Ionicons name="pencil" size={18} color={colors.accent.gold} />
+        <TouchableOpacity style={[styles.actionBtn, isTablet && { width: 44, height: 44 }]} onPress={() => openEditModal(item, type)}>
+          <Ionicons name="pencil" size={isTablet ? 22 : 18} color={colors.accent.gold} />
         </TouchableOpacity>
-        <TouchableOpacity style={styles.actionBtn} onPress={() => handleDelete(item.id, type, item.name || item.title || 'this item')}>
-          <Ionicons name="trash" size={18} color={colors.ui.error} />
+        <TouchableOpacity style={[styles.actionBtn, isTablet && { width: 44, height: 44 }]} onPress={() => handleDelete(item.id, type, item.name || item.title || 'this item')}>
+          <Ionicons name="trash" size={isTablet ? 22 : 18} color={colors.ui.error} />
         </TouchableOpacity>
       </View>
     );
@@ -386,52 +398,60 @@ const AdminScreen: React.FC = () => {
         return (
           <>
             <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>Flavors ({flavors.length})</Text>
-              <TouchableOpacity style={styles.addBtn} onPress={() => openAddModal('flavor')}>
-                <Ionicons name="add" size={20} color="#FFF" />
-                <Text style={styles.addBtnText}>Add Flavor</Text>
+              <Text style={[styles.sectionTitle, { fontSize: isTablet ? 22 : 18 }]}>Flavors ({flavors.length})</Text>
+              <TouchableOpacity style={[styles.addBtn, isTablet && { paddingHorizontal: 20, paddingVertical: 12 }]} onPress={() => openAddModal('flavor')}>
+                <Ionicons name="add" size={isTablet ? 24 : 20} color="#FFF" />
+                <Text style={[styles.addBtnText, { fontSize: isTablet ? 16 : 14 }]}>Add Flavor</Text>
               </TouchableOpacity>
             </View>
-            {flavors.map(item => renderListItem(item, 'flavor'))}
+            <View style={isTablet ? { flexDirection: 'row', flexWrap: 'wrap', gap: 16 } : undefined}>
+              {flavors.map(item => renderListItem(item, 'flavor'))}
+            </View>
           </>
         );
       case 'toppings':
         return (
           <>
             <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>Toppings ({toppings.length})</Text>
-              <TouchableOpacity style={styles.addBtn} onPress={() => openAddModal('topping')}>
-                <Ionicons name="add" size={20} color="#FFF" />
-                <Text style={styles.addBtnText}>Add Topping</Text>
+              <Text style={[styles.sectionTitle, { fontSize: isTablet ? 22 : 18 }]}>Toppings ({toppings.length})</Text>
+              <TouchableOpacity style={[styles.addBtn, isTablet && { paddingHorizontal: 20, paddingVertical: 12 }]} onPress={() => openAddModal('topping')}>
+                <Ionicons name="add" size={isTablet ? 24 : 20} color="#FFF" />
+                <Text style={[styles.addBtnText, { fontSize: isTablet ? 16 : 14 }]}>Add Topping</Text>
               </TouchableOpacity>
             </View>
-            {toppings.map(item => renderListItem(item, 'topping'))}
+            <View style={isTablet ? { flexDirection: 'row', flexWrap: 'wrap', gap: 16 } : undefined}>
+              {toppings.map(item => renderListItem(item, 'topping'))}
+            </View>
           </>
         );
       case 'promotions':
         return (
           <>
             <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>Promotions ({promotions.length})</Text>
-              <TouchableOpacity style={styles.addBtn} onPress={() => openAddModal('promotion')}>
-                <Ionicons name="add" size={20} color="#FFF" />
-                <Text style={styles.addBtnText}>Add Promo</Text>
+              <Text style={[styles.sectionTitle, { fontSize: isTablet ? 22 : 18 }]}>Promotions ({promotions.length})</Text>
+              <TouchableOpacity style={[styles.addBtn, isTablet && { paddingHorizontal: 20, paddingVertical: 12 }]} onPress={() => openAddModal('promotion')}>
+                <Ionicons name="add" size={isTablet ? 24 : 20} color="#FFF" />
+                <Text style={[styles.addBtnText, { fontSize: isTablet ? 16 : 14 }]}>Add Promo</Text>
               </TouchableOpacity>
             </View>
-            {promotions.map(item => renderListItem(item, 'promotion'))}
+            <View style={isTablet ? { flexDirection: 'row', flexWrap: 'wrap', gap: 16 } : undefined}>
+              {promotions.map(item => renderListItem(item, 'promotion'))}
+            </View>
           </>
         );
       case 'gallery':
         return (
           <>
             <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>Gallery ({gallery.length})</Text>
-              <TouchableOpacity style={styles.addBtn} onPress={() => openAddModal('gallery')}>
-                <Ionicons name="add" size={20} color="#FFF" />
-                <Text style={styles.addBtnText}>Add Photo</Text>
+              <Text style={[styles.sectionTitle, { fontSize: isTablet ? 22 : 18 }]}>Gallery ({gallery.length})</Text>
+              <TouchableOpacity style={[styles.addBtn, isTablet && { paddingHorizontal: 20, paddingVertical: 12 }]} onPress={() => openAddModal('gallery')}>
+                <Ionicons name="add" size={isTablet ? 24 : 20} color="#FFF" />
+                <Text style={[styles.addBtnText, { fontSize: isTablet ? 16 : 14 }]}>Add Photo</Text>
               </TouchableOpacity>
             </View>
-            {gallery.map(item => renderListItem(item, 'gallery'))}
+            <View style={isTablet ? { flexDirection: 'row', flexWrap: 'wrap', gap: 16 } : undefined}>
+              {gallery.map(item => renderListItem(item, 'gallery'))}
+            </View>
           </>
         );
       case 'store':
@@ -874,43 +894,43 @@ const AdminScreen: React.FC = () => {
       <StatusBar barStyle="light-content" />
 
       {/* Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, { paddingHorizontal: horizontalPadding }]}>
         <View>
-          <Text style={styles.headerTitle}>Admin Panel</Text>
-          <Text style={styles.headerSubtitle}>Manage your app content</Text>
+          <Text style={[styles.headerTitle, { fontSize: headerFontSize }]}>Admin Panel</Text>
+          <Text style={[styles.headerSubtitle, { fontSize: isTablet ? 16 : 14 }]}>Manage your app content</Text>
         </View>
-        <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout}>
-          <Ionicons name="log-out-outline" size={22} color="#FFF" />
+        <TouchableOpacity style={[styles.logoutBtn, isTablet && { width: 48, height: 48 }]} onPress={handleLogout}>
+          <Ionicons name="log-out-outline" size={isTablet ? 26 : 22} color="#FFF" />
         </TouchableOpacity>
       </View>
 
       {/* Navigation Tabs */}
       <View style={styles.navBar}>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.navBarContent}>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={[styles.navBarContent, { paddingHorizontal: horizontalPadding }]}>
           {NAV_ITEMS.map(renderNavTab)}
         </ScrollView>
       </View>
 
       {/* Stats Bar */}
-      <View style={styles.statsBar}>
+      <View style={[styles.statsBar, { paddingHorizontal: horizontalPadding, maxWidth: contentMaxWidth, alignSelf: 'center', width: '100%' }]}>
         <View style={styles.statItem}>
-          <Text style={styles.statValue}>{flavors.length}</Text>
-          <Text style={styles.statLabel}>Flavors</Text>
+          <Text style={[styles.statValue, { fontSize: statFontSize }]}>{flavors.length}</Text>
+          <Text style={[styles.statLabel, { fontSize: isTablet ? 14 : 12 }]}>Flavors</Text>
         </View>
         <View style={styles.statDivider} />
         <View style={styles.statItem}>
-          <Text style={styles.statValue}>{toppings.length}</Text>
-          <Text style={styles.statLabel}>Toppings</Text>
+          <Text style={[styles.statValue, { fontSize: statFontSize }]}>{toppings.length}</Text>
+          <Text style={[styles.statLabel, { fontSize: isTablet ? 14 : 12 }]}>Toppings</Text>
         </View>
         <View style={styles.statDivider} />
         <View style={styles.statItem}>
-          <Text style={styles.statValue}>{promotions.filter(p => p.isActive).length}</Text>
-          <Text style={styles.statLabel}>Active Promos</Text>
+          <Text style={[styles.statValue, { fontSize: statFontSize }]}>{promotions.filter(p => p.isActive).length}</Text>
+          <Text style={[styles.statLabel, { fontSize: isTablet ? 14 : 12 }]}>Active Promos</Text>
         </View>
         <View style={styles.statDivider} />
         <View style={styles.statItem}>
-          <Text style={styles.statValue}>{gallery.length}</Text>
-          <Text style={styles.statLabel}>Photos</Text>
+          <Text style={[styles.statValue, { fontSize: statFontSize }]}>{gallery.length}</Text>
+          <Text style={[styles.statLabel, { fontSize: isTablet ? 14 : 12 }]}>Photos</Text>
         </View>
       </View>
 
@@ -918,7 +938,7 @@ const AdminScreen: React.FC = () => {
       <View style={styles.content}>
         <ScrollView
           style={{ flex: 1 }}
-          contentContainerStyle={styles.contentContainer}
+          contentContainerStyle={[styles.contentContainer, { padding: horizontalPadding, maxWidth: contentMaxWidth, alignSelf: 'center', width: '100%' }]}
           showsVerticalScrollIndicator={true}
         >
           {renderSectionContent()}
