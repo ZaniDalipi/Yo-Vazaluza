@@ -18,6 +18,8 @@ import { Topping, ToppingSelection } from '../../types';
 import { useResponsive } from '../../hooks/useResponsive';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
+const CUP_WIDTH = Math.min(SCREEN_WIDTH * 0.35, 140);
+const CUP_HEIGHT = CUP_WIDTH * 1.15;
 
 // Helper function to generate a lighter version of a color for backgrounds
 const getLightColor = (hexColor: string): string => {
