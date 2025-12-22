@@ -159,13 +159,13 @@ const FlavorCard: React.FC<FlavorCardProps> = ({ flavor, isActive, onPress }) =>
     >
       <View style={styles.card}>
         <LinearGradient
-          colors={['#FFFFFF', '#FAFAFA', '#F5F5F5']}
-          locations={[0, 0.6, 1]}
+          colors={['#FFFFFF', flavor.color + '08', flavor.color + '12']}
+          locations={[0, 0.7, 1]}
           style={styles.cardGradient}
         >
           {/* Background decoration */}
-          <View style={[styles.bgCircle, { backgroundColor: flavor.color + '10' }]} />
-          <View style={[styles.bgCircle2, { backgroundColor: flavor.color + '08' }]} />
+          <View style={[styles.bgCircle, { backgroundColor: flavor.color + '18' }]} />
+          <View style={[styles.bgCircle2, { backgroundColor: flavor.color + '12' }]} />
 
           {/* Yogurt Cup Illustration */}
           {renderYogurtCup()}
@@ -405,7 +405,7 @@ const styles = StyleSheet.create({
     marginTop: spacing.sm,
   },
   infoSection: {
-    backgroundColor: colors.background.card,
+    backgroundColor: 'rgba(255,255,255,0.95)',
     borderRadius: borderRadius.xl,
     paddingVertical: spacing.lg,
     paddingHorizontal: spacing.xl,
@@ -413,16 +413,23 @@ const styles = StyleSheet.create({
     marginTop: spacing.md,
     width: '92%',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.08,
-    shadowRadius: 16,
-    elevation: 8,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.12,
+    shadowRadius: 20,
+    elevation: 10,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.8)',
   },
   colorDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
+    width: 12,
+    height: 12,
+    borderRadius: 6,
     marginBottom: spacing.sm,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 3,
   },
   flavorName: {
     fontSize: typography.fontSizes.xxl,

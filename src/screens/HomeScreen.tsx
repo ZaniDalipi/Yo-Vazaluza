@@ -454,23 +454,31 @@ const HomeScreen: React.FC<{ navigation?: any }> = ({ navigation }) => {
 
         {/* Features Section */}
         <View style={[styles.featuresSection, { paddingHorizontal: horizontalPadding, maxWidth: contentMaxWidth, alignSelf: 'center', width: '100%' }]}>
-          <Text style={[styles.sectionTitle, { fontSize: isTablet ? 28 : typography.fontSizes.xl, paddingHorizontal: 0 }]}>Why Yo-Vazaluza?</Text>
+          <View style={styles.featuresTitleContainer}>
+            <Text style={[styles.featuresTitle, { fontSize: isTablet ? 28 : typography.fontSizes.xl }]}>Why Yo-Vazaluza?</Text>
+            <View style={styles.featuresTitleUnderline} />
+          </View>
           <View style={styles.featuresGrid}>
             {[
-              { icon: 'leaf', title: 'Fresh', desc: 'Premium ingredients' },
-              { icon: 'heart', title: 'Healthy', desc: 'Low-fat options' },
-              { icon: 'sparkles', title: 'Unique', desc: 'Creative flavors' },
-              { icon: 'people', title: 'Family', desc: 'Made with love' },
+              { icon: 'leaf', title: 'Fresh', desc: 'Premium ingredients', color: '#8BC34A' },
+              { icon: 'heart', title: 'Healthy', desc: 'Low-fat options', color: '#FF7B7B' },
+              { icon: 'sparkles', title: 'Unique', desc: 'Creative flavors', color: '#FFB74D' },
+              { icon: 'people', title: 'Family', desc: 'Made with love', color: '#7DD3C0' },
             ].map((feature, index) => (
               <Animated.View
                 key={feature.title}
                 style={[styles.featureCard, { width: featureCardWidth, opacity: fadeAnim }]}
               >
-                <View style={[styles.featureIcon, { width: isTablet ? 64 : 50, height: isTablet ? 64 : 50, borderRadius: isTablet ? 32 : 25 }]}>
-                  <Ionicons name={feature.icon as any} size={isTablet ? 32 : 24} color={colors.accent.gold} />
-                </View>
-                <Text style={[styles.featureTitle, { fontSize: isTablet ? 18 : typography.fontSizes.md }]}>{feature.title}</Text>
-                <Text style={[styles.featureDesc, { fontSize: isTablet ? 15 : typography.fontSizes.sm }]}>{feature.desc}</Text>
+                <LinearGradient
+                  colors={[feature.color + '15', feature.color + '05']}
+                  style={styles.featureCardGradient}
+                >
+                  <View style={[styles.featureIcon, { backgroundColor: feature.color + '20', width: isTablet ? 64 : 56, height: isTablet ? 64 : 56, borderRadius: isTablet ? 20 : 16 }]}>
+                    <Ionicons name={feature.icon as any} size={isTablet ? 32 : 28} color={feature.color} />
+                  </View>
+                  <Text style={[styles.featureTitle, { fontSize: isTablet ? 18 : typography.fontSizes.md }]}>{feature.title}</Text>
+                  <Text style={[styles.featureDesc, { fontSize: isTablet ? 14 : typography.fontSizes.sm }]}>{feature.desc}</Text>
+                </LinearGradient>
               </Animated.View>
             ))}
           </View>
@@ -735,38 +743,59 @@ const styles = StyleSheet.create({
     marginTop: spacing.xl,
     paddingHorizontal: spacing.lg,
   },
+  featuresTitleContainer: {
+    alignItems: 'center',
+    marginBottom: spacing.lg,
+  },
+  featuresTitle: {
+    fontSize: typography.fontSizes.xl,
+    fontWeight: typography.fontWeights.bold,
+    color: colors.text.primary,
+  },
+  featuresTitleUnderline: {
+    width: 60,
+    height: 4,
+    backgroundColor: colors.accent.gold,
+    borderRadius: 2,
+    marginTop: spacing.sm,
+  },
   featuresGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     justifyContent: 'space-between',
-    marginTop: spacing.md,
   },
   featureCard: {
-    backgroundColor: colors.background.card,
-    borderRadius: borderRadius.lg,
-    padding: spacing.md,
-    alignItems: 'center',
+    borderRadius: borderRadius.xl,
     marginBottom: spacing.md,
+    overflow: 'hidden',
     ...shadows.medium,
   },
+  featureCardGradient: {
+    padding: spacing.lg,
+    alignItems: 'center',
+    backgroundColor: colors.background.card,
+    borderRadius: borderRadius.xl,
+    borderWidth: 1,
+    borderColor: colors.ui.border,
+  },
   featureIcon: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    backgroundColor: colors.accent.gold + '20',
+    width: 56,
+    height: 56,
+    borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: spacing.sm,
+    marginBottom: spacing.md,
   },
   featureTitle: {
     fontSize: typography.fontSizes.md,
-    fontWeight: typography.fontWeights.semibold,
+    fontWeight: typography.fontWeights.bold,
     color: colors.text.primary,
+    marginBottom: spacing.xs,
   },
   featureDesc: {
     fontSize: typography.fontSizes.sm,
     color: colors.text.secondary,
-    marginTop: spacing.xs,
+    textAlign: 'center',
   },
   ctaSection: {
     margin: spacing.lg,
