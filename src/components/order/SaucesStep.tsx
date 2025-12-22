@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useMemo, useState } from 'react';
+import React, { useRef, useEffect, useMemo } from 'react';
 import {
   View,
   Text,
@@ -6,7 +6,6 @@ import {
   ScrollView,
   TouchableOpacity,
   Animated,
-  Easing,
   Dimensions,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -113,10 +112,6 @@ const SauceStation: React.FC<{
   const { order } = useOrder();
   const wobbleAnim = useRef(new Animated.Value(0)).current;
 
-  // Drip animations for each sauce position
-  const dripAnims = useRef(selectedSauces.map(() => new Animated.Value(0))).current;
-  const streamAnims = useRef(selectedSauces.map(() => new Animated.Value(0))).current;
-
   // Calculate fill level based on selected size
   const fillLevel = useMemo(() => {
     if (!order.cupSize) return 0.75;
@@ -144,40 +139,7 @@ const SauceStation: React.FC<{
     ]).start();
   }, [selectedSauces.length]);
 
-  // Animate drips for selected sauces
-  useEffect(() => {
-    selectedSauces.forEach((_, i) => {
-      if (!dripAnims[i]) {
-        dripAnims[i] = new Animated.Value(0);
-        streamAnims[i] = new Animated.Value(0);
-      }
-
-      // Stream animation
-      Animated.loop(
-        Animated.sequence([
-          Animated.timing(streamAnims[i], { toValue: 1, duration: 400, easing: Easing.linear, useNativeDriver: true }),
-          Animated.timing(streamAnims[i], { toValue: 0, duration: 0, useNativeDriver: true }),
-        ])
-      ).start();
-
-      // Drip animation
-      Animated.loop(
-        Animated.sequence([
-          Animated.timing(dripAnims[i], { toValue: 1, duration: 800, easing: Easing.in(Easing.quad), useNativeDriver: true }),
-          Animated.timing(dripAnims[i], { toValue: 0, duration: 0, useNativeDriver: true }),
-        ])
-      ).start();
-    });
-  }, [selectedSauces]);
-
   const cupBottomWidth = CUP_WIDTH * 0.7;
-
-  // Position dispensers above the cup
-  const getDispenserPosition = (index: number, total: number) => {
-    const spacing = 70;
-    const startX = (SCREEN_WIDTH - (total - 1) * spacing) / 2;
-    return startX + index * spacing;
-  };
 
   return (
     <View style={styles.stationContainer}>
@@ -192,70 +154,6 @@ const SauceStation: React.FC<{
             index={i}
           />
         ))}
-      </View>
-
-      {/* Nozzles and streams for selected sauces */}
-      <View style={styles.nozzlesArea}>
-        {selectedSauces.slice(0, 3).map((sauce, i) => {
-          const data = getSauceData(sauce.name);
-          const positions = [
-            { left: SCREEN_WIDTH / 2 - 50 },
-            { left: SCREEN_WIDTH / 2 },
-            { left: SCREEN_WIDTH / 2 + 50 },
-          ];
-          const pos = positions[i] || positions[0];
-
-          return (
-            <View key={sauce.id} style={[styles.nozzleGroup, { left: pos.left - 15 }]}>
-              {/* Nozzle */}
-              <View style={[styles.nozzle, { backgroundColor: data.darkColor }]}>
-                <View style={[styles.nozzleInner, { backgroundColor: data.color }]} />
-              </View>
-
-              {/* Stream */}
-              <Animated.View
-                style={[
-                  styles.sauceStream,
-                  {
-                    backgroundColor: data.color,
-                    opacity: streamAnims[i]?.interpolate({
-                      inputRange: [0, 0.3, 0.7, 1],
-                      outputRange: [0.5, 1, 1, 0.5],
-                    }) || 1,
-                  },
-                ]}
-              />
-
-              {/* Drip */}
-              <Animated.View
-                style={[
-                  styles.sauceDrip,
-                  {
-                    backgroundColor: data.color,
-                    transform: [
-                      {
-                        translateY: dripAnims[i]?.interpolate({
-                          inputRange: [0, 1],
-                          outputRange: [0, 60],
-                        }) || 0,
-                      },
-                      {
-                        scale: dripAnims[i]?.interpolate({
-                          inputRange: [0, 0.5, 1],
-                          outputRange: [0.8, 1.2, 0.5],
-                        }) || 1,
-                      },
-                    ],
-                    opacity: dripAnims[i]?.interpolate({
-                      inputRange: [0, 0.8, 1],
-                      outputRange: [1, 0.8, 0],
-                    }) || 1,
-                  },
-                ]}
-              />
-            </View>
-          );
-        })}
       </View>
 
       {/* Cup */}
@@ -330,28 +228,65 @@ const SauceStation: React.FC<{
                 })}
               </View>
 
-              {/* Sauce drizzles on top - emoji style */}
+              {/* Sauce drizzles on top - wavy pattern style */}
               <View style={styles.sauceDrizzles}>
                 {selectedSauces.slice(0, 3).map((sauce, i) => {
                   const data = getSauceData(sauce.name);
-                  // Multiple positions for each sauce to create a drizzle pattern
-                  const drizzlePositions = [
-                    [{ left: 8, top: 2 }, { left: 35, top: 6 }, { left: 62, top: 3 }, { left: 90, top: 5 }],
-                    [{ left: 20, top: 8 }, { left: 48, top: 4 }, { left: 75, top: 7 }, { left: 100, top: 3 }],
-                    [{ left: 5, top: 10 }, { left: 30, top: 12 }, { left: 55, top: 9 }, { left: 82, top: 11 }],
+                  // Create wavy drizzle patterns for each sauce
+                  const drizzlePatterns = [
+                    // First sauce - zigzag across top
+                    [
+                      { left: 5, top: 8, width: 30, rotate: '15deg' },
+                      { left: 25, top: 14, width: 35, rotate: '-10deg' },
+                      { left: 55, top: 10, width: 28, rotate: '8deg' },
+                      { left: 80, top: 16, width: 32, rotate: '-12deg' },
+                    ],
+                    // Second sauce - different pattern
+                    [
+                      { left: 10, top: 20, width: 25, rotate: '-8deg' },
+                      { left: 35, top: 24, width: 40, rotate: '12deg' },
+                      { left: 70, top: 22, width: 30, rotate: '-5deg' },
+                    ],
+                    // Third sauce - more drizzles
+                    [
+                      { left: 15, top: 30, width: 35, rotate: '10deg' },
+                      { left: 50, top: 34, width: 28, rotate: '-15deg' },
+                      { left: 85, top: 32, width: 22, rotate: '5deg' },
+                    ],
                   ];
-                  const positions = drizzlePositions[i] || drizzlePositions[0];
-                  return positions.map((pos, j) => (
-                    <Text
-                      key={`${sauce.id}-${j}`}
-                      style={[
-                        styles.sauceEmoji,
-                        { left: pos.left, top: pos.top },
-                      ]}
-                    >
-                      {data.emoji}
-                    </Text>
-                  ));
+                  const patterns = drizzlePatterns[i] || drizzlePatterns[0];
+                  return (
+                    <React.Fragment key={sauce.id}>
+                      {patterns.map((pattern, j) => (
+                        <View
+                          key={`${sauce.id}-drizzle-${j}`}
+                          style={[
+                            styles.sauceDrizzleLine,
+                            {
+                              left: pattern.left,
+                              top: pattern.top,
+                              width: pattern.width,
+                              backgroundColor: data.color,
+                              transform: [{ rotate: pattern.rotate }],
+                            },
+                          ]}
+                        />
+                      ))}
+                      {/* Add sauce dots for pooling effect */}
+                      <View
+                        style={[
+                          styles.sauceDot,
+                          { left: 20 + i * 30, top: 12 + i * 8, backgroundColor: data.color },
+                        ]}
+                      />
+                      <View
+                        style={[
+                          styles.sauceDot,
+                          { left: 60 + i * 15, top: 18 + i * 6, backgroundColor: data.color, width: 6, height: 6 },
+                        ]}
+                      />
+                    </React.Fragment>
+                  );
                 })}
               </View>
             </View>
@@ -518,47 +453,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  nozzlesArea: {
-    height: 80,
-    width: '100%',
-    position: 'relative',
-  },
-  nozzleGroup: {
-    position: 'absolute',
-    top: 0,
-    alignItems: 'center',
-    width: 30,
-  },
-  nozzle: {
-    width: 24,
-    height: 12,
-    borderBottomLeftRadius: 8,
-    borderBottomRightRadius: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  nozzleInner: {
-    width: 12,
-    height: 6,
-    borderRadius: 3,
-    marginTop: 2,
-  },
-  sauceStream: {
-    width: 6,
-    height: 50,
-    borderRadius: 3,
-    marginTop: -2,
-  },
-  sauceDrip: {
-    position: 'absolute',
-    top: 8,
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-  },
   cupContainer: {
     alignItems: 'center',
-    marginTop: -10,
+    marginTop: spacing.md,
   },
   cupBody: {
     alignItems: 'center',
@@ -645,11 +542,28 @@ const styles = StyleSheet.create({
     top: 0,
     left: 0,
     right: 0,
-    height: 30,
+    height: 50,
   },
-  sauceEmoji: {
+  sauceDrizzleLine: {
     position: 'absolute',
-    fontSize: 10,
+    height: 4,
+    borderRadius: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.2,
+    shadowRadius: 1,
+    elevation: 1,
+  },
+  sauceDot: {
+    position: 'absolute',
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.15,
+    shadowRadius: 1,
+    elevation: 1,
   },
   cupShadow: {
     height: 10,
