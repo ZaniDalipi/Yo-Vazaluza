@@ -20,6 +20,8 @@ const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const CUP_WIDTH = Math.min(SCREEN_WIDTH * 0.4, 160);
 const CUP_HEIGHT = CUP_WIDTH * 1.15;
 const CARD_WIDTH = (SCREEN_WIDTH - spacing.lg * 2 - spacing.md) / 2;
+const CARD_HEIGHT = 230; // Fixed height for consistent snap scrolling
+const ROW_HEIGHT = CARD_HEIGHT + spacing.md; // Card height + margin
 
 // Realistic froyo cup preview with mixed flavor colors inside
 const CupPreview: React.FC = () => {
@@ -380,6 +382,9 @@ const FlavorsStep: React.FC = () => {
         style={styles.scrollView}
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
+        snapToInterval={ROW_HEIGHT}
+        decelerationRate="fast"
+        snapToAlignment="start"
       >
         {/* Selected flavors slots */}
         <FlavorSlots />
@@ -558,7 +563,8 @@ const styles = StyleSheet.create({
   },
   content: {
     paddingHorizontal: spacing.lg,
-    paddingBottom: spacing.xl,
+    paddingTop: spacing.md,
+    paddingBottom: spacing.xxl,
   },
   slotsContainer: {
     marginVertical: spacing.md,
@@ -632,9 +638,11 @@ const styles = StyleSheet.create({
   },
   cardContainer: {
     width: '48%',
+    height: CARD_HEIGHT,
     marginBottom: spacing.md,
   },
   card: {
+    flex: 1,
     backgroundColor: colors.background.card,
     borderRadius: borderRadius.xl,
     padding: spacing.md,

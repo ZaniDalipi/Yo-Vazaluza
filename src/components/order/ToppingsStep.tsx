@@ -20,6 +20,8 @@ import { useResponsive } from '../../hooks/useResponsive';
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const CUP_WIDTH = Math.min(SCREEN_WIDTH * 0.35, 140);
 const CUP_HEIGHT = CUP_WIDTH * 1.15;
+const TOPPING_CARD_HEIGHT = 200; // Fixed height for consistent snap scrolling
+const TOPPING_ROW_HEIGHT = TOPPING_CARD_HEIGHT + spacing.md; // Card height + margin
 
 // Helper function to generate a lighter version of a color for backgrounds
 const getLightColor = (hexColor: string): string => {
@@ -430,6 +432,9 @@ const ToppingsStep: React.FC = () => {
         style={styles.scroll}
         contentContainerStyle={[styles.scrollContent, { paddingHorizontal: horizontalPadding }]}
         showsVerticalScrollIndicator={false}
+        snapToInterval={TOPPING_ROW_HEIGHT}
+        decelerationRate="fast"
+        snapToAlignment="start"
       >
         <View style={[styles.grid, { gap }]}>
           {sortedToppings.map((topping, index) => (
@@ -635,16 +640,19 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    paddingTop: spacing.md,
+    paddingTop: spacing.lg,
+    paddingBottom: spacing.xl,
   },
   grid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
   },
   cardContainer: {
-    marginBottom: spacing.sm,
+    height: TOPPING_CARD_HEIGHT,
+    marginBottom: spacing.md,
   },
   card: {
+    flex: 1,
     backgroundColor: '#FFF',
     borderRadius: borderRadius.xl,
     overflow: 'hidden',
