@@ -1051,7 +1051,6 @@ const styles = StyleSheet.create({
   contentContainer: {
     padding: spacing.lg,
     paddingBottom: 150,
-    minHeight: '100%',
   },
   sectionHeader: {
     flexDirection: 'row',
@@ -1315,6 +1314,7 @@ const styles = StyleSheet.create({
     textTransform: 'capitalize',
   },
   modalBody: {
+    flex: 1,
     padding: spacing.lg,
   },
   modalFooter: {
