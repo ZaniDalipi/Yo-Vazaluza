@@ -1201,18 +1201,18 @@ const AdminScreen: React.FC = () => {
       </View>
 
       {/* Content */}
-      <ScrollView
-        style={styles.content}
-        contentContainerStyle={[styles.contentContainer, { padding: horizontalPadding, maxWidth: contentMaxWidth, alignSelf: 'center' as const, width: '100%', flexGrow: 1 }]}
-        showsVerticalScrollIndicator={true}
-        nestedScrollEnabled={true}
-        scrollEnabled={true}
-        bounces={true}
-        keyboardShouldPersistTaps="handled"
-      >
-        {renderSectionContent()}
-        <View style={{ height: 120 }} />
-      </ScrollView>
+      <View style={styles.content}>
+        <ScrollView
+          style={{ flex: 1 }}
+          contentContainerStyle={[styles.contentContainer, { padding: horizontalPadding, maxWidth: contentMaxWidth, alignSelf: 'center' as const, width: '100%' }]}
+          showsVerticalScrollIndicator={true}
+          nestedScrollEnabled={true}
+          keyboardShouldPersistTaps="handled"
+        >
+          {renderSectionContent()}
+          <View style={{ height: 120 }} />
+        </ScrollView>
+      </View>
 
       {renderEditModal()}
       {renderColorPicker()}

@@ -216,9 +216,7 @@ const FlavorsScreen: React.FC = () => {
             <Text style={styles.flavorCount}>{flavors.length}</Text>
           </LinearGradient>
           <Text style={styles.flavorLabel}>Delicious Flavors</Text>
-          <Text style={styles.subtitle}>
-            Swipe to explore our collection
-          </Text>
+          <Text style={styles.subtitle}> · Swipe to explore</Text>
         </Animated.View>
       </SafeAreaView>
     </View>
@@ -297,29 +295,32 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   footer: {
-    alignItems: 'center',
-    paddingBottom: spacing.xl + 60,
-  },
-  flavorBadge: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: spacing.sm,
+    paddingBottom: spacing.md,
+    paddingTop: spacing.xs,
+    gap: spacing.sm,
+  },
+  flavorBadge: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
     shadowColor: colors.accent.gold,
-    shadowOffset: { width: 0, height: 4 },
+    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 6,
+    shadowRadius: 4,
+    elevation: 4,
   },
   flavorCount: {
-    fontSize: typography.fontSizes.xl,
+    fontSize: typography.fontSizes.md,
     fontWeight: typography.fontWeights.bold,
     color: colors.text.light,
   },
   flavorLabel: {
-    fontSize: typography.fontSizes.lg,
+    fontSize: typography.fontSizes.sm,
     fontWeight: typography.fontWeights.semibold,
     color: colors.text.primary,
   },

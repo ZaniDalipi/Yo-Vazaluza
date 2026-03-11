@@ -15,7 +15,7 @@ import { Flavor } from '../types';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 const CARD_WIDTH = SCREEN_WIDTH * 0.88;
-const CARD_HEIGHT = Math.min(580, SCREEN_HEIGHT * 0.55);
+const CARD_HEIGHT = Math.min(480, SCREEN_HEIGHT * 0.42);
 
 interface FlavorCardProps {
   flavor: Flavor;
