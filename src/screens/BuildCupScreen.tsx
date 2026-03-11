@@ -276,6 +276,62 @@ const NavigationButtons: React.FC<{ onClose: () => void }> = ({ onClose }) => {
               <Text style={styles.celebrationOrderNum}>{orderNumber}</Text>
             ) : null}
             <Text style={styles.celebrationSubtitle}>Your frozen yogurt is being prepared</Text>
+
+            {/* Receipt Card */}
+            <View style={styles.receiptCard}>
+              <View style={styles.receiptHeader}>
+                <Text style={styles.receiptBrand}>Yo-Vazaluza</Text>
+                <Text style={styles.receiptDate}>{new Date().toLocaleString()}</Text>
+              </View>
+              <View style={styles.receiptDivider} />
+              {order.cupSize && (
+                <View style={styles.receiptRow}>
+                  <Text style={styles.receiptItem}>{order.cupSize.emoji} {order.cupSize.name} ({order.cupSize.ounces}oz)</Text>
+                  <Text style={styles.receiptPrice}>${order.cupSize.price.toFixed(2)}</Text>
+                </View>
+              )}
+              {order.flavors.length > 0 && (
+                <View style={styles.receiptRow}>
+                  <Text style={styles.receiptItem}>🍦 {order.flavors.map(f => f.name).join(', ')}</Text>
+                </View>
+              )}
+              {order.toppings.map(t => (
+                <View key={t.topping.id} style={styles.receiptRow}>
+                  <Text style={styles.receiptItem}>{t.topping.emoji || '🍬'} {t.topping.name} ({t.grams}g)</Text>
+                  <Text style={styles.receiptPrice}>${((t.topping.pricePerGram || 0.05) * t.grams).toFixed(2)}</Text>
+                </View>
+              ))}
+              {order.sauces.length > 0 && (
+                <View style={styles.receiptRow}>
+                  <Text style={styles.receiptItem}>{order.sauces[0].emoji || '🍫'} {order.sauces[0].name}</Text>
+                  <Text style={[styles.receiptPrice, { color: colors.ui.success }]}>FREE</Text>
+                </View>
+              )}
+              <View style={styles.receiptDivider} />
+              <View style={styles.receiptRow}>
+                <Text style={styles.receiptTotal}>TOTAL</Text>
+                <Text style={styles.receiptTotalPrice}>${getTotalPrice().toFixed(2)}</Text>
+              </View>
+
+              {/* Barcode-style visual */}
+              <View style={styles.receiptBarcode}>
+                {Array.from({ length: 30 }).map((_, i) => (
+                  <View
+                    key={i}
+                    style={[
+                      styles.barcodeBar,
+                      {
+                        width: i % 3 === 0 ? 3 : i % 2 === 0 ? 2 : 1,
+                        backgroundColor: i % 5 === 0 ? '#000' : '#333',
+                      },
+                    ]}
+                  />
+                ))}
+              </View>
+              {orderNumber ? (
+                <Text style={styles.receiptOrderId}>{orderNumber}</Text>
+              ) : null}
+            </View>
           </Animated.View>
         </View>
       )}
@@ -609,6 +665,82 @@ const styles = StyleSheet.create({
   celebrationSubtitle: {
     fontSize: typography.fontSizes.lg,
     color: 'rgba(255,255,255,0.8)',
+  },
+  receiptCard: {
+    backgroundColor: '#FFF',
+    borderRadius: 16,
+    padding: 20,
+    marginTop: 20,
+    width: Math.min(SCREEN_WIDTH * 0.85, 340),
+    ...shadows.medium,
+  },
+  receiptHeader: {
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  receiptBrand: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: colors.accent.gold,
+    letterSpacing: 1,
+  },
+  receiptDate: {
+    fontSize: 11,
+    color: colors.text.muted,
+    marginTop: 2,
+  },
+  receiptDivider: {
+    height: 1,
+    backgroundColor: '#E0E0E0',
+    marginVertical: 10,
+    borderStyle: 'dashed' as any,
+  },
+  receiptRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 4,
+  },
+  receiptItem: {
+    fontSize: 13,
+    color: colors.text.primary,
+    flex: 1,
+  },
+  receiptPrice: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: colors.text.primary,
+    marginLeft: 8,
+  },
+  receiptTotal: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: colors.text.primary,
+  },
+  receiptTotalPrice: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: colors.accent.gold,
+  },
+  receiptBarcode: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 2,
+    marginTop: 16,
+    height: 40,
+  },
+  barcodeBar: {
+    height: '100%',
+    borderRadius: 1,
+  },
+  receiptOrderId: {
+    textAlign: 'center',
+    fontSize: 12,
+    fontWeight: '600',
+    color: colors.text.muted,
+    marginTop: 6,
+    letterSpacing: 2,
   },
 });
 

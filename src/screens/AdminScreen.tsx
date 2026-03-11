@@ -1203,14 +1203,15 @@ const AdminScreen: React.FC = () => {
       {/* Content */}
       <ScrollView
         style={styles.content}
-        contentContainerStyle={[styles.contentContainer, { padding: horizontalPadding, maxWidth: contentMaxWidth, alignSelf: 'center', width: '100%' }]}
+        contentContainerStyle={[styles.contentContainer, { padding: horizontalPadding, maxWidth: contentMaxWidth, alignSelf: 'center' as const, width: '100%', flexGrow: 1 }]}
         showsVerticalScrollIndicator={true}
         nestedScrollEnabled={true}
         scrollEnabled={true}
         bounces={true}
+        keyboardShouldPersistTaps="handled"
       >
         {renderSectionContent()}
-        <View style={{ height: 100 }} />
+        <View style={{ height: 120 }} />
       </ScrollView>
 
       {renderEditModal()}
@@ -1316,9 +1317,11 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
     backgroundColor: colors.background.main,
+    overflow: 'scroll' as any,
   },
   contentContainer: {
     padding: spacing.lg,
+    paddingBottom: 120,
     paddingBottom: 150,
   },
   sectionHeader: {

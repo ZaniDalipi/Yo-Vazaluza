@@ -13,8 +13,9 @@ import { Ionicons } from '@expo/vector-icons';
 import { colors, spacing, borderRadius, typography, shadows } from '../theme';
 import { Flavor } from '../types';
 
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
+const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 const CARD_WIDTH = SCREEN_WIDTH * 0.88;
+const CARD_HEIGHT = Math.min(580, SCREEN_HEIGHT * 0.55);
 
 interface FlavorCardProps {
   flavor: Flavor;
@@ -216,7 +217,7 @@ const FlavorCard: React.FC<FlavorCardProps> = ({ flavor, isActive, onPress }) =>
 const styles = StyleSheet.create({
   card: {
     width: CARD_WIDTH,
-    height: 580,
+    height: CARD_HEIGHT,
     marginHorizontal: spacing.sm,
     borderRadius: borderRadius.xl + 8,
     overflow: 'hidden',

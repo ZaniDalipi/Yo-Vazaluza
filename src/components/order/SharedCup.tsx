@@ -22,14 +22,16 @@ const getToppingDisplay = (topping: Topping) => {
   };
 };
 
-// Sauce colors
-const getSauceColor = (name: string): string => {
+// Sauce colors and light colors for liquid layer
+const getSauceColors = (name: string): { color: string; lightColor: string } => {
   const lower = name.toLowerCase();
-  if (lower.includes('chocolate') || lower.includes('fudge')) return '#5C4033';
-  if (lower.includes('caramel')) return '#D4A574';
-  if (lower.includes('strawberry')) return '#E53935';
-  if (lower.includes('peanut')) return '#C19A6B';
-  return '#5C4033';
+  if (lower.includes('chocolate') || lower.includes('fudge')) return { color: '#5C4033', lightColor: '#8B6F5E' };
+  if (lower.includes('caramel')) return { color: '#D4A574', lightColor: '#E8C9A0' };
+  if (lower.includes('strawberry')) return { color: '#E53935', lightColor: '#FF8A80' };
+  if (lower.includes('peanut')) return { color: '#C19A6B', lightColor: '#D4B896' };
+  if (lower.includes('maple')) return { color: '#B8860B', lightColor: '#D4A853' };
+  if (lower.includes('honey')) return { color: '#FFB300', lightColor: '#FFD54F' };
+  return { color: '#5C4033', lightColor: '#8B6F5E' };
 };
 
 interface SharedCupProps {
@@ -194,28 +196,26 @@ export const SharedCup: React.FC<SharedCupProps> = ({
             </View>
           )}
 
-          {/* Sauce drizzles on swirl */}
-          {showSauces && order.sauces.length > 0 && (
-            <View style={styles.sauceDrizzles}>
-              {order.sauces.map((sauce, i) => {
-                const sauceColor = getSauceColor(sauce.name);
-                return (
-                  <View
-                    key={sauce.id}
-                    style={[
-                      styles.drizzle,
-                      {
-                        backgroundColor: sauceColor,
-                        left: 15 + i * 25,
-                        height: 50 + (i % 2) * 20,
-                        transform: [{ rotate: `${-15 + i * 10}deg` }],
-                      },
-                    ]}
-                  />
-                );
-              })}
-            </View>
-          )}
+          {/* Liquid sauce layer on swirl */}
+          {showSauces && order.sauces.length > 0 && (() => {
+            const sauce = order.sauces[0];
+            const sc = getSauceColors(sauce.name);
+            return (
+              <View style={styles.sauceLayer}>
+                {/* Main liquid body */}
+                <View style={[styles.sauceMain, { backgroundColor: sc.color + 'BB' }]} />
+                {/* Wavy bottom edges for liquidy look */}
+                <View style={[styles.sauceWave1, { backgroundColor: sc.color + '88' }]} />
+                <View style={[styles.sauceWave2, { backgroundColor: sc.lightColor + '66' }]} />
+                <View style={[styles.sauceWave3, { backgroundColor: sc.color + '44' }]} />
+                {/* Drip effects */}
+                <View style={[styles.sauceDrip1, { backgroundColor: sc.color + '99' }]} />
+                <View style={[styles.sauceDrip2, { backgroundColor: sc.color + '77' }]} />
+                {/* Gloss/shine */}
+                <View style={styles.sauceShine} />
+              </View>
+            );
+          })()}
         </Animated.View>
       )}
 
@@ -469,14 +469,71 @@ const styles = StyleSheet.create({
     position: 'absolute',
     fontSize: 14,
   },
-  sauceDrizzles: {
-    ...StyleSheet.absoluteFillObject,
-    overflow: 'hidden',
-  },
-  drizzle: {
+  sauceLayer: {
     position: 'absolute',
-    width: 4,
-    top: 5,
+    top: 0,
+    left: -2,
+    right: -2,
+    height: 30,
+    zIndex: 5,
+  },
+  sauceMain: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 14,
+    borderRadius: 4,
+  },
+  sauceWave1: {
+    position: 'absolute',
+    top: 8,
+    left: 0,
+    right: 0,
+    height: 12,
+    borderRadius: 50,
+  },
+  sauceWave2: {
+    position: 'absolute',
+    top: 12,
+    left: '15%',
+    width: '45%',
+    height: 10,
+    borderRadius: 50,
+  },
+  sauceWave3: {
+    position: 'absolute',
+    top: 14,
+    right: '10%',
+    width: '35%',
+    height: 8,
+    borderRadius: 50,
+  },
+  sauceDrip1: {
+    position: 'absolute',
+    top: 16,
+    left: '20%',
+    width: 7,
+    height: 11,
+    borderBottomLeftRadius: 5,
+    borderBottomRightRadius: 5,
+  },
+  sauceDrip2: {
+    position: 'absolute',
+    top: 14,
+    right: '25%',
+    width: 5,
+    height: 9,
+    borderBottomLeftRadius: 4,
+    borderBottomRightRadius: 4,
+  },
+  sauceShine: {
+    position: 'absolute',
+    top: 2,
+    left: '20%',
+    width: '35%',
+    height: 3,
+    backgroundColor: 'rgba(255,255,255,0.3)',
     borderRadius: 2,
   },
   cup: {

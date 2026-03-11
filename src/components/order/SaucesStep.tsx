@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useMemo } from 'react';
+import React, { useRef, useEffect, useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -25,92 +25,177 @@ const getToppingEmoji = (topping: { emoji?: string }) => {
 };
 
 // Sauce color and data
-const getSauceData = (name: string): { color: string; darkColor: string; emoji: string } => {
+const getSauceData = (name: string): { color: string; darkColor: string; lightColor: string; emoji: string } => {
   const lower = name.toLowerCase();
   if (lower.includes('chocolate') || lower.includes('fudge')) {
-    return { color: '#5C4033', darkColor: '#3E2723', emoji: '🍫' };
+    return { color: '#5C4033', darkColor: '#3E2723', lightColor: '#8B6F5E', emoji: '🍫' };
   }
   if (lower.includes('caramel')) {
-    return { color: '#D4A574', darkColor: '#B8860B', emoji: '🍯' };
+    return { color: '#D4A574', darkColor: '#B8860B', lightColor: '#E8C9A0', emoji: '🍯' };
   }
   if (lower.includes('strawberry')) {
-    return { color: '#E53935', darkColor: '#C62828', emoji: '🍓' };
+    return { color: '#E53935', darkColor: '#C62828', lightColor: '#FF8A80', emoji: '🍓' };
   }
   if (lower.includes('peanut')) {
-    return { color: '#C19A6B', darkColor: '#8B7355', emoji: '🥜' };
+    return { color: '#C19A6B', darkColor: '#8B7355', lightColor: '#D4B896', emoji: '🥜' };
   }
-  return { color: '#5C4033', darkColor: '#3E2723', emoji: '🍫' };
+  if (lower.includes('maple')) {
+    return { color: '#B8860B', darkColor: '#8B6914', lightColor: '#D4A853', emoji: '🍁' };
+  }
+  if (lower.includes('honey')) {
+    return { color: '#FFB300', darkColor: '#FF8F00', lightColor: '#FFD54F', emoji: '🍯' };
+  }
+  return { color: '#5C4033', darkColor: '#3E2723', lightColor: '#8B6F5E', emoji: '🍫' };
 };
 
-// Mini sauce dispenser button
-const SauceDispenser: React.FC<{
-  sauce: Topping;
-  isSelected: boolean;
-  onPress: () => void;
-  index: number;
-}> = ({ sauce, isSelected, onPress, index }) => {
-  const data = getSauceData(sauce.name);
-  const scaleAnim = useRef(new Animated.Value(0)).current;
-  const bounceAnim = useRef(new Animated.Value(1)).current;
+// Single sauce selector - pick ONE drizzle
+const SauceSelector: React.FC<{
+  sauces: Topping[];
+  selectedSauce: Topping | null;
+  onSelect: (sauce: Topping) => void;
+}> = ({ sauces, selectedSauce, onSelect }) => {
+  const [expanded, setExpanded] = useState(false);
+  const expandAnim = useRef(new Animated.Value(0)).current;
+  const pulseAnim = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
-    Animated.spring(scaleAnim, {
-      toValue: 1,
-      delay: index * 100,
-      friction: 6,
-      useNativeDriver: true,
+    Animated.timing(expandAnim, {
+      toValue: expanded ? 1 : 0,
+      duration: 300,
+      useNativeDriver: false,
     }).start();
-  }, []);
+  }, [expanded]);
 
   useEffect(() => {
-    if (isSelected) {
+    if (!selectedSauce) {
       Animated.loop(
         Animated.sequence([
-          Animated.timing(bounceAnim, { toValue: 1.05, duration: 400, useNativeDriver: true }),
-          Animated.timing(bounceAnim, { toValue: 1, duration: 400, useNativeDriver: true }),
+          Animated.timing(pulseAnim, { toValue: 1.08, duration: 800, useNativeDriver: true }),
+          Animated.timing(pulseAnim, { toValue: 1, duration: 800, useNativeDriver: true }),
         ])
       ).start();
     } else {
-      bounceAnim.setValue(1);
+      pulseAnim.setValue(1);
     }
-  }, [isSelected]);
+  }, [selectedSauce]);
+
+  const data = selectedSauce ? getSauceData(selectedSauce.name) : null;
 
   return (
-    <Animated.View style={[
-      styles.dispenserBtn,
-      { opacity: scaleAnim, transform: [{ scale: Animated.multiply(scaleAnim, bounceAnim) }] }
-    ]}>
-      <TouchableOpacity
-        style={[
-          styles.dispenserBtnInner,
-          { backgroundColor: isSelected ? data.color : '#FFF' },
-          isSelected && styles.dispenserBtnSelected
-        ]}
-        onPress={onPress}
-        activeOpacity={0.7}
-      >
-        <Text style={styles.dispenserEmoji}>{data.emoji}</Text>
-        <Text style={[styles.dispenserLabel, isSelected && { color: '#FFF' }]} numberOfLines={1}>
-          {sauce.name.split(' ')[0]}
-        </Text>
-        {isSelected && (
-          <View style={styles.dispenserCheck}>
-            <Ionicons name="checkmark" size={10} color="#FFF" />
+    <View style={styles.selectorContainer}>
+      {/* Main drizzle button - shows selected or prompt */}
+      <Animated.View style={{ transform: [{ scale: selectedSauce ? 1 : pulseAnim }] }}>
+        <TouchableOpacity
+          style={[
+            styles.mainDrizzleBtn,
+            selectedSauce && { backgroundColor: data!.color, borderColor: data!.darkColor },
+          ]}
+          onPress={() => setExpanded(!expanded)}
+          activeOpacity={0.7}
+        >
+          <Text style={styles.mainDrizzleEmoji}>
+            {selectedSauce ? (selectedSauce.emoji || data!.emoji) : '🍦'}
+          </Text>
+          <View style={styles.mainDrizzleLabelRow}>
+            <Text style={[
+              styles.mainDrizzleLabel,
+              selectedSauce && { color: '#FFF' },
+            ]}>
+              {selectedSauce ? selectedSauce.name : 'Choose a Drizzle'}
+            </Text>
+            <Ionicons
+              name={expanded ? 'chevron-up' : 'chevron-down'}
+              size={16}
+              color={selectedSauce ? '#FFF' : colors.text.muted}
+            />
           </View>
-        )}
-      </TouchableOpacity>
-    </Animated.View>
+          {selectedSauce && (
+            <View style={styles.selectedIndicator}>
+              <Ionicons name="checkmark" size={12} color="#FFF" />
+            </View>
+          )}
+        </TouchableOpacity>
+      </Animated.View>
+
+      {/* Expandable sauce options */}
+      <Animated.View style={[
+        styles.sauceOptions,
+        {
+          maxHeight: expandAnim.interpolate({
+            inputRange: [0, 1],
+            outputRange: [0, 400],
+          }),
+          opacity: expandAnim,
+          marginTop: expandAnim.interpolate({
+            inputRange: [0, 1],
+            outputRange: [0, 12],
+          }),
+        },
+      ]}>
+        <View style={styles.sauceGrid}>
+          {sauces.map((sauce) => {
+            const sData = getSauceData(sauce.name);
+            const isSelected = selectedSauce?.id === sauce.id;
+            return (
+              <TouchableOpacity
+                key={sauce.id}
+                style={[
+                  styles.sauceOption,
+                  isSelected && { backgroundColor: sData.color + '20', borderColor: sData.color },
+                ]}
+                onPress={() => {
+                  onSelect(sauce);
+                  setExpanded(false);
+                }}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.sauceOptionEmoji}>{sauce.emoji || sData.emoji}</Text>
+                <Text style={[
+                  styles.sauceOptionName,
+                  isSelected && { color: sData.color, fontWeight: '700' as const },
+                ]} numberOfLines={1}>
+                  {sauce.name}
+                </Text>
+                {isSelected && (
+                  <View style={[styles.sauceOptionCheck, { backgroundColor: sData.color }]}>
+                    <Ionicons name="checkmark" size={10} color="#FFF" />
+                  </View>
+                )}
+              </TouchableOpacity>
+            );
+          })}
+
+          {/* No drizzle option */}
+          {selectedSauce && (
+            <TouchableOpacity
+              style={[styles.sauceOption, { borderStyle: 'dashed' as any }]}
+              onPress={() => {
+                onSelect(selectedSauce); // Toggle off
+                setExpanded(false);
+              }}
+              activeOpacity={0.7}
+            >
+              <Ionicons name="close-circle-outline" size={24} color={colors.text.muted} />
+              <Text style={[styles.sauceOptionName, { color: colors.text.muted }]}>
+                No Drizzle
+              </Text>
+            </TouchableOpacity>
+          )}
+        </View>
+      </Animated.View>
+    </View>
   );
 };
 
 // Main sauce dispensing area with cup
 const SauceStation: React.FC<{
   sauces: Topping[];
-  selectedSauces: Topping[];
-  onToggle: (sauce: Topping) => void;
-}> = ({ sauces, selectedSauces, onToggle }) => {
+  selectedSauce: Topping | null;
+  onSelect: (sauce: Topping) => void;
+}> = ({ sauces, selectedSauce, onSelect }) => {
   const { order } = useOrder();
   const wobbleAnim = useRef(new Animated.Value(0)).current;
+  const drizzleAnim = useRef(new Animated.Value(0)).current;
 
   // Calculate fill level based on selected size
   const fillLevel = useMemo(() => {
@@ -131,30 +216,40 @@ const SauceStation: React.FC<{
   }, [order.flavors]);
 
   useEffect(() => {
-    // Cup wobble when sauces change
-    Animated.sequence([
-      Animated.timing(wobbleAnim, { toValue: 1, duration: 100, useNativeDriver: true }),
-      Animated.timing(wobbleAnim, { toValue: -1, duration: 100, useNativeDriver: true }),
-      Animated.timing(wobbleAnim, { toValue: 0, duration: 100, useNativeDriver: true }),
-    ]).start();
-  }, [selectedSauces.length]);
+    // Cup wobble and drizzle animation when sauce changes
+    if (selectedSauce) {
+      Animated.parallel([
+        Animated.sequence([
+          Animated.timing(wobbleAnim, { toValue: 1, duration: 100, useNativeDriver: true }),
+          Animated.timing(wobbleAnim, { toValue: -1, duration: 100, useNativeDriver: true }),
+          Animated.timing(wobbleAnim, { toValue: 0, duration: 100, useNativeDriver: true }),
+        ]),
+        Animated.timing(drizzleAnim, {
+          toValue: 1,
+          duration: 600,
+          useNativeDriver: false,
+        }),
+      ]).start();
+    } else {
+      Animated.timing(drizzleAnim, {
+        toValue: 0,
+        duration: 300,
+        useNativeDriver: false,
+      }).start();
+    }
+  }, [selectedSauce?.id]);
 
   const cupBottomWidth = CUP_WIDTH * 0.7;
+  const sauceData = selectedSauce ? getSauceData(selectedSauce.name) : null;
 
   return (
     <View style={styles.stationContainer}>
-      {/* Sauce dispensers row */}
-      <View style={styles.dispensersRow}>
-        {sauces.map((sauce, i) => (
-          <SauceDispenser
-            key={sauce.id}
-            sauce={sauce}
-            isSelected={selectedSauces.some(s => s.id === sauce.id)}
-            onPress={() => onToggle(sauce)}
-            index={i}
-          />
-        ))}
-      </View>
+      {/* Sauce selector */}
+      <SauceSelector
+        sauces={sauces}
+        selectedSauce={selectedSauce}
+        onSelect={onSelect}
+      />
 
       {/* Cup */}
       <Animated.View
@@ -196,7 +291,7 @@ const SauceStation: React.FC<{
               <View style={[styles.cupShine, { height: CUP_HEIGHT * 0.5 }]} />
             </LinearGradient>
 
-            {/* Inner cup with yogurt, toppings, and drizzles */}
+            {/* Inner cup with yogurt and drizzle layer */}
             <View style={styles.cupInner}>
               {/* Yogurt fill */}
               <View style={[styles.yogurtFill, { height: `${fillLevel * 85}%` }]}>
@@ -228,120 +323,75 @@ const SauceStation: React.FC<{
                 })}
               </View>
 
-              {/* Sauce drizzles on top - wavy pattern style */}
-              <View style={styles.sauceDrizzles}>
-                {selectedSauces.slice(0, 3).map((sauce, i) => {
-                  const data = getSauceData(sauce.name);
-                  // Create wavy drizzle patterns for each sauce
-                  const drizzlePatterns = [
-                    // First sauce - zigzag across top
-                    [
-                      { left: 5, top: 8, width: 30, rotate: '15deg' },
-                      { left: 25, top: 14, width: 35, rotate: '-10deg' },
-                      { left: 55, top: 10, width: 28, rotate: '8deg' },
-                      { left: 80, top: 16, width: 32, rotate: '-12deg' },
-                    ],
-                    // Second sauce - different pattern
-                    [
-                      { left: 10, top: 20, width: 25, rotate: '-8deg' },
-                      { left: 35, top: 24, width: 40, rotate: '12deg' },
-                      { left: 70, top: 22, width: 30, rotate: '-5deg' },
-                    ],
-                    // Third sauce - more drizzles
-                    [
-                      { left: 15, top: 30, width: 35, rotate: '10deg' },
-                      { left: 50, top: 34, width: 28, rotate: '-15deg' },
-                      { left: 85, top: 32, width: 22, rotate: '5deg' },
-                    ],
-                  ];
-                  const patterns = drizzlePatterns[i] || drizzlePatterns[0];
-                  return (
-                    <React.Fragment key={sauce.id}>
-                      {patterns.map((pattern, j) => (
-                        <View
-                          key={`${sauce.id}-drizzle-${j}`}
-                          style={[
-                            styles.sauceDrizzleLine,
-                            {
-                              left: pattern.left,
-                              top: pattern.top,
-                              width: pattern.width,
-                              backgroundColor: data.color,
-                              transform: [{ rotate: pattern.rotate }],
-                            },
-                          ]}
-                        />
-                      ))}
-                      {/* Add sauce dots for pooling effect */}
-                      <View
-                        style={[
-                          styles.sauceDot,
-                          { left: 20 + i * 30, top: 12 + i * 8, backgroundColor: data.color },
-                        ]}
-                      />
-                      <View
-                        style={[
-                          styles.sauceDot,
-                          { left: 60 + i * 15, top: 18 + i * 6, backgroundColor: data.color, width: 6, height: 6 },
-                        ]}
-                      />
-                    </React.Fragment>
-                  );
-                })}
-              </View>
+              {/* Liquid sauce layer on top - wavy, creamy, liquidy */}
+              {sauceData && (
+                <Animated.View
+                  style={[
+                    styles.sauceLayer,
+                    {
+                      opacity: drizzleAnim.interpolate({
+                        inputRange: [0, 1],
+                        outputRange: [0, 0.75],
+                      }),
+                      transform: [{
+                        scaleX: drizzleAnim.interpolate({
+                          inputRange: [0, 1],
+                          outputRange: [0.5, 1],
+                        }),
+                      }],
+                    },
+                  ]}
+                >
+                  {/* Main liquid layer */}
+                  <LinearGradient
+                    colors={[
+                      sauceData.color + 'DD',
+                      sauceData.color + 'AA',
+                      sauceData.lightColor + '66',
+                      'transparent',
+                    ] as [string, string, ...string[]]}
+                    locations={[0, 0.3, 0.7, 1]}
+                    style={styles.sauceGradient}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 0, y: 1 }}
+                  />
+                  {/* Wavy bottom edge - multiple overlapping rounded shapes for liquidy look */}
+                  <View style={styles.sauceWaves}>
+                    <View style={[styles.sauceWave, styles.sauceWave1, { backgroundColor: sauceData.color + '88' }]} />
+                    <View style={[styles.sauceWave, styles.sauceWave2, { backgroundColor: sauceData.color + '66' }]} />
+                    <View style={[styles.sauceWave, styles.sauceWave3, { backgroundColor: sauceData.color + '44' }]} />
+                    <View style={[styles.sauceWave, styles.sauceWave4, { backgroundColor: sauceData.lightColor + '55' }]} />
+                    <View style={[styles.sauceWave, styles.sauceWave5, { backgroundColor: sauceData.color + '33' }]} />
+                  </View>
+                  {/* Shine/gloss on the sauce layer */}
+                  <View style={styles.sauceShine} />
+                  {/* Small pooling drips on the edges */}
+                  <View style={[styles.sauceDrip, styles.sauceDrip1, { backgroundColor: sauceData.color + '99' }]} />
+                  <View style={[styles.sauceDrip, styles.sauceDrip2, { backgroundColor: sauceData.color + '77' }]} />
+                  <View style={[styles.sauceDrip, styles.sauceDrip3, { backgroundColor: sauceData.color + '88' }]} />
+                </Animated.View>
+              )}
             </View>
           </View>
         </View>
 
         {/* Shadow */}
         <View style={[styles.cupShadow, { width: cupBottomWidth + 15 }]} />
-
-        {/* Sauce count badge */}
-        {selectedSauces.length > 0 && (
-          <View style={styles.sauceBadge}>
-            <Text style={styles.sauceBadgeText}>{selectedSauces.length}</Text>
-          </View>
-        )}
       </Animated.View>
 
       {/* Tap hint */}
       <View style={styles.tapHint}>
-        <Ionicons name="hand-left-outline" size={14} color={colors.accent.gold} />
-        <Text style={styles.tapHintText}>Tap a sauce to drizzle it on your cup!</Text>
-      </View>
-    </View>
-  );
-};
-
-// Selected sauces preview chips
-const SelectedSauces: React.FC = () => {
-  const { order, removeSauce } = useOrder();
-
-  if (order.sauces.length === 0) return null;
-
-  return (
-    <View style={styles.selectedContainer}>
-      <View style={styles.selectedHeader}>
-        <Text style={styles.selectedTitle}>Your Drizzles</Text>
-        <View style={styles.selectedCount}>
-          <Text style={styles.selectedCountText}>{order.sauces.length}</Text>
-        </View>
-      </View>
-      <View style={styles.selectedList}>
-        {order.sauces.map((sauce) => {
-          const data = getSauceData(sauce.name);
-          return (
-            <TouchableOpacity
-              key={sauce.id}
-              style={[styles.selectedChip, { borderColor: data.color }]}
-              onPress={() => removeSauce(sauce.id)}
-            >
-              <Text style={styles.selectedChipEmoji}>{data.emoji}</Text>
-              <Text style={[styles.selectedChipText, { color: data.color }]}>{sauce.name}</Text>
-              <Ionicons name="close" size={14} color={data.color} />
-            </TouchableOpacity>
-          );
-        })}
+        {selectedSauce ? (
+          <>
+            <Text style={{ fontSize: 14 }}>{selectedSauce.emoji || sauceData?.emoji}</Text>
+            <Text style={styles.tapHintText}>{selectedSauce.name} drizzled on your cup!</Text>
+          </>
+        ) : (
+          <>
+            <Ionicons name="hand-left-outline" size={14} color={colors.accent.gold} />
+            <Text style={styles.tapHintText}>Choose a drizzle for your cup!</Text>
+          </>
+        )}
       </View>
     </View>
   );
@@ -354,22 +404,27 @@ const SaucesStep: React.FC = () => {
   // Filter only sauces
   const sauces = allToppings.filter(t => t.category === 'sauces');
 
-  const handleToggle = (sauce: Topping) => {
-    const isSelected = order.sauces.find(s => s.id === sauce.id);
-    if (isSelected) {
+  // Only one sauce at a time
+  const selectedSauce = order.sauces.length > 0 ? order.sauces[0] : null;
+
+  const handleSelect = (sauce: Topping) => {
+    // If same sauce is selected, remove it (toggle off)
+    if (selectedSauce?.id === sauce.id) {
       removeSauce(sauce.id);
-    } else {
-      addSauce(sauce);
+      return;
     }
+    // Remove any existing sauce first, then add new one
+    order.sauces.forEach(s => removeSauce(s.id));
+    addSauce(sauce);
   };
 
   return (
     <View style={styles.container}>
-      {/* Main sauce station with cup and dispensers */}
+      {/* Main sauce station with cup */}
       <SauceStation
         sauces={sauces}
-        selectedSauces={order.sauces}
-        onToggle={handleToggle}
+        selectedSauce={selectedSauce}
+        onSelect={handleSelect}
       />
 
       <ScrollView
@@ -377,13 +432,12 @@ const SaucesStep: React.FC = () => {
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
       >
-        {/* Selected sauces */}
-        <SelectedSauces />
-
         {/* Info */}
         <View style={styles.infoBox}>
           <Ionicons name="information-circle-outline" size={18} color={colors.accent.gold} />
-          <Text style={styles.infoText}>Sauces are free and optional - add as many as you like!</Text>
+          <Text style={styles.infoText}>
+            Pick one drizzle to top your frozen yogurt - it's free!
+          </Text>
         </View>
 
         {sauces.length === 0 && (
@@ -410,52 +464,99 @@ const styles = StyleSheet.create({
     borderBottomColor: colors.ui.border,
     alignItems: 'center',
   },
-  dispensersRow: {
+
+  // Sauce selector styles
+  selectorContainer: {
+    width: '100%',
+    paddingHorizontal: spacing.lg,
+    alignItems: 'center',
+  },
+  mainDrizzleBtn: {
     flexDirection: 'row',
-    justifyContent: 'center',
-    gap: spacing.sm,
-    paddingHorizontal: spacing.md,
-    marginBottom: spacing.sm,
-  },
-  dispenserBtn: {
     alignItems: 'center',
-  },
-  dispenserBtnInner: {
-    width: 70,
-    height: 70,
-    borderRadius: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
+    backgroundColor: '#FFF',
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.lg,
+    borderRadius: borderRadius.xl,
     borderWidth: 2,
     borderColor: colors.ui.border,
-    ...shadows.small,
+    gap: spacing.sm,
+    minWidth: 200,
+    ...shadows.medium,
   },
-  dispenserBtnSelected: {
-    borderColor: 'transparent',
+  mainDrizzleEmoji: {
+    fontSize: 28,
   },
-  dispenserEmoji: {
-    fontSize: 24,
-    marginBottom: 2,
+  mainDrizzleLabelRow: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
   },
-  dispenserLabel: {
-    fontSize: 10,
+  mainDrizzleLabel: {
+    fontSize: typography.fontSizes.md,
     fontWeight: '600' as const,
-    color: colors.text.secondary,
+    color: colors.text.primary,
+    flex: 1,
   },
-  dispenserCheck: {
+  selectedIndicator: {
     position: 'absolute',
-    top: -4,
-    right: -4,
-    width: 18,
-    height: 18,
-    borderRadius: 9,
+    top: -6,
+    right: -6,
+    width: 22,
+    height: 22,
+    borderRadius: 11,
     backgroundColor: colors.ui.success,
     alignItems: 'center',
     justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: '#FFF',
   },
+  sauceOptions: {
+    width: '100%',
+    overflow: 'hidden',
+  },
+  sauceGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.sm,
+    justifyContent: 'center',
+    paddingHorizontal: spacing.sm,
+  },
+  sauceOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFF',
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+    borderRadius: borderRadius.lg,
+    borderWidth: 1.5,
+    borderColor: colors.ui.border,
+    gap: spacing.xs,
+    minWidth: 140,
+    ...shadows.small,
+  },
+  sauceOptionEmoji: {
+    fontSize: 20,
+  },
+  sauceOptionName: {
+    fontSize: typography.fontSizes.sm,
+    fontWeight: '500' as const,
+    color: colors.text.primary,
+    flex: 1,
+  },
+  sauceOptionCheck: {
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  // Cup styles
   cupContainer: {
     alignItems: 'center',
-    marginTop: spacing.md,
+    marginTop: spacing.lg,
   },
   cupBody: {
     alignItems: 'center',
@@ -537,56 +638,107 @@ const styles = StyleSheet.create({
     position: 'absolute',
     fontSize: 12,
   },
-  sauceDrizzles: {
+
+  // Liquid sauce layer styles
+  sauceLayer: {
     position: 'absolute',
     top: 0,
     left: 0,
     right: 0,
-    height: 50,
+    height: 35,
+    overflow: 'visible',
   },
-  sauceDrizzleLine: {
+  sauceGradient: {
     position: 'absolute',
-    height: 4,
-    borderRadius: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.2,
-    shadowRadius: 1,
-    elevation: 1,
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 20,
   },
-  sauceDot: {
+  sauceWaves: {
     position: 'absolute',
-    width: 8,
+    top: 12,
+    left: -4,
+    right: -4,
+    height: 24,
+  },
+  sauceWave: {
+    position: 'absolute',
+    borderRadius: 50,
+  },
+  sauceWave1: {
+    left: 0,
+    right: 0,
+    top: 0,
+    height: 14,
+  },
+  sauceWave2: {
+    left: '10%',
+    width: '50%',
+    top: 5,
+    height: 12,
+  },
+  sauceWave3: {
+    right: '5%',
+    width: '40%',
+    top: 8,
+    height: 10,
+  },
+  sauceWave4: {
+    left: '20%',
+    width: '35%',
+    top: 11,
+    height: 10,
+  },
+  sauceWave5: {
+    right: '15%',
+    width: '30%',
+    top: 14,
     height: 8,
-    borderRadius: 4,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.15,
-    shadowRadius: 1,
-    elevation: 1,
   },
+  sauceShine: {
+    position: 'absolute',
+    top: 3,
+    left: '15%',
+    width: '40%',
+    height: 4,
+    backgroundColor: 'rgba(255,255,255,0.3)',
+    borderRadius: 2,
+  },
+  sauceDrip: {
+    position: 'absolute',
+    borderRadius: 50,
+  },
+  sauceDrip1: {
+    left: '15%',
+    top: 18,
+    width: 8,
+    height: 12,
+    borderBottomLeftRadius: 6,
+    borderBottomRightRadius: 6,
+  },
+  sauceDrip2: {
+    right: '20%',
+    top: 16,
+    width: 6,
+    height: 10,
+    borderBottomLeftRadius: 5,
+    borderBottomRightRadius: 5,
+  },
+  sauceDrip3: {
+    left: '50%',
+    top: 20,
+    width: 10,
+    height: 14,
+    borderBottomLeftRadius: 7,
+    borderBottomRightRadius: 7,
+  },
+
   cupShadow: {
     height: 10,
     backgroundColor: 'rgba(0,0,0,0.08)',
     borderRadius: 50,
     marginTop: spacing.xs,
-  },
-  sauceBadge: {
-    position: 'absolute',
-    top: -6,
-    right: -6,
-    backgroundColor: colors.accent.gold,
-    width: 22,
-    height: 22,
-    borderRadius: 11,
-    alignItems: 'center',
-    justifyContent: 'center',
-    ...shadows.small,
-  },
-  sauceBadgeText: {
-    fontSize: 12,
-    fontWeight: '700' as const,
-    color: '#FFF',
   },
   tapHint: {
     flexDirection: 'row',
@@ -599,6 +751,8 @@ const styles = StyleSheet.create({
     fontSize: typography.fontSizes.xs,
     color: colors.text.muted,
   },
+
+  // Bottom content
   scrollView: {
     flex: 1,
   },
@@ -606,58 +760,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.md,
     paddingBottom: spacing.xl,
-  },
-  selectedContainer: {
-    backgroundColor: colors.background.card,
-    borderRadius: borderRadius.xl,
-    padding: spacing.md,
-    marginBottom: spacing.md,
-    ...shadows.small,
-  },
-  selectedHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: spacing.sm,
-  },
-  selectedTitle: {
-    fontSize: typography.fontSizes.sm,
-    fontWeight: '600' as const,
-    color: colors.text.secondary,
-  },
-  selectedCount: {
-    backgroundColor: colors.accent.gold,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 2,
-    borderRadius: borderRadius.round,
-    marginLeft: spacing.sm,
-  },
-  selectedCountText: {
-    fontSize: typography.fontSizes.xs,
-    fontWeight: '700' as const,
-    color: '#FFF',
-  },
-  selectedList: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: spacing.sm,
-  },
-  selectedChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#FFF',
-    paddingVertical: spacing.xs,
-    paddingLeft: spacing.sm,
-    paddingRight: spacing.sm,
-    borderRadius: borderRadius.round,
-    borderWidth: 1,
-    gap: spacing.xs,
-  },
-  selectedChipEmoji: {
-    fontSize: 14,
-  },
-  selectedChipText: {
-    fontSize: typography.fontSizes.sm,
-    fontWeight: '500' as const,
   },
   infoBox: {
     flexDirection: 'row',

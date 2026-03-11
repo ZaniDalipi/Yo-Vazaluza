@@ -436,20 +436,27 @@ const ToppingCard: React.FC<ToppingCardProps> = ({
             </LinearGradient>
           </Animated.View>
 
-          {/* Image or Icon */}
+          {/* Image or Emoji Icon */}
           <Animated.View
             style={[
               styles.imageContainer,
               { transform: [{ scale: iconBounceAnim }] },
             ]}
           >
-            {topping.imageUrl && !imageError ? (
+            {topping.imageUrl && topping.imageUrl.startsWith('http') && !imageError ? (
               <Image
                 source={{ uri: topping.imageUrl }}
                 style={styles.toppingImage}
                 onError={() => setImageError(true)}
                 resizeMode="cover"
               />
+            ) : topping.emoji ? (
+              <LinearGradient
+                colors={categoryGradient}
+                style={styles.iconGradient}
+              >
+                <Text style={{ fontSize: 36 }}>{topping.emoji}</Text>
+              </LinearGradient>
             ) : (
               <LinearGradient
                 colors={categoryGradient}
