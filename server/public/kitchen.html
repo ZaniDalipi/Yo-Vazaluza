@@ -1,0 +1,528 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Yo-Vazaluza - Kitchen Dashboard</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #1a1a2e;
+      color: #FFF;
+      min-height: 100vh;
+    }
+
+    /* Header */
+    .header {
+      background: #16213e;
+      padding: 16px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 2px solid #D4A853;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    .header-left { display: flex; align-items: center; gap: 12px; }
+    .header h1 { font-size: 22px; color: #D4A853; }
+    .header .logo { font-size: 28px; }
+    .status-indicator {
+      display: flex; align-items: center; gap: 8px;
+      padding: 8px 16px; border-radius: 20px;
+      font-size: 13px; font-weight: 600;
+    }
+    .status-connected { background: rgba(76, 175, 80, 0.2); color: #4CAF50; }
+    .status-disconnected { background: rgba(244, 67, 54, 0.2); color: #F44336; }
+    .dot { width: 8px; height: 8px; border-radius: 50%; }
+    .dot-green { background: #4CAF50; animation: pulse 2s infinite; }
+    .dot-red { background: #F44336; }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+
+    /* Stats bar */
+    .stats-bar {
+      display: flex;
+      gap: 16px;
+      padding: 16px 24px;
+      background: #16213e;
+      border-bottom: 1px solid #2a2a4a;
+      overflow-x: auto;
+    }
+    .stat-card {
+      flex: 1;
+      min-width: 120px;
+      padding: 12px 16px;
+      background: #1a1a2e;
+      border-radius: 12px;
+      text-align: center;
+    }
+    .stat-number { font-size: 28px; font-weight: 700; }
+    .stat-label { font-size: 11px; color: #9E9E9E; text-transform: uppercase; letter-spacing: 1px; margin-top: 4px; }
+    .stat-new .stat-number { color: #FF6B6B; }
+    .stat-prep .stat-number { color: #FFB74D; }
+    .stat-ready .stat-number { color: #4CAF50; }
+    .stat-total .stat-number { color: #D4A853; }
+
+    /* Filters */
+    .filters {
+      display: flex;
+      gap: 8px;
+      padding: 16px 24px;
+    }
+    .filter-btn {
+      padding: 8px 20px;
+      border-radius: 20px;
+      border: 1px solid #3a3a5a;
+      background: transparent;
+      color: #9E9E9E;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .filter-btn:hover { border-color: #D4A853; color: #D4A853; }
+    .filter-btn.active { background: #D4A853; color: #1a1a2e; border-color: #D4A853; }
+
+    /* Orders grid */
+    .orders-container {
+      padding: 0 24px 24px;
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+      gap: 16px;
+    }
+
+    /* Order card */
+    .order-card {
+      background: #16213e;
+      border-radius: 16px;
+      overflow: hidden;
+      border: 1px solid #2a2a4a;
+      transition: all 0.3s;
+      animation: slideIn 0.3s ease-out;
+    }
+    .order-card:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,0.3); }
+    .order-card.new-order { border-color: #FF6B6B; }
+    .order-card.preparing { border-color: #FFB74D; }
+    .order-card.ready { border-color: #4CAF50; }
+
+    @keyframes slideIn {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .order-header {
+      padding: 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .order-id { font-size: 18px; font-weight: 700; }
+    .order-time { font-size: 12px; color: #9E9E9E; }
+    .order-status-badge {
+      padding: 4px 12px;
+      border-radius: 12px;
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .badge-new { background: rgba(255, 107, 107, 0.2); color: #FF6B6B; }
+    .badge-preparing { background: rgba(255, 183, 77, 0.2); color: #FFB74D; }
+    .badge-ready { background: rgba(76, 175, 80, 0.2); color: #4CAF50; }
+    .badge-completed { background: rgba(158, 158, 158, 0.2); color: #9E9E9E; }
+
+    .order-body { padding: 0 16px 16px; }
+    .order-section { margin-bottom: 12px; }
+    .section-label { font-size: 11px; color: #9E9E9E; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px; }
+    .section-value { font-size: 14px; font-weight: 500; }
+    .item-tag {
+      display: inline-block;
+      padding: 4px 10px;
+      background: #2a2a4a;
+      border-radius: 8px;
+      font-size: 12px;
+      margin: 2px;
+    }
+
+    .order-footer {
+      padding: 12px 16px;
+      background: #0f0f1e;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .order-total { font-size: 20px; font-weight: 700; color: #D4A853; }
+    .order-actions { display: flex; gap: 8px; }
+    .action-btn {
+      padding: 8px 16px;
+      border-radius: 8px;
+      border: none;
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.2s;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .action-btn:hover { transform: scale(1.05); }
+    .btn-prepare { background: #FFB74D; color: #1a1a2e; }
+    .btn-ready { background: #4CAF50; color: #FFF; }
+    .btn-complete { background: #9E9E9E; color: #FFF; }
+    .btn-cancel { background: rgba(244, 67, 54, 0.2); color: #F44336; }
+
+    /* Empty state */
+    .empty-state {
+      text-align: center;
+      padding: 80px 24px;
+      grid-column: 1 / -1;
+    }
+    .empty-emoji { font-size: 64px; margin-bottom: 16px; }
+    .empty-title { font-size: 22px; color: #D4A853; margin-bottom: 8px; }
+    .empty-desc { color: #9E9E9E; }
+
+    /* New order notification */
+    .notification {
+      position: fixed;
+      top: 80px;
+      right: 24px;
+      background: #FF6B6B;
+      color: #FFF;
+      padding: 16px 24px;
+      border-radius: 12px;
+      font-weight: 600;
+      box-shadow: 0 8px 32px rgba(255, 107, 107, 0.4);
+      transform: translateX(120%);
+      transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      z-index: 200;
+    }
+    .notification.show { transform: translateX(0); }
+
+    /* Sound toggle */
+    .sound-toggle {
+      padding: 8px 16px;
+      border-radius: 20px;
+      border: 1px solid #3a3a5a;
+      background: transparent;
+      color: #9E9E9E;
+      cursor: pointer;
+      font-size: 18px;
+    }
+    .sound-toggle.active { border-color: #D4A853; color: #D4A853; }
+  </style>
+</head>
+<body>
+  <!-- Header -->
+  <div class="header">
+    <div class="header-left">
+      <span class="logo">🍦</span>
+      <h1>Kitchen Dashboard</h1>
+    </div>
+    <div style="display: flex; gap: 12px; align-items: center;">
+      <button class="sound-toggle" id="soundToggle" title="Toggle notification sound">🔔</button>
+      <div class="status-indicator" id="statusIndicator">
+        <div class="dot" id="statusDot"></div>
+        <span id="statusText">Connecting...</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Stats -->
+  <div class="stats-bar">
+    <div class="stat-card stat-new">
+      <div class="stat-number" id="statNew">0</div>
+      <div class="stat-label">New</div>
+    </div>
+    <div class="stat-card stat-prep">
+      <div class="stat-number" id="statPrep">0</div>
+      <div class="stat-label">Preparing</div>
+    </div>
+    <div class="stat-card stat-ready">
+      <div class="stat-number" id="statReady">0</div>
+      <div class="stat-label">Ready</div>
+    </div>
+    <div class="stat-card stat-total">
+      <div class="stat-number" id="statTotal">0</div>
+      <div class="stat-label">Today</div>
+    </div>
+  </div>
+
+  <!-- Filters -->
+  <div class="filters">
+    <button class="filter-btn active" data-filter="active">Active Orders</button>
+    <button class="filter-btn" data-filter="new">New</button>
+    <button class="filter-btn" data-filter="preparing">Preparing</button>
+    <button class="filter-btn" data-filter="ready">Ready</button>
+    <button class="filter-btn" data-filter="all">All</button>
+  </div>
+
+  <!-- Orders -->
+  <div class="orders-container" id="ordersContainer">
+    <div class="empty-state">
+      <div class="empty-emoji">🍦</div>
+      <div class="empty-title">Waiting for orders...</div>
+      <div class="empty-desc">Orders will appear here in real-time when customers place them from the tablet</div>
+    </div>
+  </div>
+
+  <!-- Notification -->
+  <div class="notification" id="notification">
+    🔔 New order received!
+  </div>
+
+  <script>
+    // ============================================
+    // STATE
+    // ============================================
+    let orders = [];
+    let currentFilter = 'active';
+    let soundEnabled = true;
+    let ws = null;
+
+    // ============================================
+    // WEBSOCKET CONNECTION
+    // ============================================
+    function connectWebSocket() {
+      const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+      ws = new WebSocket(`${protocol}//${window.location.host}`);
+
+      ws.onopen = () => {
+        updateConnectionStatus(true);
+      };
+
+      ws.onmessage = (event) => {
+        const data = JSON.parse(event.data);
+
+        switch (data.type) {
+          case 'INITIAL_ORDERS':
+            orders = data.orders;
+            renderOrders();
+            updateStats();
+            break;
+
+          case 'NEW_ORDER':
+            orders.unshift(data.order);
+            renderOrders();
+            updateStats();
+            showNotification(`New order: ${data.order.id}`);
+            playNotificationSound();
+            break;
+
+          case 'ORDER_UPDATED':
+            const idx = orders.findIndex(o => o.id === data.order.id);
+            if (idx !== -1) {
+              orders[idx] = data.order;
+            }
+            renderOrders();
+            updateStats();
+            break;
+        }
+      };
+
+      ws.onclose = () => {
+        updateConnectionStatus(false);
+        // Reconnect after 3 seconds
+        setTimeout(connectWebSocket, 3000);
+      };
+
+      ws.onerror = () => {
+        updateConnectionStatus(false);
+      };
+
+      // Keep-alive ping
+      setInterval(() => {
+        if (ws && ws.readyState === WebSocket.OPEN) {
+          ws.send(JSON.stringify({ type: 'PING' }));
+        }
+      }, 30000);
+    }
+
+    // ============================================
+    // UI UPDATES
+    // ============================================
+    function updateConnectionStatus(connected) {
+      const indicator = document.getElementById('statusIndicator');
+      const dot = document.getElementById('statusDot');
+      const text = document.getElementById('statusText');
+
+      if (connected) {
+        indicator.className = 'status-indicator status-connected';
+        dot.className = 'dot dot-green';
+        text.textContent = 'Connected';
+      } else {
+        indicator.className = 'status-indicator status-disconnected';
+        dot.className = 'dot dot-red';
+        text.textContent = 'Disconnected';
+      }
+    }
+
+    function updateStats() {
+      document.getElementById('statNew').textContent = orders.filter(o => o.status === 'new').length;
+      document.getElementById('statPrep').textContent = orders.filter(o => o.status === 'preparing').length;
+      document.getElementById('statReady').textContent = orders.filter(o => o.status === 'ready').length;
+      document.getElementById('statTotal').textContent = orders.length;
+    }
+
+    function getFilteredOrders() {
+      switch (currentFilter) {
+        case 'active':
+          return orders.filter(o => o.status !== 'completed' && o.status !== 'cancelled');
+        case 'all':
+          return orders;
+        default:
+          return orders.filter(o => o.status === currentFilter);
+      }
+    }
+
+    function renderOrders() {
+      const container = document.getElementById('ordersContainer');
+      const filtered = getFilteredOrders();
+
+      if (filtered.length === 0) {
+        container.innerHTML = `
+          <div class="empty-state">
+            <div class="empty-emoji">${currentFilter === 'active' ? '✅' : '🍦'}</div>
+            <div class="empty-title">${currentFilter === 'active' ? 'All caught up!' : 'No orders yet'}</div>
+            <div class="empty-desc">${currentFilter === 'active' ? 'No pending orders right now' : 'Orders will appear here when customers place them'}</div>
+          </div>
+        `;
+        return;
+      }
+
+      container.innerHTML = filtered.map(order => renderOrderCard(order)).join('');
+    }
+
+    function renderOrderCard(order) {
+      const statusClass = order.status === 'new' ? 'new-order' : order.status;
+      const badgeClass = `badge-${order.status}`;
+      const time = new Date(order.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+      const flavorsHtml = order.flavors.map(f => `<span class="item-tag">${f.name}</span>`).join('');
+      const toppingsHtml = order.toppings.length > 0
+        ? order.toppings.map(t => `<span class="item-tag">${t.topping?.emoji || '🍬'} ${t.topping?.name || 'Topping'} (${t.grams}g)</span>`).join('')
+        : '<span style="color: #9E9E9E; font-size: 12px;">None</span>';
+      const saucesHtml = order.sauces.length > 0
+        ? order.sauces.map(s => `<span class="item-tag">${s.emoji || '🍫'} ${s.name}</span>`).join('')
+        : '<span style="color: #9E9E9E; font-size: 12px;">None</span>';
+
+      let actionsHtml = '';
+      if (order.status === 'new') {
+        actionsHtml = `
+          <button class="action-btn btn-prepare" onclick="updateOrderStatus('${order.id}', 'preparing')">Start Making</button>
+          <button class="action-btn btn-cancel" onclick="updateOrderStatus('${order.id}', 'cancelled')">Cancel</button>
+        `;
+      } else if (order.status === 'preparing') {
+        actionsHtml = `<button class="action-btn btn-ready" onclick="updateOrderStatus('${order.id}', 'ready')">Mark Ready</button>`;
+      } else if (order.status === 'ready') {
+        actionsHtml = `<button class="action-btn btn-complete" onclick="updateOrderStatus('${order.id}', 'completed')">Picked Up</button>`;
+      }
+
+      return `
+        <div class="order-card ${statusClass}">
+          <div class="order-header">
+            <div>
+              <div class="order-id">${order.id}</div>
+              <div class="order-time">${time}</div>
+            </div>
+            <span class="order-status-badge ${badgeClass}">${order.status}</span>
+          </div>
+          <div class="order-body">
+            <div class="order-section">
+              <div class="section-label">Cup Size</div>
+              <div class="section-value">${order.cupSize?.emoji || '🥤'} ${order.cupSize?.name || 'Unknown'} (${order.cupSize?.ounces || 0}oz)</div>
+            </div>
+            <div class="order-section">
+              <div class="section-label">Flavors</div>
+              <div>${flavorsHtml}</div>
+            </div>
+            <div class="order-section">
+              <div class="section-label">Toppings</div>
+              <div>${toppingsHtml}</div>
+            </div>
+            <div class="order-section">
+              <div class="section-label">Sauces</div>
+              <div>${saucesHtml}</div>
+            </div>
+          </div>
+          <div class="order-footer">
+            <div class="order-total">$${(order.totalPrice || 0).toFixed(2)}</div>
+            <div class="order-actions">${actionsHtml}</div>
+          </div>
+        </div>
+      `;
+    }
+
+    // ============================================
+    // ACTIONS
+    // ============================================
+    async function updateOrderStatus(orderId, status) {
+      try {
+        const res = await fetch(`/api/orders/${orderId}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ status }),
+        });
+        if (!res.ok) throw new Error('Failed to update order');
+      } catch (err) {
+        console.error('Error updating order:', err);
+        alert('Failed to update order status. Please try again.');
+      }
+    }
+
+    function showNotification(text) {
+      const el = document.getElementById('notification');
+      el.textContent = `🔔 ${text}`;
+      el.classList.add('show');
+      setTimeout(() => el.classList.remove('show'), 4000);
+    }
+
+    function playNotificationSound() {
+      if (!soundEnabled) return;
+      try {
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.frequency.setValueAtTime(880, ctx.currentTime);
+        osc.frequency.setValueAtTime(1100, ctx.currentTime + 0.1);
+        osc.frequency.setValueAtTime(880, ctx.currentTime + 0.2);
+        gain.gain.setValueAtTime(0.3, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.5);
+        osc.start(ctx.currentTime);
+        osc.stop(ctx.currentTime + 0.5);
+      } catch (e) { /* Audio not available */ }
+    }
+
+    // ============================================
+    // EVENT LISTENERS
+    // ============================================
+
+    // Filter buttons
+    document.querySelectorAll('.filter-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        currentFilter = btn.dataset.filter;
+        renderOrders();
+      });
+    });
+
+    // Sound toggle
+    document.getElementById('soundToggle').addEventListener('click', function() {
+      soundEnabled = !soundEnabled;
+      this.textContent = soundEnabled ? '🔔' : '🔕';
+      this.classList.toggle('active', soundEnabled);
+    });
+
+    // ============================================
+    // INIT
+    // ============================================
+    connectWebSocket();
+  </script>
+</body>
+</html>

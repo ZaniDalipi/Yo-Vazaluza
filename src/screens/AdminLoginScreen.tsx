@@ -3,7 +3,7 @@ import {
   View,
   Text,
   StyleSheet,
-  TextInput,
+  TouchableOpacity,
   Animated,
   StatusBar,
   Alert,
@@ -17,31 +17,48 @@ import { Ionicons } from '@expo/vector-icons';
 import { AnimatedLogo, AnimatedButton, MagicalParticles } from '../components';
 import { useApp } from '../context/AppContext';
 import { colors, spacing, typography, borderRadius, shadows } from '../theme';
+import { verifyAdminPin, getLockoutInfo, ensureAdminPinExists } from '../services/authService';
 
-// Secret admin password - in a real app, this would be securely stored
-const ADMIN_PASSWORD = 'dalipi2024';
+const PIN_LENGTH = 4;
 
 const AdminLoginScreen: React.FC = () => {
   const navigation = useNavigation<any>();
   const { setAdminMode } = useApp();
 
-  const [password, setPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
-  const [attempts, setAttempts] = useState(0);
+  const [pin, setPin] = useState<string[]>([]);
   const [isLocked, setIsLocked] = useState(false);
+  const [lockoutMessage, setLockoutMessage] = useState('');
+  const [isVerifying, setIsVerifying] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
 
   // Animations
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const shakeAnim = useRef(new Animated.Value(0)).current;
   const lockIconAnim = useRef(new Animated.Value(1)).current;
+  const dotAnims = useRef(Array.from({ length: PIN_LENGTH }, () => new Animated.Value(0))).current;
 
   useEffect(() => {
+    ensureAdminPinExists();
+    checkLockout();
     Animated.timing(fadeAnim, {
       toValue: 1,
       duration: 800,
       useNativeDriver: true,
     }).start();
   }, []);
+
+  const checkLockout = async () => {
+    const lockout = await getLockoutInfo();
+    if (lockout.isLocked) {
+      setIsLocked(true);
+      const mins = Math.ceil(lockout.remainingMs / 60000);
+      setLockoutMessage(`Locked for ${mins} min`);
+      setTimeout(checkLockout, 10000);
+    } else {
+      setIsLocked(false);
+      setLockoutMessage('');
+    }
+  };
 
   const shakeInput = () => {
     Animated.sequence([
@@ -53,54 +70,136 @@ const AdminLoginScreen: React.FC = () => {
     ]).start();
   };
 
-  const animateLockIcon = () => {
-    Animated.sequence([
-      Animated.timing(lockIconAnim, { toValue: 1.2, duration: 100, useNativeDriver: true }),
-      Animated.timing(lockIconAnim, { toValue: 1, duration: 100, useNativeDriver: true }),
-    ]).start();
+  const animateDot = (index: number, filled: boolean) => {
+    Animated.spring(dotAnims[index], {
+      toValue: filled ? 1 : 0,
+      friction: 5,
+      tension: 100,
+      useNativeDriver: true,
+    }).start();
   };
 
-  const handleLogin = () => {
-    if (isLocked) {
-      Alert.alert('Locked', 'Too many failed attempts. Please try again later.');
-      return;
-    }
+  const handlePinInput = async (digit: string) => {
+    if (isLocked || isVerifying || pin.length >= PIN_LENGTH) return;
 
-    if (password === ADMIN_PASSWORD) {
-      // Success animation
-      Animated.timing(lockIconAnim, {
-        toValue: 0,
-        duration: 300,
-        useNativeDriver: true,
-      }).start(() => {
-        setAdminMode(true);
-        navigation.replace('AdminPanel');
-      });
-    } else {
-      shakeInput();
-      animateLockIcon();
-      setAttempts((prev) => prev + 1);
+    const newPin = [...pin, digit];
+    setPin(newPin);
+    setErrorMessage('');
+    animateDot(newPin.length - 1, true);
 
-      if (attempts >= 4) {
-        setIsLocked(true);
-        setTimeout(() => {
-          setIsLocked(false);
-          setAttempts(0);
-        }, 60000); // 1 minute lockout
-        Alert.alert(
-          'Too Many Attempts',
-          'You have been locked out for 1 minute.',
-          [{ text: 'OK' }]
-        );
+    // Auto-submit when PIN is complete
+    if (newPin.length === PIN_LENGTH) {
+      setIsVerifying(true);
+      const pinStr = newPin.join('');
+
+      const result = await verifyAdminPin(pinStr);
+
+      if (result.success) {
+        // Success animation
+        Animated.timing(lockIconAnim, {
+          toValue: 0,
+          duration: 300,
+          useNativeDriver: true,
+        }).start(() => {
+          setAdminMode(true);
+          navigation.replace('AdminPanel');
+        });
       } else {
-        Alert.alert(
-          'Incorrect Password',
-          `Please try again. ${4 - attempts} attempts remaining.`,
-          [{ text: 'OK' }]
-        );
+        shakeInput();
+        setErrorMessage(result.error || 'Incorrect PIN');
+        // Reset dots
+        setTimeout(() => {
+          dotAnims.forEach((anim) => {
+            Animated.timing(anim, { toValue: 0, duration: 200, useNativeDriver: true }).start();
+          });
+          setPin([]);
+          setIsVerifying(false);
+          checkLockout();
+        }, 600);
       }
-      setPassword('');
     }
+  };
+
+  const handleDelete = () => {
+    if (pin.length === 0 || isVerifying) return;
+    const newPin = pin.slice(0, -1);
+    animateDot(pin.length - 1, false);
+    setPin(newPin);
+    setErrorMessage('');
+  };
+
+  const renderPinDots = () => (
+    <Animated.View style={[styles.dotsContainer, { transform: [{ translateX: shakeAnim }] }]}>
+      {Array.from({ length: PIN_LENGTH }).map((_, i) => (
+        <Animated.View
+          key={i}
+          style={[
+            styles.pinDot,
+            {
+              transform: [
+                {
+                  scale: dotAnims[i].interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [1, 1.3],
+                  }),
+                },
+              ],
+              backgroundColor: dotAnims[i].interpolate({
+                inputRange: [0, 1],
+                outputRange: [colors.ui.border, colors.accent.gold],
+              }),
+            },
+          ]}
+        />
+      ))}
+    </Animated.View>
+  );
+
+  const renderKeypad = () => {
+    const keys = [
+      ['1', '2', '3'],
+      ['4', '5', '6'],
+      ['7', '8', '9'],
+      ['', '0', 'del'],
+    ];
+
+    return (
+      <View style={styles.keypad}>
+        {keys.map((row, rowIndex) => (
+          <View key={rowIndex} style={styles.keyRow}>
+            {row.map((key) => {
+              if (key === '') {
+                return <View key="empty" style={styles.keyEmpty} />;
+              }
+              if (key === 'del') {
+                return (
+                  <TouchableOpacity
+                    key="del"
+                    style={styles.keyButton}
+                    onPress={handleDelete}
+                    activeOpacity={0.6}
+                    disabled={isLocked || isVerifying}
+                  >
+                    <Ionicons name="backspace-outline" size={24} color={colors.text.muted} />
+                  </TouchableOpacity>
+                );
+              }
+              return (
+                <TouchableOpacity
+                  key={key}
+                  style={styles.keyButton}
+                  onPress={() => handlePinInput(key)}
+                  activeOpacity={0.6}
+                  disabled={isLocked || isVerifying}
+                >
+                  <Text style={styles.keyText}>{key}</Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        ))}
+      </View>
+    );
   };
 
   return (
@@ -142,71 +241,49 @@ const AdminLoginScreen: React.FC = () => {
             <View style={styles.header}>
               <Animated.View style={{ transform: [{ scale: lockIconAnim }] }}>
                 <View style={styles.lockIconContainer}>
-                  <Ionicons name="lock-closed" size={40} color={colors.accent.gold} />
+                  <Ionicons
+                    name={isLocked ? 'lock-closed' : 'keypad'}
+                    size={40}
+                    color={isLocked ? colors.ui.error : colors.accent.gold}
+                  />
                 </View>
               </Animated.View>
               <Text style={styles.title}>Admin Access</Text>
               <Text style={styles.subtitle}>
-                This area is restricted to authorized personnel only
+                {isLocked
+                  ? lockoutMessage
+                  : 'Enter your PIN to access the admin panel'}
               </Text>
             </View>
 
-            {/* Login Form */}
-            <Animated.View
-              style={[
-                styles.form,
-                { transform: [{ translateX: shakeAnim }] },
-              ]}
-            >
-              <View style={styles.inputContainer}>
-                <Ionicons
-                  name="key"
-                  size={20}
-                  color={colors.text.muted}
-                  style={styles.inputIcon}
-                />
-                <TextInput
-                  style={styles.input}
-                  placeholder="Enter admin password"
-                  placeholderTextColor={colors.text.muted}
-                  secureTextEntry={!showPassword}
-                  value={password}
-                  onChangeText={setPassword}
-                  autoCapitalize="none"
-                  autoCorrect={false}
-                  editable={!isLocked}
-                />
-                <Ionicons
-                  name={showPassword ? 'eye-off' : 'eye'}
-                  size={20}
-                  color={colors.text.muted}
-                  onPress={() => setShowPassword(!showPassword)}
-                  style={styles.eyeIcon}
-                />
+            {/* PIN Dots */}
+            {renderPinDots()}
+
+            {/* Error message */}
+            {errorMessage ? (
+              <View style={styles.errorContainer}>
+                <Ionicons name="warning" size={16} color={colors.ui.error} />
+                <Text style={styles.errorText}>{errorMessage}</Text>
               </View>
+            ) : null}
 
-              <AnimatedButton
-                title={isLocked ? 'Locked' : 'Login'}
-                onPress={handleLogin}
-                variant="golden"
-                size="large"
-                disabled={isLocked || !password}
-                style={styles.loginButton}
-              />
+            {/* Keypad */}
+            {renderKeypad()}
 
-              <AnimatedButton
-                title="Back to App"
-                onPress={() => navigation.goBack()}
-                variant="outline"
-                size="medium"
-                style={styles.backButton}
-              />
-            </Animated.View>
+            {/* Back button */}
+            <AnimatedButton
+              title="Back to App"
+              onPress={() => navigation.goBack()}
+              variant="outline"
+              size="medium"
+              style={styles.backButton}
+            />
 
             {/* Footer */}
             <View style={styles.footer}>
               <AnimatedLogo size={40} color={colors.text.muted} animated={false} />
               <Text style={styles.footerText}>Yo-Vazaluza Admin Portal</Text>
+              <Text style={styles.footerHint}>Default PIN: 1234</Text>
             </View>
           </Animated.View>
         </KeyboardAvoidingView>
@@ -229,10 +306,11 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     paddingHorizontal: spacing.xl,
+    alignItems: 'center',
   },
   header: {
     alignItems: 'center',
-    marginBottom: spacing.xxl,
+    marginBottom: spacing.xl,
   },
   lockIconContainer: {
     width: 80,
@@ -256,48 +334,79 @@ const styles = StyleSheet.create({
     marginTop: spacing.sm,
     maxWidth: '80%',
   },
-  form: {
-    backgroundColor: colors.background.card,
-    borderRadius: borderRadius.xl,
-    padding: spacing.xl,
-    ...shadows.large,
-  },
-  inputContainer: {
+  dotsContainer: {
     flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.background.main,
-    borderRadius: borderRadius.lg,
-    borderWidth: 1,
-    borderColor: colors.ui.border,
+    gap: spacing.lg,
     marginBottom: spacing.lg,
   },
-  inputIcon: {
-    paddingLeft: spacing.md,
+  pinDot: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    borderWidth: 2,
+    borderColor: colors.accent.gold + '50',
   },
-  input: {
-    flex: 1,
-    padding: spacing.md,
-    fontSize: typography.fontSizes.md,
-    color: colors.text.primary,
+  errorContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    marginBottom: spacing.md,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    backgroundColor: colors.ui.error + '20',
+    borderRadius: borderRadius.md,
   },
-  eyeIcon: {
-    paddingRight: spacing.md,
+  errorText: {
+    color: colors.ui.error,
+    fontSize: typography.fontSizes.sm,
+    fontWeight: '500',
   },
-  loginButton: {
+  keypad: {
     width: '100%',
+    maxWidth: 300,
+    gap: spacing.sm,
+  },
+  keyRow: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: spacing.sm,
+  },
+  keyButton: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  keyEmpty: {
+    width: 72,
+    height: 72,
+  },
+  keyText: {
+    fontSize: 28,
+    fontWeight: '600',
+    color: colors.text.light,
   },
   backButton: {
+    marginTop: spacing.xl,
     width: '100%',
-    marginTop: spacing.md,
+    maxWidth: 300,
   },
   footer: {
     alignItems: 'center',
-    marginTop: spacing.xxl,
+    marginTop: spacing.xl,
   },
   footerText: {
     fontSize: typography.fontSizes.sm,
     color: colors.text.muted,
     marginTop: spacing.sm,
+  },
+  footerHint: {
+    fontSize: typography.fontSizes.xs,
+    color: colors.text.muted,
+    marginTop: spacing.xs,
+    opacity: 0.5,
   },
 });
 

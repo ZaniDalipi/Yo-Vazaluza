@@ -18,6 +18,7 @@ export interface Topping {
   pricePerGram?: number; // Price per gram for weight-based pricing
   maxGrams?: number; // Maximum grams allowed (default 30)
   emoji?: string; // Emoji representation
+  color?: string; // Display color
 }
 
 // Topping with selected quantity

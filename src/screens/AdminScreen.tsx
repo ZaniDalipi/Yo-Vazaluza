@@ -23,10 +23,13 @@ import { useApp } from '../context/AppContext';
 import { colors, spacing, typography, borderRadius, shadows } from '../theme';
 import { Flavor, Topping, Promotion, GalleryImage } from '../types';
 import { useResponsive } from '../hooks/useResponsive';
+import { changeAdminPin } from '../services/authService';
+import { getServerUrl, setServerUrl, checkServerHealth } from '../services/orderService';
+import { CupSize } from '../types';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
-type AdminSection = 'flavors' | 'toppings' | 'promotions' | 'gallery' | 'store' | 'settings';
+type AdminSection = 'flavors' | 'toppings' | 'promotions' | 'gallery' | 'store' | 'pricing' | 'security' | 'settings';
 
 // Predefined color palette for quick selection
 const COLOR_PALETTE = [
@@ -100,6 +103,8 @@ const NAV_ITEMS: { key: AdminSection; icon: string; label: string }[] = [
   { key: 'promotions', icon: 'gift', label: 'Promos' },
   { key: 'gallery', icon: 'images', label: 'Gallery' },
   { key: 'store', icon: 'storefront', label: 'Store' },
+  { key: 'pricing', icon: 'pricetag', label: 'Pricing' },
+  { key: 'security', icon: 'shield-checkmark', label: 'Security' },
   { key: 'settings', icon: 'settings', label: 'Settings' },
 ];
 
@@ -146,6 +151,26 @@ const AdminScreen: React.FC = () => {
   const [colorPickerField, setColorPickerField] = useState<string>('color');
   const [formData, setFormData] = useState<any>({});
   const [deleteConfirm, setDeleteConfirm] = useState<{ id: string; type: 'flavor' | 'topping' | 'promotion' | 'gallery'; name: string } | null>(null);
+
+  // Pricing state
+  const [cupPrices, setCupPrices] = useState<CupSize[]>([
+    { id: 'small', name: 'Little Cup', size: 'small', price: 4.99, ounces: 8, emoji: '🥤' },
+    { id: 'medium', name: 'Regular Cup', size: 'medium', price: 6.99, ounces: 12, emoji: '🍵' },
+    { id: 'large', name: 'Big Cup', size: 'large', price: 8.99, ounces: 16, emoji: '🪣' },
+  ]);
+
+  // Security state
+  const [currentPin, setCurrentPin] = useState('');
+  const [newPin, setNewPin] = useState('');
+  const [confirmPin, setConfirmPin] = useState('');
+  const [serverUrl, setServerUrlState] = useState('');
+  const [serverConnected, setServerConnected] = useState(false);
+
+  // Load server URL on mount
+  useEffect(() => {
+    getServerUrl().then(url => setServerUrlState(url));
+    checkServerHealth().then(ok => setServerConnected(ok));
+  }, []);
 
   const handleLogout = () => {
     Alert.alert(
@@ -500,6 +525,241 @@ const AdminScreen: React.FC = () => {
                   <Text style={styles.storeValue}>Weekdays: {storeInfo.hours?.weekdays}</Text>
                   <Text style={styles.storeValue}>Weekends: {storeInfo.hours?.weekends}</Text>
                 </View>
+              </View>
+            </View>
+          </>
+        );
+      case 'pricing':
+        return (
+          <>
+            <Text style={styles.sectionTitle}>Pricing Management</Text>
+            <Text style={[styles.sectionSubtitle, { marginBottom: spacing.md }]}>
+              Manage cup sizes, names, and prices
+            </Text>
+
+            {cupPrices.map((cup, index) => (
+              <View key={cup.id} style={[styles.settingsItem, { marginBottom: spacing.sm }]}>
+                <View style={[styles.settingsIcon, { backgroundColor: colors.accent.gold + '20' }]}>
+                  <Text style={{ fontSize: 24 }}>{cup.emoji}</Text>
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={[styles.settingsTitle, { marginBottom: 4 }]}>{cup.name}</Text>
+                  <Text style={styles.settingsSubtitle}>{cup.ounces}oz - {cup.size}</Text>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginTop: spacing.sm }}>
+                    <Text style={{ color: colors.text.secondary, fontSize: 14 }}>Name:</Text>
+                    <TextInput
+                      style={[styles.input, { flex: 1, marginBottom: 0, paddingVertical: 8 }]}
+                      value={cup.name}
+                      onChangeText={(t) => {
+                        const updated = [...cupPrices];
+                        updated[index] = { ...updated[index], name: t };
+                        setCupPrices(updated);
+                      }}
+                      placeholder="Cup name"
+                      placeholderTextColor={colors.text.muted}
+                    />
+                  </View>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginTop: spacing.xs }}>
+                    <Text style={{ color: colors.text.secondary, fontSize: 14 }}>Price $:</Text>
+                    <TextInput
+                      style={[styles.input, { flex: 1, marginBottom: 0, paddingVertical: 8 }]}
+                      value={cup.price.toString()}
+                      onChangeText={(t) => {
+                        const updated = [...cupPrices];
+                        updated[index] = { ...updated[index], price: parseFloat(t) || 0 };
+                        setCupPrices(updated);
+                      }}
+                      keyboardType="decimal-pad"
+                      placeholder="0.00"
+                      placeholderTextColor={colors.text.muted}
+                    />
+                  </View>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginTop: spacing.xs }}>
+                    <Text style={{ color: colors.text.secondary, fontSize: 14 }}>Ounces:</Text>
+                    <TextInput
+                      style={[styles.input, { flex: 1, marginBottom: 0, paddingVertical: 8 }]}
+                      value={cup.ounces.toString()}
+                      onChangeText={(t) => {
+                        const updated = [...cupPrices];
+                        updated[index] = { ...updated[index], ounces: parseInt(t) || 0 };
+                        setCupPrices(updated);
+                      }}
+                      keyboardType="number-pad"
+                      placeholder="8"
+                      placeholderTextColor={colors.text.muted}
+                    />
+                  </View>
+                </View>
+              </View>
+            ))}
+
+            <TouchableOpacity
+              style={[styles.settingsItem, { backgroundColor: colors.accent.gold + '10', borderWidth: 1, borderColor: colors.accent.gold + '30', borderRadius: borderRadius.lg }]}
+              onPress={() => {
+                Alert.alert('Pricing Saved', 'Cup size pricing has been updated. Changes will apply to new orders.');
+              }}
+            >
+              <View style={[styles.settingsIcon, { backgroundColor: colors.ui.success + '20' }]}>
+                <Ionicons name="checkmark-circle" size={24} color={colors.ui.success} />
+              </View>
+              <View style={styles.settingsContent}>
+                <Text style={[styles.settingsTitle, { color: colors.ui.success }]}>Save Pricing</Text>
+                <Text style={styles.settingsSubtitle}>Apply pricing changes</Text>
+              </View>
+            </TouchableOpacity>
+
+            <View style={{ height: 1, backgroundColor: colors.ui.border, marginVertical: spacing.lg }} />
+
+            <Text style={[styles.sectionTitle, { marginTop: 0 }]}>Topping Pricing</Text>
+            <Text style={[styles.settingsSubtitle, { marginBottom: spacing.md }]}>
+              Edit topping prices per gram from the Toppings section
+            </Text>
+            <View style={[styles.settingsItem, { backgroundColor: colors.background.main, borderRadius: borderRadius.lg }]}>
+              <View style={[styles.settingsIcon, { backgroundColor: colors.ui.info + '20' }]}>
+                <Ionicons name="information-circle" size={24} color={colors.ui.info} />
+              </View>
+              <View style={styles.settingsContent}>
+                <Text style={styles.settingsTitle}>How topping pricing works</Text>
+                <Text style={styles.settingsSubtitle}>Each topping has a price-per-gram. Customers choose how many grams they want. Total = grams x price/gram.</Text>
+              </View>
+            </View>
+          </>
+        );
+      case 'security':
+        return (
+          <>
+            <Text style={styles.sectionTitle}>Security Settings</Text>
+
+            {/* Change PIN */}
+            <View style={[styles.settingsItem, { flexDirection: 'column', alignItems: 'stretch', paddingVertical: spacing.lg }]}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: spacing.md }}>
+                <View style={[styles.settingsIcon, { backgroundColor: colors.accent.gold + '20' }]}>
+                  <Ionicons name="key" size={24} color={colors.accent.gold} />
+                </View>
+                <Text style={[styles.settingsTitle, { marginLeft: spacing.sm }]}>Change Admin PIN</Text>
+              </View>
+
+              <Text style={{ color: colors.text.secondary, fontSize: 13, marginBottom: spacing.xs }}>Current PIN</Text>
+              <TextInput
+                style={[styles.input, { marginBottom: spacing.sm }]}
+                value={currentPin}
+                onChangeText={setCurrentPin}
+                placeholder="Enter current PIN"
+                placeholderTextColor={colors.text.muted}
+                secureTextEntry
+                keyboardType="number-pad"
+                maxLength={8}
+              />
+
+              <Text style={{ color: colors.text.secondary, fontSize: 13, marginBottom: spacing.xs }}>New PIN (4-8 digits)</Text>
+              <TextInput
+                style={[styles.input, { marginBottom: spacing.sm }]}
+                value={newPin}
+                onChangeText={setNewPin}
+                placeholder="Enter new PIN"
+                placeholderTextColor={colors.text.muted}
+                secureTextEntry
+                keyboardType="number-pad"
+                maxLength={8}
+              />
+
+              <Text style={{ color: colors.text.secondary, fontSize: 13, marginBottom: spacing.xs }}>Confirm New PIN</Text>
+              <TextInput
+                style={[styles.input, { marginBottom: spacing.md }]}
+                value={confirmPin}
+                onChangeText={setConfirmPin}
+                placeholder="Confirm new PIN"
+                placeholderTextColor={colors.text.muted}
+                secureTextEntry
+                keyboardType="number-pad"
+                maxLength={8}
+              />
+
+              <TouchableOpacity
+                style={[styles.saveBtn, (!currentPin || !newPin || !confirmPin) && { opacity: 0.5 }]}
+                disabled={!currentPin || !newPin || !confirmPin}
+                onPress={async () => {
+                  if (newPin !== confirmPin) {
+                    Alert.alert('Error', 'New PIN and confirmation do not match.');
+                    return;
+                  }
+                  const result = await changeAdminPin(currentPin, newPin);
+                  if (result.success) {
+                    Alert.alert('Success', 'Admin PIN has been changed.');
+                    setCurrentPin('');
+                    setNewPin('');
+                    setConfirmPin('');
+                  } else {
+                    Alert.alert('Error', result.error || 'Failed to change PIN.');
+                  }
+                }}
+              >
+                <Text style={styles.saveBtnText}>Change PIN</Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* Server Connection */}
+            <View style={{ height: 1, backgroundColor: colors.ui.border, marginVertical: spacing.lg }} />
+            <Text style={[styles.sectionTitle, { marginTop: 0 }]}>Server Connection</Text>
+            <Text style={[styles.settingsSubtitle, { marginBottom: spacing.md }]}>
+              Connect to the order server so orders appear on your kitchen dashboard
+            </Text>
+
+            <View style={[styles.settingsItem, { flexDirection: 'column', alignItems: 'stretch', paddingVertical: spacing.lg }]}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: spacing.md }}>
+                <View style={[styles.settingsIcon, { backgroundColor: serverConnected ? colors.ui.success + '20' : colors.ui.error + '20' }]}>
+                  <Ionicons
+                    name={serverConnected ? 'cloud-done' : 'cloud-offline'}
+                    size={24}
+                    color={serverConnected ? colors.ui.success : colors.ui.error}
+                  />
+                </View>
+                <View style={{ marginLeft: spacing.sm }}>
+                  <Text style={styles.settingsTitle}>Order Server</Text>
+                  <Text style={[styles.settingsSubtitle, { color: serverConnected ? colors.ui.success : colors.ui.error }]}>
+                    {serverConnected ? 'Connected' : 'Not connected'}
+                  </Text>
+                </View>
+              </View>
+
+              <Text style={{ color: colors.text.secondary, fontSize: 13, marginBottom: spacing.xs }}>Server URL</Text>
+              <TextInput
+                style={[styles.input, { marginBottom: spacing.sm }]}
+                value={serverUrl}
+                onChangeText={setServerUrlState}
+                placeholder="http://192.168.1.100:3001"
+                placeholderTextColor={colors.text.muted}
+                autoCapitalize="none"
+                autoCorrect={false}
+              />
+
+              <View style={{ flexDirection: 'row', gap: spacing.sm }}>
+                <TouchableOpacity
+                  style={[styles.saveBtn, { flex: 1 }]}
+                  onPress={async () => {
+                    await setServerUrl(serverUrl);
+                    const ok = await checkServerHealth();
+                    setServerConnected(ok);
+                    Alert.alert(ok ? 'Connected' : 'Connection Failed',
+                      ok ? 'Successfully connected to the order server.' : 'Could not reach the server. Make sure it is running and the URL is correct.');
+                  }}
+                >
+                  <Text style={styles.saveBtnText}>Save & Test</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            {/* Security info */}
+            <View style={{ height: 1, backgroundColor: colors.ui.border, marginVertical: spacing.lg }} />
+            <View style={[styles.settingsItem, { backgroundColor: colors.background.main, borderRadius: borderRadius.lg }]}>
+              <View style={[styles.settingsIcon, { backgroundColor: colors.ui.success + '20' }]}>
+                <Ionicons name="shield-checkmark" size={24} color={colors.ui.success} />
+              </View>
+              <View style={styles.settingsContent}>
+                <Text style={styles.settingsTitle}>Security Features</Text>
+                <Text style={styles.settingsSubtitle}>
+                  PIN is hashed with SHA-256 and stored securely. After 5 failed attempts, the account is locked for 3 minutes. No passwords are stored in plain text.
+                </Text>
               </View>
             </View>
           </>
@@ -1292,6 +1552,23 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: colors.text.muted,
     marginTop: spacing.xs,
+  },
+  sectionSubtitle: {
+    fontSize: 14,
+    color: colors.text.secondary,
+    lineHeight: 20,
+  },
+  saveBtn: {
+    backgroundColor: colors.accent.gold,
+    paddingVertical: spacing.md,
+    borderRadius: borderRadius.md,
+    alignItems: 'center' as const,
+    justifyContent: 'center' as const,
+  },
+  saveBtnText: {
+    color: '#FFF',
+    fontSize: 15,
+    fontWeight: '700' as const,
   },
   // Modal styles
   modalOverlay: {

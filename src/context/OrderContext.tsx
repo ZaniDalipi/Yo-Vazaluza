@@ -1,8 +1,8 @@
 import React, { createContext, useContext, useState, useCallback, ReactNode } from 'react';
 import { CupSize, Flavor, Topping, ToppingSelection, OrderState, OrderStep } from '../types';
 
-// Cup sizes available
-export const CUP_SIZES: CupSize[] = [
+// Default cup sizes - can be overridden by admin pricing settings
+export const DEFAULT_CUP_SIZES: CupSize[] = [
   { id: 'small', name: 'Little Cup', size: 'small', price: 4.99, ounces: 8, emoji: '🥤' },
   { id: 'medium', name: 'Regular Cup', size: 'medium', price: 6.99, ounces: 12, emoji: '🍵' },
   { id: 'large', name: 'Big Cup', size: 'large', price: 8.99, ounces: 16, emoji: '🪣' },
@@ -49,6 +49,7 @@ interface OrderContextType {
   order: OrderState;
   currentStep: OrderStep;
   stepIndex: number;
+  cupSizes: CupSize[];
 
   // Actions
   setCupSize: (size: CupSize) => void;
@@ -59,6 +60,7 @@ interface OrderContextType {
   removeTopping: (toppingId: string) => void;
   addSauce: (sauce: Topping) => void;
   removeSauce: (sauceId: string) => void;
+  updateCupSizes: (sizes: CupSize[]) => void;
 
   // Navigation
   nextStep: () => void;
@@ -88,12 +90,18 @@ const OrderContext = createContext<OrderContextType | undefined>(undefined);
 export const OrderProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [order, setOrder] = useState<OrderState>(initialOrder);
   const [stepIndex, setStepIndex] = useState(0);
+  const [cupSizes, setCupSizes] = useState<CupSize[]>(DEFAULT_CUP_SIZES);
 
   const currentStep = ORDER_STEPS[stepIndex];
 
   // Cup size
   const setCupSize = useCallback((size: CupSize) => {
     setOrder(prev => ({ ...prev, cupSize: size }));
+  }, []);
+
+  // Update cup sizes (from admin pricing)
+  const updateCupSizes = useCallback((sizes: CupSize[]) => {
+    setCupSizes(sizes);
   }, []);
 
   // Flavors (max 3)
@@ -229,6 +237,7 @@ export const OrderProvider: React.FC<{ children: ReactNode }> = ({ children }) =
         order,
         currentStep,
         stepIndex,
+        cupSizes,
         setCupSize,
         addFlavor,
         removeFlavor,
@@ -237,6 +246,7 @@ export const OrderProvider: React.FC<{ children: ReactNode }> = ({ children }) =
         removeTopping,
         addSauce,
         removeSauce,
+        updateCupSizes,
         nextStep,
         prevStep,
         goToStep,
@@ -260,5 +270,8 @@ export const useOrder = () => {
   }
   return context;
 };
+
+// Keep backward compatibility
+export const CUP_SIZES = DEFAULT_CUP_SIZES;
 
 export default OrderContext;

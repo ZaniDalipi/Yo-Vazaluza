@@ -11,7 +11,7 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
-import { useOrder, CUP_SIZES } from '../../context/OrderContext';
+import { useOrder } from '../../context/OrderContext';
 import { colors, spacing, typography, borderRadius, shadows } from '../../theme';
 import { CupSize } from '../../types';
 
@@ -419,7 +419,7 @@ const SizeCard: React.FC<{
 };
 
 const SizeStep: React.FC = () => {
-  const { order, setCupSize } = useOrder();
+  const { order, setCupSize, cupSizes } = useOrder();
   const scrollX = useRef(new Animated.Value(0)).current;
   const flatListRef = useRef<FlatList>(null);
   const [activeIndex, setActiveIndex] = useState(1);
@@ -427,7 +427,7 @@ const SizeStep: React.FC = () => {
   useEffect(() => {
     // Auto-select medium if nothing selected
     if (!order.cupSize) {
-      setCupSize(CUP_SIZES[1]);
+      setCupSize(cupSizes[1] || cupSizes[0]);
     }
   }, []);
 
@@ -443,7 +443,7 @@ const SizeStep: React.FC = () => {
       <View style={styles.carouselContainer}>
         <Animated.FlatList
           ref={flatListRef}
-          data={CUP_SIZES}
+          data={cupSizes}
           keyExtractor={(item) => item.id}
           horizontal
           showsHorizontalScrollIndicator={false}
@@ -476,7 +476,7 @@ const SizeStep: React.FC = () => {
 
       {/* Pagination dots */}
       <View style={styles.pagination}>
-        {CUP_SIZES.map((_, index) => {
+        {cupSizes.map((_, index) => {
           const inputRange = [
             (index - 1) * (CARD_WIDTH + CARD_MARGIN * 2),
             index * (CARD_WIDTH + CARD_MARGIN * 2),

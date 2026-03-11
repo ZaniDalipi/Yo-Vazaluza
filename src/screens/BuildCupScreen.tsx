@@ -14,6 +14,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useOrder, ORDER_STEPS, STEP_INFO } from '../context/OrderContext';
 import { colors, spacing, typography, borderRadius, shadows } from '../theme';
+import { submitOrder } from '../services/orderService';
 
 // Step components
 import SizeStep from '../components/order/SizeStep';
@@ -221,17 +222,39 @@ const StepHeader: React.FC = () => {
 
 // Navigation buttons
 const NavigationButtons: React.FC<{ onClose: () => void }> = ({ onClose }) => {
-  const { currentStep, stepIndex, nextStep, prevStep, canGoNext, canGoPrev, resetOrder } = useOrder();
+  const { currentStep, stepIndex, nextStep, prevStep, canGoNext, canGoPrev, resetOrder, order, getTotalPrice } = useOrder();
   const [showCelebration, setShowCelebration] = useState(false);
+  const [orderNumber, setOrderNumber] = useState('');
 
-  const handleNext = () => {
+  const handleNext = async () => {
     if (currentStep === 'review') {
-      // Order complete!
+      // Submit order to server
+      const result = await submitOrder({
+        cupSize: order.cupSize!,
+        flavors: order.flavors.map(f => ({ id: f.id, name: f.name, color: f.color })),
+        toppings: order.toppings.map(t => ({
+          topping: {
+            id: t.topping.id,
+            name: t.topping.name,
+            emoji: t.topping.emoji,
+            pricePerGram: t.topping.pricePerGram,
+          },
+          grams: t.grams,
+        })),
+        sauces: order.sauces.map(s => ({ id: s.id, name: s.name, emoji: s.emoji })),
+        totalPrice: getTotalPrice(),
+      });
+
+      if (result.orderId) {
+        setOrderNumber(result.orderId);
+      }
+
+      // Show celebration regardless (works offline too)
       setShowCelebration(true);
       setTimeout(() => {
         resetOrder();
         onClose();
-      }, 2500);
+      }, 3000);
     } else {
       nextStep();
     }
@@ -249,6 +272,9 @@ const NavigationButtons: React.FC<{ onClose: () => void }> = ({ onClose }) => {
           <Animated.View style={styles.celebrationContent}>
             <Text style={styles.celebrationEmoji}>🎉</Text>
             <Text style={styles.celebrationTitle}>Order Complete!</Text>
+            {orderNumber ? (
+              <Text style={styles.celebrationOrderNum}>{orderNumber}</Text>
+            ) : null}
             <Text style={styles.celebrationSubtitle}>Your frozen yogurt is being prepared</Text>
           </Animated.View>
         </View>
@@ -572,6 +598,13 @@ const styles = StyleSheet.create({
     fontWeight: typography.fontWeights.bold,
     color: '#FFF',
     marginBottom: spacing.sm,
+  },
+  celebrationOrderNum: {
+    fontSize: typography.fontSizes.xxl,
+    fontWeight: typography.fontWeights.bold,
+    color: colors.accent.gold,
+    marginBottom: spacing.sm,
+    letterSpacing: 2,
   },
   celebrationSubtitle: {
     fontSize: typography.fontSizes.lg,
