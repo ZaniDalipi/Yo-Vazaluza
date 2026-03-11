@@ -699,9 +699,9 @@ const AppNavigator: React.FC = () => {
             }),
           }}
         >
-          {(props) => (
+          {(props: any) => (
             <OrderProvider>
-              <BuildCupScreen {...props} />
+              <BuildCupScreen navigation={props.navigation} route={props.route} />
             </OrderProvider>
           )}
         </Stack.Screen>

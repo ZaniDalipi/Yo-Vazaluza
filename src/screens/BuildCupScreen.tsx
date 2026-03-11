@@ -434,8 +434,23 @@ const StepContent: React.FC = () => {
 };
 
 // Main BuildCupScreen
-const BuildCupScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
-  const { resetOrder } = useOrder();
+const BuildCupScreen: React.FC<{ navigation: any; route?: any }> = ({ navigation, route }) => {
+  const { resetOrder, prePopulateToppings, currentStep, order } = useOrder();
+  const preSelectedToppings = route?.params?.preSelectedToppings;
+  const toppingsAppliedRef = useRef(false);
+
+  // Auto-apply pre-selected toppings once flavors are chosen
+  useEffect(() => {
+    if (
+      preSelectedToppings?.length > 0 &&
+      !toppingsAppliedRef.current &&
+      currentStep === 'toppings' &&
+      order.flavors.length > 0
+    ) {
+      toppingsAppliedRef.current = true;
+      prePopulateToppings(preSelectedToppings);
+    }
+  }, [currentStep, preSelectedToppings, order.flavors.length]);
 
   const handleClose = () => {
     resetOrder();

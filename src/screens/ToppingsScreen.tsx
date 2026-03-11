@@ -17,6 +17,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
+import { useNavigation } from '@react-navigation/native';
 import { ToppingCard, MagicalParticles } from '../components';
 import { useApp } from '../context/AppContext';
 import { colors, spacing, typography, borderRadius, shadows } from '../theme';
@@ -140,6 +141,7 @@ const ConfettiParticle: React.FC<{ delay: number; color: string; startX: number 
 
 const ToppingsScreen: React.FC = () => {
   const { toppings } = useApp();
+  const navigation = useNavigation<any>();
   const [activeCategory, setActiveCategory] = useState<ToppingCategory>('all');
   const [selectedToppings, setSelectedToppings] = useState<Set<string>>(new Set());
   const [searchQuery, setSearchQuery] = useState('');
@@ -863,7 +865,9 @@ const ToppingsScreen: React.FC = () => {
           </View>
 
           <View style={styles.counterActions}>
-            <TouchableOpacity style={styles.viewButton} onPress={() => {}}>
+            <TouchableOpacity style={styles.viewButton} onPress={() => {
+              navigation.navigate('BuildCup', { preSelectedToppings: getSelectedToppingsData() });
+            }}>
               <Text style={styles.viewButtonText}>View Cup</Text>
               <Ionicons name="arrow-forward" size={16} color={colors.accent.gold} />
             </TouchableOpacity>

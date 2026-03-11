@@ -69,6 +69,9 @@ interface OrderContextType {
   canGoNext: () => boolean;
   canGoPrev: () => boolean;
 
+  // Bulk operations
+  prePopulateToppings: (toppings: Topping[]) => void;
+
   // Reset
   resetOrder: () => void;
 
@@ -160,6 +163,16 @@ export const OrderProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     }));
   }, []);
 
+  // Pre-populate toppings (from ToppingsScreen selection)
+  const prePopulateToppings = useCallback((toppingsToAdd: Topping[]) => {
+    setOrder(prev => {
+      const newToppings = toppingsToAdd
+        .filter(t => !prev.toppings.find(existing => existing.topping.id === t.id))
+        .map(t => ({ topping: t, grams: 10 } as ToppingSelection));
+      return { ...prev, toppings: [...prev.toppings, ...newToppings] };
+    });
+  }, []);
+
   // Check if step is complete
   const isStepComplete = useCallback((step: OrderStep): boolean => {
     switch (step) {
@@ -247,6 +260,7 @@ export const OrderProvider: React.FC<{ children: ReactNode }> = ({ children }) =
         addSauce,
         removeSauce,
         updateCupSizes,
+        prePopulateToppings,
         nextStep,
         prevStep,
         goToStep,
