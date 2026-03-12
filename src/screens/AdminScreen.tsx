@@ -1201,9 +1201,16 @@ const AdminScreen: React.FC = () => {
       </View>
 
       {/* Content */}
-      <View style={styles.content}>
+      {Platform.OS === 'web' ? (
+        <div style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden' } as any}>
+          <View style={[styles.contentContainer, { padding: horizontalPadding, maxWidth: contentMaxWidth, alignSelf: 'center' as const, width: '100%' }]}>
+            {renderSectionContent()}
+            <View style={{ height: 120 }} />
+          </View>
+        </div>
+      ) : (
         <ScrollView
-          style={{ flex: 1 }}
+          style={styles.content}
           contentContainerStyle={[styles.contentContainer, { padding: horizontalPadding, maxWidth: contentMaxWidth, alignSelf: 'center' as const, width: '100%' }]}
           showsVerticalScrollIndicator={true}
           nestedScrollEnabled={true}
@@ -1212,7 +1219,7 @@ const AdminScreen: React.FC = () => {
           {renderSectionContent()}
           <View style={{ height: 120 }} />
         </ScrollView>
-      </View>
+      )}
 
       {renderEditModal()}
       {renderColorPicker()}
@@ -1317,7 +1324,6 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
     backgroundColor: colors.background.main,
-    overflow: 'scroll' as any,
   },
   contentContainer: {
     padding: spacing.lg,
