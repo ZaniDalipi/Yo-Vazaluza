@@ -1179,7 +1179,7 @@ const AdminScreen: React.FC = () => {
 
       {/* Scrollable content area (stats + section content) */}
       {Platform.OS === 'web' ? (
-        <div style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', WebkitOverflowScrolling: 'touch' } as any}>
+        <div style={{ flexGrow: 1, flexShrink: 1, flexBasis: 0, minHeight: 0, overflowY: 'auto', overflowX: 'hidden', WebkitOverflowScrolling: 'touch' } as any}>
           {/* Stats Bar */}
           <View style={[styles.statsBar, { paddingHorizontal: horizontalPadding, maxWidth: contentMaxWidth, alignSelf: 'center', width: '100%' }]}>
             <View style={styles.statItem}>
