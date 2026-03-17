@@ -29,7 +29,7 @@ import { CupSize } from '../types';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
-type AdminSection = 'flavors' | 'toppings' | 'promotions' | 'gallery' | 'store' | 'pricing' | 'security' | 'settings';
+type AdminSection = 'flavors' | 'toppings' | 'sauces' | 'promotions' | 'gallery' | 'store' | 'pricing' | 'security' | 'settings';
 
 // Predefined color palette for quick selection
 const COLOR_PALETTE = [
@@ -100,6 +100,7 @@ const EMOJI_PALETTE = [
 const NAV_ITEMS: { key: AdminSection; icon: string; label: string }[] = [
   { key: 'flavors', icon: 'ice-cream', label: 'Flavors' },
   { key: 'toppings', icon: 'nutrition', label: 'Toppings' },
+  { key: 'sauces', icon: 'water', label: 'Sauces' },
   { key: 'promotions', icon: 'gift', label: 'Promos' },
   { key: 'gallery', icon: 'images', label: 'Gallery' },
   { key: 'store', icon: 'storefront', label: 'Store' },
@@ -449,6 +450,34 @@ const AdminScreen: React.FC = () => {
             </View>
           </>
         );
+      case 'sauces': {
+        const sauceItems = toppings.filter(t => t.category === 'sauces');
+        return (
+          <>
+            <View style={styles.sectionHeader}>
+              <Text style={[styles.sectionTitle, { fontSize: isTablet ? 22 : 18 }]}>Sauces / Drizzles ({sauceItems.length})</Text>
+              <TouchableOpacity style={[styles.addBtn, isTablet && { paddingHorizontal: 20, paddingVertical: 12 }]} onPress={() => {
+                openAddModal('topping');
+                // Pre-set category to sauces
+                setTimeout(() => setFormData((prev: any) => ({ ...prev, category: 'sauces' })), 50);
+              }}>
+                <Ionicons name="add" size={isTablet ? 24 : 20} color="#FFF" />
+                <Text style={[styles.addBtnText, { fontSize: isTablet ? 16 : 14 }]}>Add Sauce</Text>
+              </TouchableOpacity>
+            </View>
+            <View style={isTablet ? { flexDirection: 'row', flexWrap: 'wrap', gap: 16 } : undefined}>
+              {sauceItems.map(item => renderListItem(item, 'topping'))}
+            </View>
+            {sauceItems.length === 0 && (
+              <View style={{ alignItems: 'center', paddingVertical: spacing.xxl }}>
+                <Text style={{ fontSize: 48, marginBottom: spacing.md }}>🍯</Text>
+                <Text style={{ fontSize: 16, fontWeight: '600', color: colors.text.primary, marginBottom: spacing.xs }}>No sauces yet</Text>
+                <Text style={{ fontSize: 14, color: colors.text.muted }}>Tap "Add Sauce" to create your first drizzle option</Text>
+              </View>
+            )}
+          </>
+        );
+      }
       case 'promotions':
         return (
           <>

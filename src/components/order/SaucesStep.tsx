@@ -24,28 +24,19 @@ const getToppingEmoji = (topping: { emoji?: string }) => {
   return topping.emoji || '🍬';
 };
 
-// Sauce color and data
-const getSauceData = (name: string): { color: string; darkColor: string; lightColor: string; emoji: string } => {
-  const lower = name.toLowerCase();
-  if (lower.includes('chocolate') || lower.includes('fudge')) {
-    return { color: '#5C4033', darkColor: '#3E2723', lightColor: '#8B6F5E', emoji: '🍫' };
-  }
-  if (lower.includes('caramel')) {
-    return { color: '#D4A574', darkColor: '#B8860B', lightColor: '#E8C9A0', emoji: '🍯' };
-  }
-  if (lower.includes('strawberry')) {
-    return { color: '#E53935', darkColor: '#C62828', lightColor: '#FF8A80', emoji: '🍓' };
-  }
-  if (lower.includes('peanut')) {
-    return { color: '#C19A6B', darkColor: '#8B7355', lightColor: '#D4B896', emoji: '🥜' };
-  }
-  if (lower.includes('maple')) {
-    return { color: '#B8860B', darkColor: '#8B6914', lightColor: '#D4A853', emoji: '🍁' };
-  }
-  if (lower.includes('honey')) {
-    return { color: '#FFB300', darkColor: '#FF8F00', lightColor: '#FFD54F', emoji: '🍯' };
-  }
-  return { color: '#5C4033', darkColor: '#3E2723', lightColor: '#8B6F5E', emoji: '🍫' };
+// Derive sauce visual data from topping color (works with any sauce added from admin)
+const getSauceData = (sauce: Topping): { color: string; darkColor: string; lightColor: string; emoji: string } => {
+  const baseColor = sauce.color || '#5C4033';
+  // Darken: reduce each RGB channel by ~30%
+  const hex = baseColor.replace('#', '');
+  const r = parseInt(hex.substring(0, 2), 16);
+  const g = parseInt(hex.substring(2, 4), 16);
+  const b = parseInt(hex.substring(4, 6), 16);
+  const darkColor = `#${Math.round(r * 0.7).toString(16).padStart(2, '0')}${Math.round(g * 0.7).toString(16).padStart(2, '0')}${Math.round(b * 0.7).toString(16).padStart(2, '0')}`;
+  // Lighten: increase each RGB channel by ~30% toward 255
+  const lighten = (v: number) => Math.min(255, Math.round(v + (255 - v) * 0.4));
+  const lightColor = `#${lighten(r).toString(16).padStart(2, '0')}${lighten(g).toString(16).padStart(2, '0')}${lighten(b).toString(16).padStart(2, '0')}`;
+  return { color: baseColor, darkColor, lightColor, emoji: sauce.emoji || '🍫' };
 };
 
 // Single sauce selector - pick ONE drizzle
@@ -79,7 +70,7 @@ const SauceSelector: React.FC<{
     }
   }, [selectedSauce]);
 
-  const data = selectedSauce ? getSauceData(selectedSauce.name) : null;
+  const data = selectedSauce ? getSauceData(selectedSauce) : null;
 
   return (
     <View style={styles.selectorContainer}>
@@ -134,7 +125,7 @@ const SauceSelector: React.FC<{
       ]}>
         <View style={styles.sauceGrid}>
           {sauces.map((sauce) => {
-            const sData = getSauceData(sauce.name);
+            const sData = getSauceData(sauce);
             const isSelected = selectedSauce?.id === sauce.id;
             return (
               <TouchableOpacity
@@ -240,7 +231,7 @@ const SauceStation: React.FC<{
   }, [selectedSauce?.id]);
 
   const cupBottomWidth = CUP_WIDTH * 0.7;
-  const sauceData = selectedSauce ? getSauceData(selectedSauce.name) : null;
+  const sauceData = selectedSauce ? getSauceData(selectedSauce) : null;
 
   return (
     <View style={styles.stationContainer}>

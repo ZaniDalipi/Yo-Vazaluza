@@ -23,15 +23,15 @@ const getToppingDisplay = (topping: Topping) => {
 };
 
 // Sauce colors and light colors for liquid layer
-const getSauceColors = (name: string): { color: string; lightColor: string } => {
-  const lower = name.toLowerCase();
-  if (lower.includes('chocolate') || lower.includes('fudge')) return { color: '#5C4033', lightColor: '#8B6F5E' };
-  if (lower.includes('caramel')) return { color: '#D4A574', lightColor: '#E8C9A0' };
-  if (lower.includes('strawberry')) return { color: '#E53935', lightColor: '#FF8A80' };
-  if (lower.includes('peanut')) return { color: '#C19A6B', lightColor: '#D4B896' };
-  if (lower.includes('maple')) return { color: '#B8860B', lightColor: '#D4A853' };
-  if (lower.includes('honey')) return { color: '#FFB300', lightColor: '#FFD54F' };
-  return { color: '#5C4033', lightColor: '#8B6F5E' };
+const getSauceColors = (sauce: { name: string; color?: string }): { color: string; lightColor: string } => {
+  const baseColor = sauce.color || '#5C4033';
+  const hex = baseColor.replace('#', '');
+  const r = parseInt(hex.substring(0, 2), 16);
+  const g = parseInt(hex.substring(2, 4), 16);
+  const b = parseInt(hex.substring(4, 6), 16);
+  const lighten = (v: number) => Math.min(255, Math.round(v + (255 - v) * 0.4));
+  const lightColor = `#${lighten(r).toString(16).padStart(2, '0')}${lighten(g).toString(16).padStart(2, '0')}${lighten(b).toString(16).padStart(2, '0')}`;
+  return { color: baseColor, lightColor };
 };
 
 interface SharedCupProps {
@@ -199,7 +199,7 @@ export const SharedCup: React.FC<SharedCupProps> = ({
           {/* Liquid sauce layer on swirl */}
           {showSauces && order.sauces.length > 0 && (() => {
             const sauce = order.sauces[0];
-            const sc = getSauceColors(sauce.name);
+            const sc = getSauceColors(sauce);
             return (
               <View style={styles.sauceLayer}>
                 {/* Main liquid body */}
