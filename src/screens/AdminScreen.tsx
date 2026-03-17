@@ -1177,32 +1177,32 @@ const AdminScreen: React.FC = () => {
         </ScrollView>
       </View>
 
-      {/* Stats Bar */}
-      <View style={[styles.statsBar, { paddingHorizontal: horizontalPadding, maxWidth: contentMaxWidth, alignSelf: 'center', width: '100%' }]}>
-        <View style={styles.statItem}>
-          <Text style={[styles.statValue, { fontSize: statFontSize }]}>{flavors.length}</Text>
-          <Text style={[styles.statLabel, { fontSize: isTablet ? 14 : 12 }]}>Flavors</Text>
-        </View>
-        <View style={styles.statDivider} />
-        <View style={styles.statItem}>
-          <Text style={[styles.statValue, { fontSize: statFontSize }]}>{toppings.length}</Text>
-          <Text style={[styles.statLabel, { fontSize: isTablet ? 14 : 12 }]}>Toppings</Text>
-        </View>
-        <View style={styles.statDivider} />
-        <View style={styles.statItem}>
-          <Text style={[styles.statValue, { fontSize: statFontSize }]}>{promotions.filter(p => p.isActive).length}</Text>
-          <Text style={[styles.statLabel, { fontSize: isTablet ? 14 : 12 }]}>Active Promos</Text>
-        </View>
-        <View style={styles.statDivider} />
-        <View style={styles.statItem}>
-          <Text style={[styles.statValue, { fontSize: statFontSize }]}>{gallery.length}</Text>
-          <Text style={[styles.statLabel, { fontSize: isTablet ? 14 : 12 }]}>Photos</Text>
-        </View>
-      </View>
-
-      {/* Content */}
+      {/* Scrollable content area (stats + section content) */}
       {Platform.OS === 'web' ? (
-        <div style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden' } as any}>
+        <div style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', WebkitOverflowScrolling: 'touch' } as any}>
+          {/* Stats Bar */}
+          <View style={[styles.statsBar, { paddingHorizontal: horizontalPadding, maxWidth: contentMaxWidth, alignSelf: 'center', width: '100%' }]}>
+            <View style={styles.statItem}>
+              <Text style={[styles.statValue, { fontSize: statFontSize }]}>{flavors.length}</Text>
+              <Text style={[styles.statLabel, { fontSize: isTablet ? 14 : 12 }]}>Flavors</Text>
+            </View>
+            <View style={styles.statDivider} />
+            <View style={styles.statItem}>
+              <Text style={[styles.statValue, { fontSize: statFontSize }]}>{toppings.length}</Text>
+              <Text style={[styles.statLabel, { fontSize: isTablet ? 14 : 12 }]}>Toppings</Text>
+            </View>
+            <View style={styles.statDivider} />
+            <View style={styles.statItem}>
+              <Text style={[styles.statValue, { fontSize: statFontSize }]}>{promotions.filter(p => p.isActive).length}</Text>
+              <Text style={[styles.statLabel, { fontSize: isTablet ? 14 : 12 }]}>Active Promos</Text>
+            </View>
+            <View style={styles.statDivider} />
+            <View style={styles.statItem}>
+              <Text style={[styles.statValue, { fontSize: statFontSize }]}>{gallery.length}</Text>
+              <Text style={[styles.statLabel, { fontSize: isTablet ? 14 : 12 }]}>Photos</Text>
+            </View>
+          </View>
+
           <View style={[styles.contentContainer, { padding: horizontalPadding, maxWidth: contentMaxWidth, alignSelf: 'center' as const, width: '100%' }]}>
             {renderSectionContent()}
             <View style={{ height: 120 }} />
@@ -1211,13 +1211,37 @@ const AdminScreen: React.FC = () => {
       ) : (
         <ScrollView
           style={styles.content}
-          contentContainerStyle={[styles.contentContainer, { padding: horizontalPadding, maxWidth: contentMaxWidth, alignSelf: 'center' as const, width: '100%' }]}
+          contentContainerStyle={{ paddingBottom: 120 }}
           showsVerticalScrollIndicator={true}
           nestedScrollEnabled={true}
           keyboardShouldPersistTaps="handled"
         >
-          {renderSectionContent()}
-          <View style={{ height: 120 }} />
+          {/* Stats Bar */}
+          <View style={[styles.statsBar, { paddingHorizontal: horizontalPadding, maxWidth: contentMaxWidth, alignSelf: 'center', width: '100%' }]}>
+            <View style={styles.statItem}>
+              <Text style={[styles.statValue, { fontSize: statFontSize }]}>{flavors.length}</Text>
+              <Text style={[styles.statLabel, { fontSize: isTablet ? 14 : 12 }]}>Flavors</Text>
+            </View>
+            <View style={styles.statDivider} />
+            <View style={styles.statItem}>
+              <Text style={[styles.statValue, { fontSize: statFontSize }]}>{toppings.length}</Text>
+              <Text style={[styles.statLabel, { fontSize: isTablet ? 14 : 12 }]}>Toppings</Text>
+            </View>
+            <View style={styles.statDivider} />
+            <View style={styles.statItem}>
+              <Text style={[styles.statValue, { fontSize: statFontSize }]}>{promotions.filter(p => p.isActive).length}</Text>
+              <Text style={[styles.statLabel, { fontSize: isTablet ? 14 : 12 }]}>Active Promos</Text>
+            </View>
+            <View style={styles.statDivider} />
+            <View style={styles.statItem}>
+              <Text style={[styles.statValue, { fontSize: statFontSize }]}>{gallery.length}</Text>
+              <Text style={[styles.statLabel, { fontSize: isTablet ? 14 : 12 }]}>Photos</Text>
+            </View>
+          </View>
+
+          <View style={[styles.contentContainer, { padding: horizontalPadding, maxWidth: contentMaxWidth, alignSelf: 'center' as const, width: '100%' }]}>
+            {renderSectionContent()}
+          </View>
         </ScrollView>
       )}
 
@@ -1327,8 +1351,6 @@ const styles = StyleSheet.create({
   },
   contentContainer: {
     padding: spacing.lg,
-    paddingBottom: 120,
-    paddingBottom: 150,
   },
   sectionHeader: {
     flexDirection: 'row',
