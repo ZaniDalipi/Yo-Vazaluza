@@ -22,22 +22,9 @@ const getToppingEmoji = (topping: { emoji?: string }) => {
   return topping.emoji || '🍬';
 };
 
-// Sauce data
-const getSauceData = (name: string): { color: string; emoji: string } => {
-  const lower = name.toLowerCase();
-  if (lower.includes('chocolate') || lower.includes('fudge')) {
-    return { color: '#5C4033', emoji: '🍫' };
-  }
-  if (lower.includes('caramel')) {
-    return { color: '#D4A574', emoji: '🍯' };
-  }
-  if (lower.includes('strawberry')) {
-    return { color: '#E53935', emoji: '🍓' };
-  }
-  if (lower.includes('peanut')) {
-    return { color: '#C19A6B', emoji: '🥜' };
-  }
-  return { color: '#5C4033', emoji: '🍫' };
+// Sauce data - use topping's own color
+const getSauceData = (sauce: { name: string; color?: string; emoji?: string }): { color: string; emoji: string } => {
+  return { color: sauce.color || '#5C4033', emoji: sauce.emoji || '🍫' };
 };
 
 // Elegant final cup preview - shows the complete froyo creation
@@ -218,7 +205,7 @@ const FinalCup: React.FC = () => {
             {/* Sauce drizzles on top */}
             <View style={styles.sauceDrizzles}>
               {order.sauces.slice(0, 3).map((sauce, i) => {
-                const data = getSauceData(sauce.name);
+                const data = getSauceData(sauce);
                 const drizzleStyles = [
                   { left: 10, width: 40, rotation: '-5deg' },
                   { left: 35, width: 35, rotation: '3deg' },
@@ -429,7 +416,7 @@ const ReviewStep: React.FC = () => {
           emoji="🍫"
           items={order.sauces.map(s => ({
             name: s.name,
-            icon: getSauceData(s.name).emoji
+            icon: getSauceData(s).emoji
           }))}
           emptyText="No sauces added"
         />

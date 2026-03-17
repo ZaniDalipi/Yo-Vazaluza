@@ -19,6 +19,7 @@ import {
   FlavorsScreen,
   GalleryScreen,
   ToppingsScreen,
+  SaucesScreen,
   AboutScreen,
   AdminLoginScreen,
   AdminScreen,
@@ -42,6 +43,7 @@ const menuItems = [
   { name: 'Home', icon: 'home-outline', iconFocused: 'home' },
   { name: 'Flavors', icon: 'ice-cream-outline', iconFocused: 'ice-cream' },
   { name: 'Toppings', icon: 'color-fill-outline', iconFocused: 'color-fill' },
+  { name: 'Sauces', icon: 'water-outline', iconFocused: 'water' },
   { name: 'Gallery', icon: 'images-outline', iconFocused: 'images' },
   { name: 'About', icon: 'information-circle-outline', iconFocused: 'information-circle' },
 ];
@@ -589,6 +591,7 @@ const MobileTabNavigator: React.FC = () => {
       <Tab.Screen name="Home" component={HomeScreen} />
       <Tab.Screen name="Flavors" component={FlavorsScreen} />
       <Tab.Screen name="Toppings" component={ToppingsScreen} />
+      <Tab.Screen name="Sauces" component={SaucesScreen} />
       <Tab.Screen name="Gallery" component={GalleryScreen} />
       <Tab.Screen name="About" component={AboutScreen} />
     </Tab.Navigator>
@@ -607,6 +610,7 @@ const ResponsiveTabNavigator: React.FC = () => {
       <Tab.Screen name="Home" component={withResponsiveLayout(HomeScreen, 'Home')} />
       <Tab.Screen name="Flavors" component={withResponsiveLayout(FlavorsScreen, 'Flavors')} />
       <Tab.Screen name="Toppings" component={withResponsiveLayout(ToppingsScreen, 'Toppings')} />
+      <Tab.Screen name="Sauces" component={withResponsiveLayout(SaucesScreen, 'Sauces')} />
       <Tab.Screen name="Gallery" component={withResponsiveLayout(GalleryScreen, 'Gallery')} />
       <Tab.Screen name="About" component={withResponsiveLayout(AboutScreen, 'About')} />
     </Tab.Navigator>

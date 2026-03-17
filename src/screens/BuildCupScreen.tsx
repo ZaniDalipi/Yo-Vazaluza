@@ -301,12 +301,12 @@ const NavigationButtons: React.FC<{ onClose: () => void }> = ({ onClose }) => {
                   <Text style={styles.receiptPrice}>${((t.topping.pricePerGram || 0.05) * t.grams).toFixed(2)}</Text>
                 </View>
               ))}
-              {order.sauces.length > 0 && (
-                <View style={styles.receiptRow}>
-                  <Text style={styles.receiptItem}>{order.sauces[0].emoji || '🍫'} {order.sauces[0].name}</Text>
+              {order.sauces.map(sauce => (
+                <View key={sauce.id} style={styles.receiptRow}>
+                  <Text style={styles.receiptItem}>{sauce.emoji || '🍫'} {sauce.name}</Text>
                   <Text style={[styles.receiptPrice, { color: colors.ui.success }]}>FREE</Text>
                 </View>
-              )}
+              ))}
               <View style={styles.receiptDivider} />
               <View style={styles.receiptRow}>
                 <Text style={styles.receiptTotal}>TOTAL</Text>
